@@ -1,7 +1,6 @@
-# LangGraph-Orchestrated Skill System
+# ISU Knowledge Base — LangGraph Skill Suite
 
-A progressive build of a LangGraph skill plugin system, using local models via Ollama.
-Each milestone introduces new LangGraph concepts before adding complexity.
+A suite of LangGraph skill plugins that build an Obsidian knowledge vault from ISU research data. Each skill captures a different entity type (people, signals, centers, events) and outputs interlinked markdown notes.
 
 ---
 
@@ -14,183 +13,175 @@ ollama pull qwen3-coder:30b
 ollama serve
 ```
 
-The code defaults to `qwen3-coder:30b` — a MoE model (30B total, 3B active per
-token) with the most reliable tool calling of any local model. Runs well on 32GB+
-Macs. Pass `--model <name>` to the runners to use a different model.
+Defaults to `qwen3-coder:30b` (30B MoE, 3B active). Pass `--model <name>` to use a different model.
 
----
+### Vault Setup
 
-## Milestones
-
-### M1 — Minimal ReAct Loop
-
-**What you learn:** `StateGraph`, `add_messages` reducer, `conditional_edges`, `MemorySaver`
+Configure the Obsidian vault with graph colors, CSS snippets, and folder structure:
 
 ```bash
-python learning/01_react_basics/react_agent.py
+python skills/shared/setup_vault.py /path/to/vault
+python skills/shared/setup_vault.py /path/to/vault --dry-run      # preview
+python skills/shared/setup_vault.py /path/to/vault --colors-only   # graph + CSS only
 ```
 
-The agent calls two tools (`get_current_time`, `add_numbers`) in a loop until it has
-an answer. The graph topology is printed as ASCII before the run.
-
-Key concepts in `learning/01_react_basics/react_agent.py`:
-- `AgentState` TypedDict with `add_messages` — new messages append, not overwrite
-- `should_continue()` routing function — returns `"tools"` or `END`
-- `graph.compile(checkpointer=MemorySaver())` — state persists across calls
-- `app.get_state(config)` — inspect the full state after a run
+Quit Obsidian before running — it overwrites `graph.json` on exit.
 
 ---
 
-### M2 — SkillState + Plugin Contract
+## Skills
 
-**What you learn:** Extended state, reducers, the plugin interface
+### person-research
 
-No runnable demo — this is the shared data layer used by M3+.
-
-Files:
-- `harness/skill_state.py` — `SkillState` TypedDict + `validate_plugin()`
-
-`SkillState` fields:
-```
-task            — original user request (never changes)
-phase           — current phase: gather | execute | verify | deliver
-plan            — upfront plan (planreact strategy only)
-messages        — full LLM conversation (add_messages reducer)
-tool_results    — dict keyed by tool name
-verify_failures — parsed FAIL lines from verify script
-attempts        — retry counter
-output_path     — path to the artifact produced
-answer          — final answer returned to user
-```
-
-Plugin contract — what every `plugin.py` must export:
-```python
-PROMPTS  = {"gather": "...", "execute": "...", "deliver": "..."}
-TOOLS    = [list_of_langchain_tool_functions]
-VERIFY   = {"script": "run_all.sh", "max_attempts": 3, "parse_failures": callable}
-STRATEGY = "react"   # optional: "react" | "act" | "planreact"
-```
-
----
-
-### M3 — Shared Skill Harness
-
-**What you learn:** Multi-node conditional routing, failure injection, checkpointing
-
-```bash
-python learning/02_skill_harness/demo.py
-```
-
-Graph topology (shared by all skills):
-```
-[plan] → gather → execute ⇄ tools
-                          ↓
-                       verify
-                      /      \
-                (PASS)        (FAIL, retries left)
-                   ↓                  ↓
-                deliver          inject_failures → execute
-                   ↓
-                  END
-```
-
-`[plan]` node is only present when `STRATEGY = "planreact"`.
-
-Key function: `build_skill_graph(plugin, model, strategy)` in `harness/skill_harness.py`.
-Takes any plugin dict and returns a compiled LangGraph app.
-
-Inspect the graph at any time:
-```python
-app = build_skill_graph(plugin)
-app.get_graph().print_ascii()
-```
-
----
-
-### M4 — person-research Plugin
-
-**What you learn:** Real `@tool` wrappers over shell scripts, end-to-end run
+Profile people from APIs (OpenAlex, PubMed, ORCID, ISU LDAP, department pages).
 
 ```bash
 cd skills/person_research
 python run.py "Andrew Severin"
 python run.py "Andrew Severin" --institution "Iowa State University"
-python run.py "Jane Doe" --model qwen3-coder:30b --thread my-run-1
+python run.py --input people.tsv          # batch from TSV
 ```
 
-The plugin wraps the existing shell scripts from `person-research/` as `@tool` functions:
+Output: `vault/people/<slug>/<slug>.md` + `abstracts/*.md` per paper.
 
-| Tool | Script |
-|------|--------|
-| `classify_person` | `scripts/fetch_classify.sh` |
-| `fetch_openalex` | `scripts/fetch_openalex.sh` |
-| `fetch_pubmed` | `scripts/fetch_pubmed.sh` |
-| `fetch_orcid` | `scripts/fetch_orcid.sh` |
-| `fetch_webpage` | `scripts/fetch_webpage.sh` |
-| `fetch_contact` | `scripts/fetch_contact.sh` |
-| `scaffold_person` | `stubs/scaffold_person.sh` |
-| `check_deliver` | `scripts/check_deliver.sh` |
+### signal-capture
 
-Verify runs `run_all.sh <output_file>` and parses lines containing `FAIL`.
-Failed checks are injected into the message context so the LLM knows what to fix.
+Capture news/blog articles as signal notes with topic and person context.
 
-Inspect state mid-run or after completion:
-```python
-snapshot = app.get_state({"configurable": {"thread_id": "my-run-1"}})
-print(snapshot.values)
-```
-
-Resume an interrupted run by re-running with the same `--thread` value:
 ```bash
-python run.py "Andrew Severin" --thread person-research-andrew-severin
+cd skills/signal_capture
+python run_signal.py --url "https://..." --topic "artificial intelligence"
+python run_signal.py --file article.txt --topic ai
+python run_signal.py --input urls.txt --skip-existing --topic ai   # batch
+```
+
+`--topic` adds keyword-in-context snippets and quote-attributed person snippets.
+
+Output: `vault/signals/<slug>.md` + `raw/<slug>.txt` (original source) + `<slug>-people.tsv`.
+
+#### Batch from ISU News search
+
+```bash
+python scripts/scrape_search.py "artificial intelligence" > urls.txt
+python run_signal.py --input urls.txt --skip-existing --topic ai
+```
+
+#### Backfill existing signals
+
+Update existing notes without re-running the LLM (tag fixes, snippets, raw files):
+
+```bash
+python backfill_signals.py --topic ai vault/signals/           # dry run by default
+python backfill_signals.py --topic ai --refetch vault/signals/  # fetch raw content
+python backfill_signals.py --topic ai vault/signals/ --no-dry-run
+```
+
+### center-research
+
+Document research centers/groups from URLs and local files.
+
+```bash
+cd skills/center_research
+python run_center.py --name "Virtual Reality Applications Center" --url "https://..."
+python run_center.py --name "VRAC" --folder /path/to/files
+```
+
+Output: `vault/centers/<slug>.md` + `<slug>-members.tsv`.
+
+### event-research
+
+Capture event notes from local folders (agendas, rosters, slides).
+
+```bash
+cd skills/event_research
+python run_event.py --name "GIF Meeting" --date 2026-05-01 --folder /path/to/files
+```
+
+Output: `vault/events/<date>-<slug>/<slug>.md` + `notes/*.md` + `attendees.tsv`.
+
+---
+
+## Shared Utilities
+
+All skills share common scripts in `skills/shared/scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `fetch_with_fallback.py` | URL fetch with gzip decompression and bot-wall hard stop |
+| `extract_text.py` | PDF/HTML/DOCX to plain text |
+| `extract_snippets.py` | Topic and person snippet extraction with quote-priority |
+| `extract_names.py` | Regex name extraction from text |
+| `inventory_folder.py` | Recursive folder listing |
+| `tag_resolver.py` | Fuzzy-match tags against vault registry (>80% threshold) |
+| `verify_extraction.py` | Check extraction completeness |
+| `setup_vault.py` | Obsidian vault setup (graph colors, CSS, folders, tag registry) |
+
+---
+
+## Cross-Skill Pipeline
+
+Each skill emits `.tsv` files of discovered people, feeding into person-research:
+
+```
+signal-capture  ──>  signals/<slug>-people.tsv  ──>  person-research --input
+center-research ──>  centers/<slug>-members.tsv ──>  person-research --input
+event-research  ──>  events/<slug>/attendees.tsv ──>  person-research --input
 ```
 
 ---
 
-### M5 — Pluggable Reasoning Strategy
+## Vault Structure
 
-**What you learn:** How strategy changes prompt behavior and graph topology
-
-Three strategies are supported:
-
-| Strategy | Behavior | Best for |
-|----------|----------|----------|
-| `react` (default) | LLM reasons step-by-step before each tool call | General purpose |
-| `act` | LLM calls tools directly, no narrated reasoning | Simple tasks, token savings |
-| `planreact` | Upfront plan node, then reason+act per step | Complex multi-step tasks |
-
-Set in plugin:
-```python
-STRATEGY = "react"   # in plugin.py
+```
+vault/
+├── people/<slug>/
+│   ├── <slug>.md               Person profile
+│   └── abstracts/*.md          Per-paper notes with author wiki-links
+├── centers/<slug>.md           Center/group note
+├── events/<date>-<slug>/
+│   ├── <slug>.md               Event note
+│   ├── notes/*.md              Discussion topic notes
+│   └── attendees.tsv
+├── signals/
+│   ├── <slug>.md               Signal note
+│   └── raw/<slug>.txt          Original source text
+├── tags/
+│   └── tag-registry.md         Approved tags
+└── .obsidian/
+    ├── graph.json              Graph node color groups
+    ├── snippets/entity-colors.css  Folder color coding
+    └── appearance.json
 ```
 
-Or override at runtime:
-```python
-app = build_skill_graph(plugin, strategy="act")
-```
-
-Compare strategies on the same task:
-```bash
-# react (default)
-python skills/person_research/run.py "Andrew Severin"
-
-# act — fewer tokens, faster, less robust
-python skills/person_research/run.py "Andrew Severin" --strategy act
-
-# planreact — adds plan node before gather
-python skills/person_research/run.py "Andrew Severin" --strategy planreact
-```
+Graph node colors: abstracts (lavender), people (teal), signals (coral), events (green), centers (amber), tags (purple).
 
 ---
 
-## Adding a New Skill
+## LangGraph Harness
 
-1. Create `skills/<skill_name>/plugin.py` exporting `PROMPTS`, `TOOLS`, `VERIFY`, `STRATEGY`
-2. Wrap each shell script as a `@tool` function using `subprocess.run`
-3. Point `VERIFY["script"]` at the skill's `run_all.sh`
-4. Run it: `build_skill_graph(plugin).invoke({"task": "..."})`
+All skills use the shared harness at `../../harness/`:
 
-The shell scripts are the stable tested layer. The plugin is just the bridge.
+```
+[plan] -> gather -> execute <-> tools -> verify -> deliver -> END
+                                           |
+                                     retry (max 3)
+```
+
+Strategies: `act` (person, center, signal), `react` (event), `planreact` (reserved).
+
+Override at runtime: `--strategy act|react|planreact`
+
+---
+
+## Key Design Principles
+
+1. **Minimize LLM surface area** — Python handles data fetching, transformation, and formatting. The LLM provides only reasoning fields (~200 tokens: role, summary, tags).
+2. **Module-level cache** — Large datasets pass between tools via Python dicts, not LLM context.
+3. **Deterministic builders** — All markdown output is assembled by Python, not generated by the LLM.
+4. **Tag resolution + sanitization** — `tag_resolver.py` fuzzy-matches against the registry; `_sanitize_tag()` enforces kebab-case.
+5. **Raw data preservation** — Original source content saved for future re-processing.
+
+See `BEST_PRACTICES.md` for the full set of 35 lessons learned.
 
 ---
 
@@ -200,23 +191,49 @@ The shell scripts are the stable tested layer. The plugin is just the bridge.
 AgentPlugin/
   requirements.txt
   README.md
-  design-notes/             ← conceptual design docs (01–09)
+  BEST_PRACTICES.md
   harness/
-    skill_state.py          ← M2: SkillState TypedDict + plugin contract
-    skill_harness.py        ← M3+5: build_skill_graph() factory (shared by all skills)
+    skill_state.py              SkillState TypedDict + plugin contract
+    skill_harness.py            build_skill_graph() factory
   learning/
-    01_react_basics/
-      react_agent.py        ← M1: standalone ReAct loop with comments
-    02_skill_harness/
-      demo_plugin.py        ← M3: toy plugin (word count, no external deps)
-      demo.py               ← M3: harness demo runner
+    01_react_basics/            M1: standalone ReAct loop
+    02_skill_harness/           M3: harness demo
   skills/
-    person_research/        ← M4: person-research plugin
-      plugin.py
-      run.py
+    person_research/
+      plugin.py                 PROMPTS, TOOLS, VERIFY, STRATEGY="act"
+      run.py                    CLI entrypoint
       scripts/
-      stubs/
-      unit_tests/
-      people/               ← output (gitignored or kept locally)
-    # future skills go here
+        research_person.py      Parallel API fetch
+        build_profile.py        Deterministic markdown builder
+    signal_capture/
+      plugin.py                 PROMPTS, TOOLS, VERIFY, STRATEGY="act"
+      run_signal.py             CLI entrypoint (single + batch, --topic)
+      backfill_signals.py       Retroactive note updates
+      scripts/
+        gather_signal.py        URL/file/text fetch + raw save
+        build_signal.py         Signal note builder + snippets
+        scrape_search.py        ISU News search -> URL list
+    center_research/
+      plugin.py                 PROMPTS, TOOLS, VERIFY, STRATEGY="act"
+      run_center.py             CLI entrypoint
+      scripts/
+        gather_center.py        URL + folder fetch
+        build_center.py         Center note builder
+    event_research/
+      plugin.py                 PROMPTS, TOOLS, VERIFY, STRATEGY="react"
+      run_event.py              CLI entrypoint
+      scripts/
+        gather_event.py         Folder inventory + URL fetch
+        build_event.py          Event note + discussion notes builder
+    shared/
+      setup_vault.py            Obsidian vault configuration
+      scripts/
+        fetch_with_fallback.py  URL fetch + bot detection
+        extract_text.py         PDF/HTML/DOCX -> text
+        extract_snippets.py     Topic/person snippet extraction
+        extract_names.py        Name extraction
+        inventory_folder.py     Folder listing
+        tag_resolver.py         Tag fuzzy matching
+        verify_extraction.py    Extraction validation
+    vault/                      Obsidian vault (output)
 ```
