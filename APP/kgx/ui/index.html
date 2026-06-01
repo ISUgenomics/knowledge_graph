@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Explorer</title>
+    <link rel="stylesheet" href="/components/shared/theme.css">
+    <link rel="stylesheet" href="/components/graph/graph.css">
+    <link rel="stylesheet" href="/components/sidebar/sidebar.css">
+    <link rel="stylesheet" href="/components/detail/detail.css">
+    <link rel="stylesheet" href="/components/chat/chat.css">
+    <style>
+        /* Layout — four-panel shell */
+        #app {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr var(--detail-width);
+            grid-template-rows: var(--header-height) 1fr var(--chat-height);
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Header */
+        #header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+
+        #header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+
+        #header-stats {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        #header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .header-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        /* Sidebar */
+        #sidebar {
+            grid-row: 2 / 4;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        /* Graph (main area) */
+        #graph-container {
+            grid-row: 2 / 3;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Detail panel */
+        #detail-panel {
+            grid-row: 2 / 3;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        /* Chat panel — full width bottom */
+        #chat-panel {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Context menu (global overlay) */
+        #context-menu {
+            position: fixed;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 4px 0;
+            min-width: 180px;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            display: none;
+        }
+        #context-menu.visible { display: block; }
+        .ctx-label {
+            padding: 6px 16px 2px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+        .ctx-type {
+            padding: 0 16px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+        }
+        .ctx-item {
+            padding: 7px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+        .ctx-item:hover { background: var(--bg-hover); }
+        .ctx-item-skill { color: var(--accent); }
+        .ctx-item-muted { color: var(--text-muted); font-size: 11px; }
+        .ctx-separator {
+            border-top: 1px solid var(--border);
+            margin: 3px 0;
+        }
+
+        /* Mutation confirm dialog */
+        #confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+        }
+        #confirm-overlay.visible { display: flex; }
+        #confirm-dialog {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 520px;
+            width: 90%;
+        }
+        #confirm-dialog h3 { font-size: 14px; margin-bottom: 12px; color: var(--warning); }
+        #confirm-sql {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-primary);
+        }
+        #confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-cancel {
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header id="header">
+        <h1>Knowledge Graph Explorer</h1>
+        <span id="header-stats"></span>
+        <div id="header-search-wrap" style="margin-left:auto;position:relative;">
+            <input id="header-search" placeholder="Search nodes…" autocomplete="off"
+                style="background:var(--bg-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+                color:var(--text-primary);font-size:12px;padding:4px 10px;width:200px;outline:none;">
+            <div id="header-search-results"
+                style="display:none;position:absolute;top:32px;left:0;width:280px;max-height:240px;overflow-y:auto;
+                background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);
+                box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:100;"></div>
+        </div>
+        <div id="header-actions">
+            <select id="layout-select" class="header-btn">
+                <option value="force">Force</option>
+                <option value="cluster">Cluster by Type</option>
+                <option value="timeline">Timeline</option>
+                <option value="umap">UMAP</option>
+                <option value="td">Hierarchical ↓</option>
+                <option value="bu">Hierarchical ↑</option>
+                <option value="lr">Hierarchical →</option>
+                <option value="rl">Hierarchical ←</option>
+                <option value="radialout">Radial Out</option>
+                <option value="radialin">Radial In</option>
+            </select>
+            <button class="header-btn" id="btn-toggle-labels">Labels</button>
+            <button class="header-btn" id="btn-show-all">Show All</button>
+            <button class="header-btn" id="btn-export-json">Export JSON</button>
+            <button class="header-btn" id="btn-export-neo4j">Export Neo4j</button>
+        </div>
+    </header>
+
+    <nav id="sidebar"><!-- populated by sidebar.js --></nav>
+
+    <main id="graph-container"><!-- populated by graph.js --></main>
+
+    <aside id="detail-panel">
+        <div id="detail-placeholder" style="padding:24px;color:var(--text-muted);font-size:13px;">
+            Click a node to view details.
+        </div>
+    </aside>
+
+    <section id="chat-panel"><!-- populated by chat.js --></section>
+</div>
+
+<!-- Context menu (shared) -->
+<div id="context-menu"></div>
+
+<!-- Mutation confirm dialog -->
+<div id="confirm-overlay">
+    <div id="confirm-dialog">
+        <h3>Confirm database mutation</h3>
+        <div id="confirm-sql"></div>
+        <div id="confirm-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;"></div>
+        <div id="confirm-actions">
+            <button class="btn-cancel" id="btn-confirm-cancel">Cancel</button>
+            <button class="btn-danger" id="btn-confirm-execute">Execute</button>
+        </div>
+    </div>
+</div>
+
+<!-- Vendored libraries (no CDN) -->
+<script src="/lib/3d-force-graph.min.js"></script>
+
+<!-- App bootstrap -->
+<script type="module">
+    import { EventBus } from '/components/shared/event-bus.js';
+    import { ApiClient } from '/components/shared/api-client.js';
+    import { initGraph } from '/components/graph/graph.js';
+    import { initSidebar } from '/components/sidebar/sidebar.js';
+    import { initDetail } from '/components/detail/detail.js';
+    import { initChat } from '/components/chat/chat.js';
+    import { initContextMenu } from '/components/graph/context-menu.js';
+
+    const bus = new EventBus();
+    const api = new ApiClient();
+
+    // Init components — each gets bus + api, nothing else
+    initGraph(document.getElementById('graph-container'), bus, api);
+    initSidebar(document.getElementById('sidebar'), bus, api);
+    initDetail(document.getElementById('detail-panel'), bus, api);
+    initChat(document.getElementById('chat-panel'), bus, api);
+    initContextMenu(document.getElementById('context-menu'), bus, api);
+
+    // Header stats
+    bus.on('graph:loaded', ({ nodeCount, edgeCount }) => {
+        document.getElementById('header-stats').textContent =
+            `${nodeCount} nodes · ${edgeCount} edges`;
+    });
+
+    // Header buttons
+    document.getElementById('layout-select').addEventListener('change', e => {
+        bus.emit('layout:change', { layout: e.target.value });
+    });
+    let labelsOn = true;
+    document.getElementById('btn-toggle-labels').addEventListener('click', () => {
+        labelsOn = !labelsOn;
+        document.getElementById('btn-toggle-labels').style.opacity = labelsOn ? '1' : '0.5';
+        bus.emit('labels:toggle', { visible: labelsOn });
+    });
+    document.getElementById('btn-show-all').addEventListener('click', () => {
+        bus.emit('node:show-all', {});
+    });
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+        window.open('/api/export/json', '_blank');
+    });
+    document.getElementById('btn-export-neo4j').addEventListener('click', () => {
+        window.open('/api/export/neo4j', '_blank');
+    });
+
+    // HTML escaping for dynamic content
+    function escH(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Global search
+    const searchInput = document.getElementById('header-search');
+    const searchResults = document.getElementById('header-search-results');
+    let searchDebounce = null;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        const q = searchInput.value.trim();
+        if (q.length < 2) { searchResults.style.display = 'none'; return; }
+        searchDebounce = setTimeout(async () => {
+            try {
+                const data = await api.post('/api/query', {
+                    sql: "SELECT id, type, name FROM entities WHERE name LIKE ? LIMIT 20",
+                    params: ['%' + q + '%']
+                });
+                if (!data.results || data.results.length === 0) {
+                    searchResults.innerHTML = '<div style="padding:8px 12px;font-size:11px;color:var(--text-muted);">No results</div>';
+                } else {
+                    searchResults.innerHTML = data.results.map(r => `
+                        <div class="search-hit" data-id="${escH(r.id)}" data-type="${escH(r.type)}" data-name="${escH(r.name)}"
+                            style="padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text-secondary);
+                            border-bottom:1px solid var(--border);">
+                            <span style="color:var(--text-primary);">${escH(r.name)}</span>
+                            <span style="font-size:10px;color:var(--text-muted);margin-left:6px;">${escH(r.type)}</span>
+                        </div>
+                    `).join('');
+                    searchResults.querySelectorAll('.search-hit').forEach(el => {
+                        el.addEventListener('click', () => {
+                            bus.emit('node:selected', { id: el.dataset.id, type: el.dataset.type, name: el.dataset.name });
+                            bus.emit('node:focus', { id: el.dataset.id });
+                            searchResults.style.display = 'none';
+                            searchInput.value = '';
+                        });
+                        el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover)');
+                        el.addEventListener('mouseleave', () => el.style.background = '');
+                    });
+                }
+                searchResults.style.display = 'block';
+            } catch (_) { searchResults.style.display = 'none'; }
+        }, 250);
+    });
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim().length >= 2 && searchResults.innerHTML) searchResults.style.display = 'block';
+    });
+    document.addEventListener('click', e => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.style.display = 'none';
+    });
+
+    // DB file watcher — auto-refresh when skills write to vault.db
+    const dbWatcher = new EventSource('/api/watch');
+    dbWatcher.addEventListener('changed', () => {
+        console.log('vault.db changed on disk — refreshing');
+        bus.emit('db:changed', {});
+    });
+    window.addEventListener('beforeunload', () => dbWatcher.close());
+
+    // Skill dispatch — right-click → "Research person…"
+    bus.on('skill:dispatch', async ({ skill, entity_id, entity_name, entity_type }) => {
+        const args = ['--input', entity_id];
+        try {
+            const resp = await api.post('/api/skill/run', { skill_id: skill, args });
+            // Notify chat panel so user can see output
+            bus.emit('skill:started', { job_id: resp.job_id, skill, entity_name });
+        } catch (err) {
+            console.error('Skill dispatch failed:', err.message);
+        }
+    });
+
+    // Skill started — show notification in chat
+    bus.on('skill:started', ({ job_id, skill, entity_name }) => {
+        // Chat panel listens for this to show a progress message
+        console.log(`Skill ${skill} started for ${entity_name} — job ${job_id}`);
+    });
+
+    // Mutation confirm dialog
+    let _pendingMutation = null;
+    bus.on('chat:mutation', ({ sql, token, preview }) => {
+        _pendingMutation = { sql, token };
+        document.getElementById('confirm-sql').textContent = sql;
+        document.getElementById('confirm-meta').textContent =
+            preview ? `Estimated rows affected: ${preview}` : '';
+        document.getElementById('confirm-overlay').classList.add('visible');
+    });
+    document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+        document.getElementById('confirm-overlay').classList.remove('visible');
+        _pendingMutation = null;
+    });
+    document.getElementById('btn-confirm-execute').addEventListener('click', async () => {
+        if (!_pendingMutation) return;
+        try {
+            await api.post('/api/mutate/execute', { token: _pendingMutation.token });
+            bus.emit('db:changed', {});
+        } catch (err) {
+            alert('Mutation failed: ' + err.message);
+        } finally {
+            document.getElementById('confirm-overlay').classList.remove('visible');
+            _pendingMutation = null;
+        }
+    });
+</script>
+</body>
+</html>

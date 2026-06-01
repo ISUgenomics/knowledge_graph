@@ -1,0 +1,29 @@
+# Knowledge Graph Explorer configuration
+
+db:
+  path: /Users/andrewseverin/isugif/agent_skills/severin/AgentPlugin/skills/vault/vault.db
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: true
+  directory: /Users/andrewseverin/isugif/agent_skills/severin/AgentPlugin/skills
+  python: python3
+  model: qwen3-coder:30b
+
+server:
+  host: 127.0.0.1
+  port: 8000
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
