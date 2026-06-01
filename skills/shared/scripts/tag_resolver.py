@@ -22,7 +22,6 @@ def load_tag_registry(vault_root: str = ".") -> dict[str, dict]:
         return {}
 
     registry = {}
-    in_table = False
     for line in registry_path.read_text().splitlines():
         line = line.strip()
         # Skip frontmatter
@@ -41,20 +40,56 @@ def load_tag_registry(vault_root: str = ".") -> dict[str, dict]:
     return registry
 
 
+def load_tag_aliases(vault_root: str = ".") -> dict[str, str]:
+    """
+    Load alias → canonical tag mappings from tags/tag-aliases.md.
+
+    File format (markdown table):
+        | Alias | Canonical |
+        |-------|-----------|
+        | artificial-intelligence | ai |
+
+    Returns {alias: canonical_tag}
+    """
+    alias_path = Path(vault_root) / "tags" / "tag-aliases.md"
+    if not alias_path.exists():
+        return {}
+
+    aliases = {}
+    for line in alias_path.read_text().splitlines():
+        line = line.strip()
+        if line == "---":
+            continue
+        if line.startswith("|") and "Alias" not in line and "---" not in line:
+            parts = [p.strip() for p in line.split("|")[1:-1]]
+            if len(parts) >= 2:
+                alias = parts[0].strip()
+                canonical = parts[1].strip()
+                if alias and canonical:
+                    aliases[alias] = canonical
+
+    return aliases
+
+
 def resolve_tags(
     candidate_tags: list[str],
     registry: dict[str, dict],
+    aliases: dict[str, str] | None = None,
 ) -> tuple[list[str], list[str]]:
     """
     Match candidate tags against the registry. No cap on new tags.
 
-    1. Exact match -> use existing tag
-    2. Fuzzy match (edit distance <= 2, or common stem) -> use existing tag
-    3. No match -> accept as new tag (kebab-cased)
+    1. Alias lookup -> use canonical tag
+    2. Exact match -> use existing tag
+    3. Fuzzy match (edit distance <= 2, or common stem) -> use existing tag
+    4. No match -> accept as new tag (kebab-cased)
 
     Returns:
         (resolved_tags, new_tags_to_add_to_registry)
     """
+    if aliases is None:
+        aliases = {}
+
     resolved = []
     new_tags = []
     seen = set()
@@ -62,6 +97,14 @@ def resolve_tags(
     for candidate in candidate_tags:
         normalized = _kebab_case(candidate)
         if not normalized or normalized in seen:
+            continue
+
+        # Alias lookup (exact match on known synonyms)
+        if normalized in aliases:
+            canonical = aliases[normalized]
+            if canonical not in seen:
+                resolved.append(canonical)
+                seen.add(canonical)
             continue
 
         # Exact match
@@ -162,12 +205,16 @@ def _fuzzy_find(candidate: str, registry: dict[str, dict]) -> str | None:
     candidate_parts = set(candidate.split("-"))
 
     for existing in registry:
-        # Substring match
-        if candidate in existing or existing in candidate:
-            return existing
+        # Substring match (only if both are > 3 chars to avoid false positives)
+        if len(candidate) > 3 and len(existing) > 3:
+            if candidate in existing or existing in candidate:
+                return existing
 
-        # Edit distance
-        if _edit_distance(candidate, existing) <= 2:
+        # Edit distance — scale threshold with tag length to avoid
+        # short-tag false positives like "nlp" -> "nsf"
+        min_len = min(len(candidate), len(existing))
+        max_edit = 1 if min_len <= 5 else 2
+        if _edit_distance(candidate, existing) <= max_edit:
             return existing
 
         # Shared stem: >60% of parts overlap
