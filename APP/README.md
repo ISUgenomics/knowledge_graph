@@ -58,15 +58,30 @@ pip install -e .
 python -m kgx
 ```
 
-This starts the server at `http://127.0.0.1:8000` and opens your browser. If no `config.yaml` exists, one is created with defaults. If no `vault.db` exists, you'll get an error — see [Database](#database) to create one.
+This starts the server at `http://127.0.0.1:8000` and opens your browser.
+
+On first run:
+- if `config.yaml` does not exist, KGX creates one with defaults
+- if the configured database does not exist, KGX exits with an error
+
+If you want to use a different database, see [Using a different database](#using-a-different-database).
 
 ---
 
 ## Requirements
 
 - **Python 3.10+**
-- **vault.db** — a SQLite database with the KGX schema (created by the skill suite or manually)
-- **Ollama** (optional) — only needed for the chat-to-SQL feature
+- **SQLite database** — KGX needs a writable `.db` file with the KGX schema
+- **Ollama** — required for chat-to-SQL and skill-assisted features
+- **Ollama model for chat/skills** — default: `qwen3-coder:30b`
+- **Ollama embedding model for UMAP** — default: `nomic-embed-text`
+
+### System tools
+
+You also need:
+- `pip`
+- `python3`
+- network access to `http://localhost:11434` if Ollama runs locally on the default port
 
 ### Python Dependencies
 
@@ -116,13 +131,15 @@ db:
 llm:
   provider: ollama             # Only Ollama supported currently
   base_url: http://localhost:11434
-  model: qwen3-coder:30b      # Any Ollama model that handles SQL
+  model: qwen3-coder:30b       # Default chat/skill model
+  fast_model: null             # Optional secondary model if you add one
   temperature: 0               # 0 = deterministic SQL output
 
 skills:
   enabled: true
   directory: ../skills         # Path to LangGraph skill directories
   python: python3              # Python interpreter for skill subprocess
+  model: qwen3-coder:30b       # Default model used by skills
 
 server:
   host: 127.0.0.1              # Use 0.0.0.0 for LAN access (see warning)
@@ -148,6 +165,65 @@ kgx --host 0.0.0.0            # Listen on all interfaces
 kgx --config /path/to/cfg     # Different config file
 kgx --no-browser              # Don't auto-open browser
 ```
+
+## Fresh install: step-by-step
+
+1. **Install Python 3.10 or newer.**
+2. **Install Ollama** from https://ollama.com and start it:
+   ```bash
+   ollama serve
+   ```
+3. **Pull the default model used by this app:**
+   ```bash
+   ollama pull qwen3-coder:30b
+   ```
+4. **Pull the embedding model if you want UMAP layout:**
+   ```bash
+   ollama pull nomic-embed-text
+   ```
+5. **Install KGX dependencies:**
+   ```bash
+   cd APP
+   pip install -e .
+   ```
+6. **Create or point to a database**:
+   - use the default `./vault.db`, or
+   - set `db.path` in `config.yaml`, or
+   - pass `--db /path/to/your.db` on the command line
+7. **Run the app:**
+   ```bash
+   python -m kgx
+   ```
+
+If your Ollama model is different, update `llm.model` in `config.yaml` to match the model you pulled.
+
+## Using a different database
+
+KGX can run against any SQLite file that matches the KGX schema.
+
+### Option 1: one-off override
+
+```bash
+python -m kgx --db /Users/you/research/vault.db
+```
+
+### Option 2: make it the default in config.yaml
+
+```yaml
+db:
+  path: /Users/you/research/vault.db
+```
+
+### Option 3: start from an empty file
+
+```bash
+touch /Users/you/research/vault.db
+python -m kgx --db /Users/you/research/vault.db
+```
+
+KGX will create the schema on startup if the file is empty. If the database is already populated, the app will use the existing data.
+
+If you move the database later, update either `config.yaml` or the `--db` flag so KGX points at the new file.
 
 ### Security note
 
