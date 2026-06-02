@@ -45,6 +45,7 @@ class UIConfig(BaseModel):
     node_size_by_degree: bool = True
     show_labels: bool = True
     max_visible_nodes: int = 5000
+    edge_filters_default_visible: list[str] = Field(default_factory=list)  # empty = all visible
 
 
 class KGXConfig(BaseModel):
@@ -85,6 +86,8 @@ ui:
   node_size_by_degree: true
   show_labels: true
   max_visible_nodes: 5000
+  edge_filters_default_visible:
+    - AUTHORED
 """
 
 

@@ -276,10 +276,36 @@ The main panel renders all entities and relationships as a 3D force-directed gra
 
 Mouse damping/inertia is disabled — releasing the mouse stops all motion immediately.
 
+**Explore mode (default):**
+
+The graph loads in **explore mode** — a server-side projection that transforms the raw database into a meaningful exploration view:
+
+- **Stubs removed** — unprofiled person entities (coauthor stubs) are excluded
+- **Publications hidden** — publication nodes are excluded; their relationships are preserved transitively
+- **Tag hierarchy flattened** — leaf-level tags are rolled up to their field-level parent via BROADER relationships
+- **Person-to-tag connections** — persons connect to field-level tags through their publications (person→AUTHORED→pub→TAGGED→leaf→BROADER→field)
+- **COLLABORATOR edges** — synthetic edges between profiled persons who co-authored papers, with weight = number of shared publications
+- **Orphan pruning** — nodes with zero edges after filtering are removed
+
+This reduces a raw graph of ~10,000 nodes / ~50,000 edges to ~300-400 meaningful nodes with clear clustering.
+
+**Database-agnostic design:**
+
+Explore mode discovers all structure from the database at runtime — nothing is hardcoded to a specific dataset. It relies on three conventions:
+
+| Convention | How it's used |
+|---|---|
+| `metadata.profiled` | Distinguishes full profiles from stubs. Entities where `json_extract(metadata, '$.profiled') = 1` are kept; others of type `person` are treated as stubs and excluded. |
+| `BROADER` relationship type | Defines the tag hierarchy. Explore mode walks BROADER edges via BFS to find leaf→field→domain chains. Any depth or shape of hierarchy works. |
+| `AUTHORED` + `TAGGED` relationship types | Used for transitive connections. Person→AUTHORED→publication→TAGGED→tag chains are collapsed into direct person→tag edges, and shared AUTHORED targets produce COLLABORATOR edges. |
+
+If your database uses different entity types, has no tag hierarchy, or lacks publications entirely, explore mode still works — it simply skips the transformations that don't apply. No code changes needed.
+
 **Visual encoding:**
 
-- **Node color** — each entity type gets a distinct color (auto-assigned). Profiled persons vs unprofiled stubs get separate colors.
-- **Node size** — proportional to degree (number of connections)
+- **Node color** — each entity type gets a distinct color (auto-assigned), or community-based coloring (toggle with Communities button)
+- **Node size** — proportional to filtered degree (recomputes dynamically when edge types are toggled)
+- **Link thickness** — proportional to edge weight (COLLABORATOR edges with more shared papers appear thicker)
 - **Edge particles** — animated directional particles show relationship direction
 - **Edge styling** — width, opacity, color, and particle count are adjustable via Settings
 
@@ -291,8 +317,7 @@ Mouse damping/inertia is disabled — releasing the mouse stops all motion immed
 | Cluster by Type | Nodes pulled toward type-based centroids arranged in a circle |
 | Timeline | X-axis locked to year (from metadata dates) |
 | UMAP | Semantic layout from embeddings (requires `ollama pull nomic-embed-text`) |
-| Hierarchical | DAG modes: top-down, bottom-up, left-right, right-left |
-| Radial | Radial out / radial in DAG |
+| Hierarchical ↓ | Top-down DAG layout |
 
 ### Sidebar
 
@@ -301,7 +326,7 @@ The left panel shows all entity types discovered in the database, with counts.
 - **Expand a type** — click the type header to list all entities of that type
 - **Select an entity** — click an entity name to focus the camera on it and load its detail panel
 - **Search entities** — type in the search box at the top to filter across all types
-- **Edge type filters** — checkboxes toggle relationship types on/off in the graph
+- **Edge type filters** — checkboxes toggle relationship types on/off in the graph. All types are visible by default. Types and counts are derived from the loaded graph (explore mode), not the raw database.
 - **SQL filters** — write custom SQL (`SELECT id FROM entities WHERE ...`) to hide matching nodes. Filters are saved to localStorage and can be toggled on/off. Filters can also be saved here directly from chat results.
 
 ### Detail Panel
@@ -385,12 +410,15 @@ Right-click any node in the graph for these actions:
 | Show Detail | Load the detail panel for this node |
 | Focus | Pan the camera to center on this node |
 | Orbit | Set this node as the orbit rotation pivot (doesn't change zoom) |
-| Expand Neighbors | Show all directly connected nodes, **overriding all active filters** |
+| Highlight Neighbors | Highlight all directly connected nodes in the current graph view |
+| Expand Neighbors | Show all directly connected nodes from the current graph edges |
 | Hide Node | Remove this node from the current view |
 | Research Person | (person nodes only) Run the person_research skill |
 | Copy ID | Copy the entity ID to clipboard |
 
-**Expand Neighbors** is powerful — it force-shows neighbors even if they're hidden by SQL filters or edge type filters. This lets you explore around a node without disabling your filters. The camera stays in place (no automatic zoom/pan).
+**Highlight Neighbors** dims all other nodes and highlights the selected node's direct connections in the graph. Click empty space to clear the highlight.
+
+**Expand Neighbors** finds neighbors from the current graph edges (explore-mode aware) and force-shows them even if hidden by edge type filters.
 
 ### Force Settings
 
@@ -429,8 +457,9 @@ The header bar contains global controls:
 | Control | Description |
 |---|---|
 | **Search** | Global search box — finds entities by name across all types |
-| **Layout** | Dropdown: Force, Cluster, Timeline, UMAP, Hierarchical (6 modes), Radial |
+| **Layout** | Dropdown: Force, Cluster, Timeline, UMAP, Hierarchical ↓ |
 | **Labels** | Toggle text labels on/off |
+| **Communities** | Toggle community detection coloring on/off (label propagation algorithm) |
 | **Show All** | Reset all hidden nodes, edge filters, SQL filters, and force-shown nodes |
 | **Export JSON** | Download the full graph as JSON |
 | **Export Neo4j** | Download Neo4j-importable CSV files as a zip |
@@ -560,7 +589,7 @@ All endpoints are prefixed with `/api/`. The server also serves the UI at `/`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/graph` | All nodes (id, type, name, group) and edges (source, target, rel_type) |
+| GET | `/api/graph` | All nodes and edges. Query param: `mode=explore` for projected view |
 | GET | `/api/types` | Entity and relationship types with counts |
 | GET | `/api/stats` | Summary statistics |
 
@@ -810,11 +839,11 @@ Another process is using port 8000. Either:
 
 ### Large graph is slow
 
+- The default explore mode already reduces ~10,000 raw nodes to ~300-400 meaningful nodes
 - Toggle labels off (Labels button) — text sprites are the main performance cost
 - Use edge filters to hide less important relationship types
 - Reduce particles to 0 in Settings
-- The graph handles ~5,000 nodes + ~11,000 edges at interactive frame rates
-- Beyond ~10,000 nodes, consider filtering to a subgraph via SQL filters
+- Beyond ~5,000 visible nodes, consider filtering to a subgraph via SQL filters
 
 ---
 
@@ -832,10 +861,13 @@ See [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md) for full diagra
 - **vault.db is the sole source of truth** — markdown is a generated export, not a data store
 - **No CDN dependencies** — 3d-force-graph is vendored in `kgx/ui/lib/`
 - **Event bus architecture** — UI components communicate only via pub/sub, never import each other
-- **Schema-agnostic** — no hardcoded entity or relationship types; everything is discovered from the database at runtime
+- **Schema-agnostic** — no hardcoded entity or relationship types; explore mode discovers structure from BROADER relationships and `profiled` metadata at runtime
 - **Local LLM only** — chat uses Ollama (localhost), no data leaves your machine
 - **Mutation safety** — all DML requires explicit user confirmation via a token-based flow
 - **Rich content in DB** — topics, snippets, contacts, interests, sources stored in dedicated tables (not just metadata JSON)
 - **Profiled vs stubs** — person entities distinguished by `metadata.profiled` flag, rendered as separate groups with distinct colors/forces
+- **Explore mode projection** — server-side graph simplification: removes stubs/publications, flattens tag hierarchy, synthesizes COLLABORATOR edges, prunes orphans
+- **Community detection** — client-side label propagation that recomputes when edge filters change, with toggleable coloring
+- **Dynamic sizing** — node sizes recompute based on filtered degree (visible edges only)
 - **Filter override** — Expand Neighbors force-shows nodes regardless of active filters
 - **Fast-path chat** — schema questions answered instantly from DB without LLM round-trip

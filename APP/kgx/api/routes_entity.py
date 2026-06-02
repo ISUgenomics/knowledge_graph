@@ -49,13 +49,14 @@ def make_entity_router(db: KnowledgeGraphDB) -> APIRouter:
     def get_entity(entity_id: str):
         """
         Return full entity detail + relationships + neighbors + rich content.
-        Used by the detail panel on node click.
+        Uses explore-aware queries so field-level tags show transitive
+        TAGGED neighbors (via BROADER hierarchy).
         """
         entity = db.get_entity(entity_id)
         if not entity:
             raise HTTPException(status_code=404, detail=f"Entity not found: {entity_id}")
 
-        neighbors = db.neighbors(entity_id)
+        neighbors = db.neighbors_explore(entity_id)
         # Build name map so the UI can show names instead of raw IDs
         name_map = {n["id"]: n["name"] for n in neighbors}
 
@@ -69,7 +70,7 @@ def make_entity_router(db: KnowledgeGraphDB) -> APIRouter:
             "entity": entity,
             "relationships": relationships,
             "neighbors": neighbors,
-            "degree": db.degree(entity_id),
+            "degree": db.degree_explore(entity_id),
             "rich": db.get_rich(entity_id, entity_type=entity["type"]),
         }
 

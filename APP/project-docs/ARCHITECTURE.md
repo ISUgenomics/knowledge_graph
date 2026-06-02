@@ -92,13 +92,13 @@
 | **Layout Module** | UMAP embedding + layout computation via Ollama nomic-embed-text | `kgx/layout/embedder.py`, `kgx/layout/umap_layout.py` |
 | **Skill System** | Auto-discover + run LangGraph plugins as subprocesses | `kgx/skills/registry.py`, `kgx/skills/runner.py` |
 | **Config** | YAML loader with Pydantic models | `kgx/config/loader.py` |
-| **Graph UI** | 3D force-directed graph (3d-force-graph / Three.js) with multiple layouts | `kgx/ui/components/graph/graph.js` |
+| **Graph UI** | 3D force-directed graph (3d-force-graph / Three.js) with explore mode, community detection, dynamic sizing | `kgx/ui/components/graph/graph.js` |
 | **Sidebar UI** | Entity browser, edge type filters, SQL filters (localStorage) | `kgx/ui/components/sidebar/sidebar.js` |
 | **Detail UI** | Entity detail — properties, rich content, relationships, arrow key nav | `kgx/ui/components/detail/detail.js` |
 | **Chat UI** | NL query panel with result tables, filter/highlight actions, input history | `kgx/ui/components/chat/chat.js` |
 | **SQL Panel** | Displays last executed SQL with copy button | `kgx/ui/index.html` (inline) |
 | **Force Settings** | Draggable panel for force graph parameters, edge styling, presets | `kgx/ui/index.html` (inline) |
-| **Context Menu** | Right-click node actions: detail, focus, orbit, expand, hide, research | `kgx/ui/components/graph/context-menu.js` |
+| **Context Menu** | Right-click node actions: detail, focus, orbit, highlight, expand, hide, research | `kgx/ui/components/graph/context-menu.js` |
 | **EventBus** | Pub/sub — all UI components communicate via bus, never import each other | `kgx/ui/components/shared/event-bus.js` |
 
 ## Data Flow
@@ -138,7 +138,7 @@ All UI components communicate via the shared EventBus. No component imports anot
 
 | Event | Payload | Emitter → Listener |
 |---|---|---|
-| `graph:loaded` | `{nodeCount, edgeCount, typeColors}` | Graph → Sidebar, Header |
+| `graph:loaded` | `{nodeCount, edgeCount, typeColors, relTypeCounts}` | Graph → Sidebar, Header |
 | `graph:refresh` | `{}` | any → Graph |
 | `db:changed` | `{}` | Watch SSE → Graph, Sidebar |
 | `node:selected` | `{id, type, name}` | Graph/Sidebar/Chat → Detail, Chat |
@@ -146,6 +146,7 @@ All UI components communicate via the shared EventBus. No component imports anot
 | `node:hide` | `{id}` | ContextMenu → Graph |
 | `node:show-all` | `{}` | Header → Graph (clears all filters + forceShown) |
 | `node:highlight` | `{ids}` | Chat → Graph (white + dim others) |
+| `node:highlight-neighbors` | `{id}` | ContextMenu → Graph (highlight direct neighbors) |
 | `node:highlight-cleared` | `{}` | Graph → Chat (re-enable highlight btn) |
 | `node:focus` | `{id}` | Sidebar/ContextMenu → Graph (camera fly-to) |
 | `node:orbit` | `{id}` | ContextMenu/Chat → Graph (set orbit pivot) |
@@ -155,6 +156,7 @@ All UI components communicate via the shared EventBus. No component imports anot
 | `edge:reset` | `{}` | Graph → Sidebar |
 | `sidebar:select` | `{id, type, name}` | Sidebar → Graph |
 | `labels:toggle` | `{visible}` | Header → Graph |
+| `community:toggle` | `{}` | Header → Graph (toggle community coloring) |
 | `layout:change` | `{layout}` | Header → Graph |
 | `force:update` | `{linkDist, charge, ..., edgeWidth, edgeOpacity, edgeColor, particles, typeCharges}` | Settings → Graph |
 | `force:get-types` | `{callback}` | Settings → Graph |
@@ -172,7 +174,7 @@ All UI components communicate via the shared EventBus. No component imports anot
 ```
   /api/
   ├── graph/
-  │   ├── GET    /graph                           → routes_graph.py:get_graph
+  │   ├── GET    /graph?mode=explore               → routes_graph.py:get_graph
   │   ├── GET    /types                           → routes_graph.py:get_types
   │   └── GET    /stats                           → routes_graph.py:get_stats
   │
@@ -347,8 +349,8 @@ APP/
 │   │   ├── __init__.py                 # re-exports KnowledgeGraphDB
 │   │   ├── schema.py                   # DDL v3, 11 tables, init_schema()
 │   │   ├── queries.py                  # KnowledgeGraphDB class (all SQL)
-│   │   │                               #   + get_rich(), get_topics(),
-│   │   │                               #   get_snippets_about(), etc.
+│   │   │                               #   + graph_explore(), neighbors_explore(),
+│   │   │                               #   degree_explore(), _descendant_ids()
 │   │   └── tests/
 │   │       └── test_db.py              # 40 tests for DB layer
 │   ├── api/
@@ -387,11 +389,11 @@ APP/
 │           │   └── api-client.js       # fetch() wrapper
 │           ├── graph/
 │           │   ├── graph.js            # 3D force graph + layouts + settings
-│           │   │                       #   force, cluster, timeline, UMAP
-│           │   │                       #   orbit, expand (overrides filters)
+│           │   │                       #   explore mode, community detection,
+│           │   │                       #   filtered degree, weighted links
 │           │   ├── graph.css
 │           │   └── context-menu.js     # Right-click: detail, focus, orbit,
-│           │                           #   expand, hide, research, copy
+│           │                           #   highlight, expand, hide, research, copy
 │           ├── sidebar/
 │           │   ├── sidebar.js          # Entity browser + edge filters
 │           │   │                       #   + SQL filters (localStorage)
@@ -417,6 +419,18 @@ APP/
 
 | Date | Change |
 |---|---|
+| 2026-06-02 | Explore mode: server-side graph projection — removes stubs/publications, flattens tag hierarchy to field level, synthesizes COLLABORATOR edges from shared AUTHORED, rolls up person→tag via publications, prunes orphan nodes |
+| 2026-06-02 | Community detection: client-side label propagation (max 20 iterations) that recomputes on edge filter changes, toggleable via header button |
+| 2026-06-02 | Dynamic node sizing: filtered degree recomputes based on visible edges only |
+| 2026-06-02 | Link thickness by weight: COLLABORATOR edges with more shared papers render thicker |
+| 2026-06-02 | Edge type filters rebuilt from graph data (explore mode types: TAGGED, COLLABORATOR, ATTENDED, MENTIONED_IN, MEMBER_OF) instead of raw DB types |
+| 2026-06-02 | All edge types visible by default (was: only AUTHORED) |
+| 2026-06-02 | Highlight neighbors: right-click menu action + node:highlight-neighbors event |
+| 2026-06-02 | Expand neighbors uses current graph edges (explore-aware) instead of raw DB API |
+| 2026-06-02 | Simplified layouts: removed Hierarchical ↑→←, Radial Out/In (kept Force, Cluster, Timeline, UMAP, Hierarchical ↓) |
+| 2026-06-02 | Detail panel: neighbors_explore() and degree_explore() for tag-hierarchy-aware counts (field tags include transitive BROADER descendants) |
+| 2026-06-02 | Communities toggle button in header |
+| 2026-06-02 | nodeResolution(8) for GPU performance improvement |
 | 2026-06-01 | v3 schema: entity_topics, snippets, research_interests, sources, contact_info |
 | 2026-06-01 | Rich content in detail panel (type-specific rendering, snippets-about for persons) |
 | 2026-06-01 | Arrow key navigation (↑↓) to cycle entities of same type in detail panel |

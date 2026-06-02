@@ -21,13 +21,25 @@ export function initSidebar(container, eventBus, apiClient) {
     let entityLists = {};   // type -> [{id, name}]
     let searchQuery = '';
     let typeColorMap = {};
+    let loadError = '';
+    let defaultVisibleRelTypes = null;  // null = all visible by default
+    let edgeDefaultsApplied = false;
 
-    // Receive color map from graph so sidebar dots match graph node colors
-    eventBus.on('graph:loaded', ({ typeColors }) => {
+    // Receive color map and edge types from the actual graph data
+    eventBus.on('graph:loaded', ({ typeColors, relTypeCounts }) => {
         if (typeColors) {
             typeColorMap = { ...typeColors };
-            render();
         }
+        if (relTypeCounts) {
+            // Use edge types from the graph projection, not raw DB
+            relData = Object.entries(relTypeCounts)
+                .map(([rel_type, count]) => ({ rel_type, count }))
+                .sort((a, b) => a.rel_type.localeCompare(b.rel_type));
+            edgeDefaultsApplied = false;
+        }
+        // Only re-render if type data has loaded; otherwise loadTypes()
+        // will call render() itself once it completes.
+        if (typeData.length > 0) render();
     });
 
     // Fallback color palette (matches graph.js)
@@ -46,12 +58,23 @@ export function initSidebar(container, eventBus, apiClient) {
 
     async function loadTypes() {
         try {
+            try {
+                const cfg = await apiClient.get('/api/config');
+                const vis = cfg?.ui?.edge_filters_default_visible;
+                if (Array.isArray(vis) && vis.length) {
+                    defaultVisibleRelTypes = new Set(vis.map(x => String(x)));
+                }
+            } catch (_) { /* optional */ }
             const data = await apiClient.get('/api/types');
-            typeData = data.entity_types;
-            relData = data.relationship_types;
+            typeData = data.entity_types || [];
+            relData = data.relationship_types || [];
+            loadError = '';
+            edgeDefaultsApplied = false;
             render();
         } catch (err) {
-            container.innerHTML = `<div class="sidebar-error">Failed to load: ${err.message}</div>`;
+            loadError = err.message;
+            container.innerHTML = `<div class="sidebar-error">Failed to load sidebar types: ${escHtml(err.message)}</div>`;
+            console.error('Sidebar loadTypes failed', err);
         }
     }
 
@@ -72,6 +95,7 @@ export function initSidebar(container, eventBus, apiClient) {
     function render() {
         const q = searchQuery;
         container.innerHTML = `
+            ${loadError ? `<div class="sidebar-error">${escHtml(loadError)}</div>` : ''}
             <div class="sidebar-search-wrap">
                 <input id="sidebar-search" class="sidebar-search" placeholder="Search entities…" value="${escHtml(q)}">
             </div>
@@ -133,7 +157,21 @@ export function initSidebar(container, eventBus, apiClient) {
             `;
 
             const header = section.querySelector('.sidebar-section-header');
-            header.addEventListener('click', () => toggleSection(t.type, section));
+            header.setAttribute('role', 'button');
+            header.setAttribute('tabindex', '0');
+            const openSection = async () => {
+                try {
+                    await toggleSection(t.type, section);
+                } catch (err) {
+                    console.error('toggleSection failed', t.type, err);
+                }
+            };
+            header.addEventListener('click', (ev) => { ev.preventDefault(); openSection(); });
+            header.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault(); openSection();
+                }
+            });
 
             sectionsEl.appendChild(section);
 
@@ -155,7 +193,8 @@ export function initSidebar(container, eventBus, apiClient) {
             expandedTypes.add(type);
             listEl.classList.add('expanded');
             if (chevron) chevron.textContent = '▾';
-            await loadEntityList(type);
+            const items = await loadEntityList(type);
+            entityLists[type] = items || [];
             renderEntityList(listEl, type);
         }
     }
@@ -198,7 +237,7 @@ export function initSidebar(container, eventBus, apiClient) {
     function renderEdgeFilters(filtersEl) {
         if (!filtersEl) return;
         filtersEl.innerHTML = relData.map(r => {
-            const isChecked = !uncheckedRelTypes.has(r.rel_type);
+            const isChecked = (!defaultVisibleRelTypes || defaultVisibleRelTypes.has(r.rel_type)) && !uncheckedRelTypes.has(r.rel_type);
             return `
             <label class="edge-filter-row">
                 <input type="checkbox" class="edge-filter-cb" data-rel="${r.rel_type}" ${isChecked ? 'checked' : ''}>
@@ -220,6 +259,16 @@ export function initSidebar(container, eventBus, apiClient) {
                 });
             });
         });
+        if (!edgeDefaultsApplied) {
+            edgeDefaultsApplied = true;
+            for (const r of relData) {
+                const visible = !defaultVisibleRelTypes || defaultVisibleRelTypes.has(r.rel_type);
+                if (!visible) {
+                    uncheckedRelTypes.add(r.rel_type);
+                    eventBus.emit('edge:filter', { rel_type: r.rel_type, visible: false });
+                }
+            }
+        }
     }
 
     // "Show All" resets edge filters too

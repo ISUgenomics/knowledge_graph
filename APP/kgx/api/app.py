@@ -58,6 +58,10 @@ def create_app(config: dict) -> FastAPI:
     # Store config subset in app.state for routes that need it
     app.state.ui_config = config.get("ui", {})
 
+    @app.get("/api/config")
+    def get_config():
+        return {"ui": app.state.ui_config}
+
     # Register route modules — each gets only what it needs
     app.include_router(make_graph_router(db),  prefix="/api")
     app.include_router(make_entity_router(db), prefix="/api")

@@ -213,13 +213,9 @@
                 <option value="timeline">Timeline</option>
                 <option value="umap">UMAP</option>
                 <option value="td">Hierarchical ↓</option>
-                <option value="bu">Hierarchical ↑</option>
-                <option value="lr">Hierarchical →</option>
-                <option value="rl">Hierarchical ←</option>
-                <option value="radialout">Radial Out</option>
-                <option value="radialin">Radial In</option>
             </select>
             <button class="header-btn" id="btn-toggle-labels">Labels</button>
+            <button class="header-btn" id="btn-toggle-community">Communities</button>
             <button class="header-btn" id="btn-show-all">Show All</button>
             <button class="header-btn" id="btn-export-json">Export JSON</button>
             <button class="header-btn" id="btn-export-neo4j">Export Neo4j</button>
@@ -397,6 +393,13 @@
         document.getElementById('btn-toggle-labels').style.opacity = labelsOn ? '1' : '0.5';
         bus.emit('labels:toggle', { visible: labelsOn });
     });
+    let communityOn = false;
+    document.getElementById('btn-toggle-community').addEventListener('click', () => {
+        communityOn = !communityOn;
+        document.getElementById('btn-toggle-community').style.opacity = communityOn ? '1' : '0.5';
+        bus.emit('community:toggle', { enabled: communityOn });
+    });
+    document.getElementById('btn-toggle-community').style.opacity = '0.5';
     document.getElementById('btn-show-all').addEventListener('click', () => {
         bus.emit('node:show-all', {});
     });

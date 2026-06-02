@@ -49,6 +49,16 @@ export function initGraph(container, eventBus, apiClient) {
     let forceShownIds = new Set();
     let typeColorMap = {};
     let colorIndex = 0;
+    let communityMode = false;  // toggle: type colors vs community colors
+    let communityColorMap = {}; // node_id -> color
+
+    // Community detection color palette (distinct from type palette)
+    const COMMUNITY_COLORS = [
+        '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
+        '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4',
+        '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000',
+        '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9',
+    ];
 
     function getTypeColor(type) {
         if (!typeColorMap[type]) {
@@ -68,6 +78,100 @@ export function initGraph(container, eventBus, apiClient) {
         return deg;
     }
 
+    // Compute filtered degree — only counts visible edges
+    function recomputeFilteredDegrees() {
+        for (const n of allNodes) n._filteredDegree = 0;
+        const nodeMap = {};
+        for (const n of allNodes) nodeMap[n.id] = n;
+        for (const e of allEdges) {
+            if (e.__hidden) continue;
+            const src = typeof e.source === 'object' ? e.source.id : e.source;
+            const tgt = typeof e.target === 'object' ? e.target.id : e.target;
+            if (nodeMap[src]) nodeMap[src]._filteredDegree++;
+            if (nodeMap[tgt]) nodeMap[tgt]._filteredDegree++;
+        }
+    }
+
+    // Label propagation community detection on visible subgraph
+    function detectCommunities() {
+        // Build adjacency from visible edges
+        const adj = {};
+        for (const n of allNodes) {
+            if (!n.__hidden) adj[n.id] = [];
+        }
+        for (const e of allEdges) {
+            if (e.__hidden) continue;
+            const src = typeof e.source === 'object' ? e.source.id : e.source;
+            const tgt = typeof e.target === 'object' ? e.target.id : e.target;
+            if (adj[src] && adj[tgt]) {
+                adj[src].push(tgt);
+                adj[tgt].push(src);
+            }
+        }
+
+        // Initialize: each node is its own community
+        const label = {};
+        const ids = Object.keys(adj);
+        for (const id of ids) label[id] = id;
+
+        // Iterate label propagation (max 20 rounds)
+        for (let iter = 0; iter < 20; iter++) {
+            let changed = false;
+            // Shuffle order each iteration
+            const shuffled = [...ids].sort(() => Math.random() - 0.5);
+            for (const id of shuffled) {
+                const neighbors = adj[id];
+                if (neighbors.length === 0) continue;
+                // Count neighbor labels
+                const counts = {};
+                for (const nb of neighbors) {
+                    const l = label[nb];
+                    counts[l] = (counts[l] || 0) + 1;
+                }
+                // Pick most frequent (break ties randomly)
+                let maxCount = 0;
+                let candidates = [];
+                for (const [l, c] of Object.entries(counts)) {
+                    if (c > maxCount) { maxCount = c; candidates = [l]; }
+                    else if (c === maxCount) candidates.push(l);
+                }
+                const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                if (pick !== label[id]) { label[id] = pick; changed = true; }
+            }
+            if (!changed) break;
+        }
+
+        // Assign colors to communities
+        const uniqueLabels = [...new Set(Object.values(label))];
+        // Sort by community size (largest first) for best color assignment
+        const labelCounts = {};
+        for (const l of Object.values(label)) labelCounts[l] = (labelCounts[l] || 0) + 1;
+        uniqueLabels.sort((a, b) => (labelCounts[b] || 0) - (labelCounts[a] || 0));
+        const labelColorMap = {};
+        uniqueLabels.forEach((l, i) => {
+            labelColorMap[l] = COMMUNITY_COLORS[i % COMMUNITY_COLORS.length];
+        });
+
+        communityColorMap = {};
+        for (const [id, l] of Object.entries(label)) {
+            communityColorMap[id] = labelColorMap[l];
+        }
+    }
+
+    function getNodeColor(n) {
+        if (highlightedIds.size > 0) {
+            return highlightedIds.has(n.id) ? '#ffffff' : (communityMode ? communityColorMap[n.id] || n._color : n._color) + '44';
+        }
+        return communityMode ? (communityColorMap[n.id] || n._color) : n._color;
+    }
+
+    function refreshNodeAppearance() {
+        if (!graphInstance) return;
+        graphInstance
+            .nodeColor(n => getNodeColor(n))
+            .nodeVal(n => Math.max(1, Math.sqrt(n._filteredDegree || n._degree || 1)) * 2);
+    }
+
     // ---------- Visibility ----------
     // We toggle __hidden flags on node/link objects, then pass a NEW function
     // reference to nodeVisibility/linkVisibility to force the library to
@@ -80,6 +184,10 @@ export function initGraph(container, eventBus, apiClient) {
         graphInstance
             .nodeVisibility(n => !n.__hidden)
             .linkVisibility(l => !l.__hidden);
+        // Recompute filtered degrees so node sizes reflect visible edges
+        recomputeFilteredDegrees();
+        if (communityMode) detectCommunities();
+        refreshNodeAppearance();
     }
 
     function recomputeHiddenFlags() {
@@ -141,18 +249,20 @@ export function initGraph(container, eventBus, apiClient) {
 
     async function loadGraph() {
         try {
-            const data = await apiClient.get('/api/graph');
+            const data = await apiClient.get('/api/graph?mode=explore');
             const rawEdges = data.edges.map(e => ({
                 source: e.source,
                 target: e.target,
                 rel_type: e.rel_type,
+                weight: e.weight || 1,
             }));
             const deg = computeDegrees(data.nodes, rawEdges);
             allNodes = data.nodes.map(n => ({
                 ...n,
-                _group: n.group || n.type,  // 'person (stub)' vs 'person' vs 'signal' etc.
+                _group: n.group || n.type,
                 _color: getTypeColor(n.group || n.type),
                 _degree: deg[n.id] || 0,
+                _filteredDegree: deg[n.id] || 0,
                 __hidden: false,
             }));
             allEdges = rawEdges.map(e => ({ ...e, __hidden: false }));
@@ -163,10 +273,18 @@ export function initGraph(container, eventBus, apiClient) {
         refreshVisibility();
 
             graphInstance.graphData({ nodes: allNodes, links: allEdges });
+
+            // Count edge types from the actual graph data
+            const relTypeCounts = {};
+            for (const e of allEdges) {
+                relTypeCounts[e.rel_type] = (relTypeCounts[e.rel_type] || 0) + 1;
+            }
+
             eventBus.emit('graph:loaded', {
                 nodeCount: allNodes.length,
                 edgeCount: allEdges.length,
                 typeColors: { ...typeColorMap },
+                relTypeCounts,
             });
         } catch (err) {
             console.error('Failed to load graph:', err);
@@ -190,19 +308,17 @@ export function initGraph(container, eventBus, apiClient) {
             .onDagError(() => {}) // graph has cycles — suppress error, best-effort layout
             .nodeId('id')
             .nodeLabel(n => `${n.name} (${n._group || n.type})`)
-            .nodeColor(n => highlightedIds.size > 0
-                ? (highlightedIds.has(n.id) ? '#ffffff' : n._color + '44')
-                : n._color
-            )
+            .nodeColor(n => getNodeColor(n))
             .nodeOpacity(0.9)
-            .nodeVal(n => Math.max(1, Math.sqrt(n._degree || 1)) * 2)
+            .nodeVal(n => Math.max(1, Math.sqrt(n._filteredDegree || n._degree || 1)) * 2)
             .nodeRelSize(4)
+            .nodeResolution(8)
             // Visibility — initial callbacks; refreshVisibility() re-sets them to trigger updates
             .nodeVisibility(n => !n.__hidden)
             .linkVisibility(l => !l.__hidden)
             .linkColor(l => REL_COLORS[l.rel_type] || REL_COLORS.default)
             .linkOpacity(0.4)
-            .linkWidth(0.5)
+            .linkWidth(l => l.weight > 1 ? Math.min(l.weight, 8) : 0.5)
             .linkDirectionalParticles(1)
             .linkDirectionalParticleWidth(l => highlightedIds.size > 0 ? 0 : 1)
             .onNodeClick(node => {
@@ -218,7 +334,7 @@ export function initGraph(container, eventBus, apiClient) {
             .onBackgroundClick(() => {
                 if (highlightedIds.size > 0) {
                     highlightedIds.clear();
-                    graphInstance.nodeColor(n => n._color);
+                    graphInstance.nodeColor(n => getNodeColor(n));
                     eventBus.emit('node:highlight-cleared', {});
                 }
             });
@@ -247,6 +363,15 @@ export function initGraph(container, eventBus, apiClient) {
         }
     });
     _resizeObserver.observe(container);
+
+    // Toggle community coloring on/off
+    eventBus.on('community:toggle', ({ enabled }) => {
+        communityMode = enabled;
+        if (communityMode) {
+            detectCommunities();
+        }
+        refreshNodeAppearance();
+    });
 
     // Toggle labels on/off — controls the built-in nodeLabel tooltip visibility
     eventBus.on('labels:toggle', ({ visible }) => {
@@ -294,11 +419,20 @@ export function initGraph(container, eventBus, apiClient) {
     eventBus.on('node:highlight', ({ ids }) => {
         highlightedIds = new Set(ids);
         if (graphInstance) {
-            graphInstance.nodeColor(n => highlightedIds.size > 0
-                ? (highlightedIds.has(n.id) ? '#ffffff' : n._color + '55')
-                : n._color
-            );
+            graphInstance.nodeColor(n => getNodeColor(n));
         }
+    });
+
+    eventBus.on('node:highlight-neighbors', ({ id }) => {
+        // Find neighbors from current graph edges and highlight them + the node itself
+        const ids = [id];
+        for (const e of allEdges) {
+            const src = typeof e.source === 'object' ? e.source.id : e.source;
+            const tgt = typeof e.target === 'object' ? e.target.id : e.target;
+            if (src === id) ids.push(tgt);
+            if (tgt === id) ids.push(src);
+        }
+        eventBus.emit('node:highlight', { ids });
     });
 
     eventBus.on('node:focus', ({ id }) => {
@@ -326,16 +460,16 @@ export function initGraph(container, eventBus, apiClient) {
         }
     });
 
-    eventBus.on('node:expand', async ({ id }) => {
+    eventBus.on('node:expand', ({ id }) => {
+        // Find neighbors from the current graph edges (not raw DB)
         forceShownIds.add(id);
         hiddenNodeIds.delete(id);
-        try {
-            const data = await apiClient.get(`/api/entity/${encodeURIComponent(id)}/neighbors`);
-            for (const n of (data.neighbors || [])) {
-                forceShownIds.add(n.id);
-                hiddenNodeIds.delete(n.id);
-            }
-        } catch (_) { /* best-effort */ }
+        for (const e of allEdges) {
+            const src = typeof e.source === 'object' ? e.source.id : e.source;
+            const tgt = typeof e.target === 'object' ? e.target.id : e.target;
+            if (src === id) { forceShownIds.add(tgt); hiddenNodeIds.delete(tgt); }
+            if (tgt === id) { forceShownIds.add(src); hiddenNodeIds.delete(src); }
+        }
         recomputeHiddenFlags();
         refreshVisibility();
     });
