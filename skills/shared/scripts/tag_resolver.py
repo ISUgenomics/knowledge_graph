@@ -5,18 +5,64 @@ tag_resolver.py — Tag registry loader and resolver.
 Ensures tag consistency across the vault by matching candidate tags
 against existing tags. No hard cap on new tags — early vault population
 needs volume. Fuzzy matching prevents accidental synonyms.
+
+Supports two backends:
+  - SQLite (vault_db) — preferred, tags are entities in vault.db
+  - Markdown fallback — reads tags/tag-registry.md and tags/tag-aliases.md
 """
 
 import re
 from pathlib import Path
 
 
-def load_tag_registry(vault_root: str = ".") -> dict[str, dict]:
+# ------------------------------------------------------------------
+# Loading: DB-first, markdown fallback
+# ------------------------------------------------------------------
+
+def load_tag_registry(vault_root: str = ".", db=None) -> dict[str, dict]:
     """
-    Load the tag registry from tags/tag-registry.md.
+    Load the tag registry. Tries DB first, falls back to markdown.
 
     Returns {tag_name: {"category": str, "description": str}}
     """
+    if db is not None:
+        return db.get_tag_registry()
+
+    # Try DB auto-discovery
+    db_path = Path(vault_root) / "vault.db"
+    if db_path.exists():
+        from vault_db import VaultDB
+        with VaultDB(db_path) as auto_db:
+            registry = auto_db.get_tag_registry()
+            if registry:
+                return registry
+
+    # Markdown fallback
+    return _load_registry_md(vault_root)
+
+
+def load_tag_aliases(vault_root: str = ".", db=None) -> dict[str, str]:
+    """
+    Load alias → canonical tag mappings. Tries DB first, falls back to markdown.
+
+    Returns {alias: canonical_tag}
+    """
+    if db is not None:
+        return db.get_tag_aliases()
+
+    db_path = Path(vault_root) / "vault.db"
+    if db_path.exists():
+        from vault_db import VaultDB
+        with VaultDB(db_path) as auto_db:
+            aliases = auto_db.get_tag_aliases()
+            if aliases:
+                return aliases
+
+    return _load_aliases_md(vault_root)
+
+
+def _load_registry_md(vault_root: str) -> dict[str, dict]:
+    """Load tag registry from tags/tag-registry.md."""
     registry_path = Path(vault_root) / "tags" / "tag-registry.md"
     if not registry_path.exists():
         return {}
@@ -24,10 +70,8 @@ def load_tag_registry(vault_root: str = ".") -> dict[str, dict]:
     registry = {}
     for line in registry_path.read_text().splitlines():
         line = line.strip()
-        # Skip frontmatter
         if line == "---":
             continue
-        # Detect table rows (skip header and separator)
         if line.startswith("|") and "Tag" not in line and "---" not in line:
             parts = [p.strip() for p in line.split("|")[1:-1]]
             if len(parts) >= 3:
@@ -36,21 +80,11 @@ def load_tag_registry(vault_root: str = ".") -> dict[str, dict]:
                 description = parts[2].strip()
                 if tag:
                     registry[tag] = {"category": category, "description": description}
-
     return registry
 
 
-def load_tag_aliases(vault_root: str = ".") -> dict[str, str]:
-    """
-    Load alias → canonical tag mappings from tags/tag-aliases.md.
-
-    File format (markdown table):
-        | Alias | Canonical |
-        |-------|-----------|
-        | artificial-intelligence | ai |
-
-    Returns {alias: canonical_tag}
-    """
+def _load_aliases_md(vault_root: str) -> dict[str, str]:
+    """Load alias → canonical tag mappings from tags/tag-aliases.md."""
     alias_path = Path(vault_root) / "tags" / "tag-aliases.md"
     if not alias_path.exists():
         return {}
@@ -67,9 +101,12 @@ def load_tag_aliases(vault_root: str = ".") -> dict[str, str]:
                 canonical = parts[1].strip()
                 if alias and canonical:
                     aliases[alias] = canonical
-
     return aliases
 
+
+# ------------------------------------------------------------------
+# Resolution
+# ------------------------------------------------------------------
 
 def resolve_tags(
     candidate_tags: list[str],
@@ -147,10 +184,8 @@ def suggest_tags_from_text(
         desc_words = set(re.findall(r"[a-z]{3,}", info.get("description", "").lower()))
         all_tag_words = tag_words | desc_words
 
-        # Score: how many tag-related words appear in the text
         overlap = text_words & all_tag_words
         if overlap:
-            # Bonus for tag name itself appearing in text
             tag_in_text = tag.replace("-", " ") in text_lower or tag in text_lower
             score = len(overlap) + (3 if tag_in_text else 0)
             scored.append((tag, score))
@@ -159,20 +194,54 @@ def suggest_tags_from_text(
     return [tag for tag, _ in scored[:max_suggestions]]
 
 
+# ------------------------------------------------------------------
+# Saving: DB-first, markdown fallback
+# ------------------------------------------------------------------
+
 def append_to_registry(
     new_tags: list[str],
     vault_root: str = ".",
     category: str = "topic",
+    db=None,
 ) -> int:
     """
-    Append new tags to the tag registry file.
+    Append new tags to the registry. Uses DB if available, else markdown.
     Returns count of tags added.
     """
+    if db is not None:
+        return _append_to_db(new_tags, db, category)
+
+    db_path = Path(vault_root) / "vault.db"
+    if db_path.exists():
+        from vault_db import VaultDB
+        with VaultDB(db_path) as auto_db:
+            return _append_to_db(new_tags, auto_db, category)
+
+    return _append_to_registry_md(new_tags, vault_root, category)
+
+
+def _append_to_db(new_tags: list[str], db, category: str) -> int:
+    """Insert new tags as tag entities in vault_db."""
+    existing = db.get_tag_registry()
+    added = 0
+    for tag in new_tags:
+        if tag not in existing:
+            db.upsert_tag(tag, category=category)
+            added += 1
+    return added
+
+
+def _append_to_registry_md(
+    new_tags: list[str],
+    vault_root: str = ".",
+    category: str = "topic",
+) -> int:
+    """Append new tags to the markdown tag registry file."""
     registry_path = Path(vault_root) / "tags" / "tag-registry.md"
     if not registry_path.exists():
         return 0
 
-    existing = load_tag_registry(vault_root)
+    existing = _load_registry_md(vault_root)
     added = 0
 
     with open(registry_path, "a") as f:
@@ -183,6 +252,10 @@ def append_to_registry(
 
     return added
 
+
+# ------------------------------------------------------------------
+# Fuzzy matching helpers
+# ------------------------------------------------------------------
 
 def _kebab_case(s: str) -> str:
     """Convert a string to kebab-case tag format."""
@@ -253,12 +326,23 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Resolve tags against registry")
     parser.add_argument("--vault", default=".", help="Vault root directory")
+    parser.add_argument("--db", default="", help="Path to vault.db (overrides --vault auto-discovery)")
     parser.add_argument("tags", nargs="+", help="Candidate tags to resolve")
     args = parser.parse_args()
 
-    registry = load_tag_registry(args.vault)
-    print(f"Registry: {len(registry)} tags loaded")
+    db = None
+    if args.db:
+        from vault_db import VaultDB
+        db = VaultDB(args.db)
 
-    resolved, new = resolve_tags(args.tags, registry)
+    registry = load_tag_registry(args.vault, db=db)
+    aliases = load_tag_aliases(args.vault, db=db)
+    print(f"Registry: {len(registry)} tags loaded")
+    print(f"Aliases: {len(aliases)} aliases loaded")
+
+    resolved, new = resolve_tags(args.tags, registry, aliases)
     print(f"Resolved: {resolved}")
     print(f"New tags: {new}")
+
+    if db:
+        db.close()

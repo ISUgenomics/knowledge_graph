@@ -21,7 +21,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 ENTITY_TYPES = {"person", "publication", "signal", "event", "center", "tag"}
 
@@ -32,6 +32,7 @@ RELATIONSHIP_TYPES = {
     "TAGGED",        # any → tag
     "COAUTHOR",      # person ↔ person (undirected)
     "MEMBER_OF",     # person → center
+    "BROADER",       # tag → parent tag (ontology hierarchy)
 }
 
 
@@ -80,6 +81,61 @@ class VaultDB:
             CREATE INDEX IF NOT EXISTS idx_rels_source ON relationships(source_id);
             CREATE INDEX IF NOT EXISTS idx_rels_target ON relationships(target_id);
             CREATE INDEX IF NOT EXISTS idx_rels_type ON relationships(rel_type);
+
+            -- Topics: multiple topics per entity (signal, event, etc.)
+            CREATE TABLE IF NOT EXISTS entity_topics (
+                entity_id   TEXT NOT NULL,
+                topic       TEXT NOT NULL,
+                PRIMARY KEY (entity_id, topic),
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_topics_entity ON entity_topics(entity_id);
+            CREATE INDEX IF NOT EXISTS idx_topics_topic  ON entity_topics(topic);
+
+            -- Snippets: blockquote excerpts from source text
+            -- entity_id = signal; ref_id = person or NULL; ref_type = 'person'|'topic'|NULL
+            CREATE TABLE IF NOT EXISTS snippets (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_id   TEXT NOT NULL,
+                ref_id      TEXT,
+                ref_type    TEXT,
+                text        TEXT NOT NULL,
+                ordinal     INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_snippets_entity ON snippets(entity_id);
+            CREATE INDEX IF NOT EXISTS idx_snippets_ref    ON snippets(ref_id);
+
+            -- Research interests: ordered list per person
+            CREATE TABLE IF NOT EXISTS research_interests (
+                entity_id   TEXT NOT NULL,
+                interest    TEXT NOT NULL,
+                ordinal     INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (entity_id, interest),
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_interests_entity ON research_interests(entity_id);
+
+            -- Sources: per-entity provenance records
+            CREATE TABLE IF NOT EXISTS sources (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_id    TEXT NOT NULL,
+                source_name  TEXT NOT NULL,
+                url          TEXT,
+                retrieved_at TEXT,
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_sources_entity ON sources(entity_id);
+
+            -- Contact info: queryable key/value contact fields for persons
+            CREATE TABLE IF NOT EXISTS contact_info (
+                entity_id   TEXT NOT NULL,
+                field       TEXT NOT NULL,
+                value       TEXT NOT NULL,
+                PRIMARY KEY (entity_id, field),
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_contact_entity ON contact_info(entity_id);
         """)
         # Set schema version if not present
         cur = self.conn.execute("SELECT version FROM schema_version LIMIT 1")
@@ -367,6 +423,396 @@ class VaultDB:
             "total_entities": sum(entity_counts.values()),
             "total_relationships": sum(rel_counts.values()),
         }
+
+    # ------------------------------------------------------------------
+    # Rich content operations
+    # ------------------------------------------------------------------
+    def add_topic(self, entity_id: str, topic: str):
+        """Associate a topic string with an entity. Idempotent."""
+        entity_id = self._normalize_id(entity_id)
+        self.conn.execute(
+            "INSERT OR IGNORE INTO entity_topics (entity_id, topic) VALUES (?, ?)",
+            (entity_id, topic.strip()),
+        )
+        self.conn.commit()
+
+    def get_topics(self, entity_id: str) -> list[str]:
+        """Return all topics for an entity."""
+        rows = self.conn.execute(
+            "SELECT topic FROM entity_topics WHERE entity_id = ? ORDER BY topic",
+            (self._normalize_id(entity_id),),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def add_snippet(self, entity_id: str, text: str, *,
+                    ref_id: str | None = None, ref_type: str | None = None,
+                    ordinal: int = 0):
+        """Add a blockquote snippet to a signal entity."""
+        entity_id = self._normalize_id(entity_id)
+        if ref_id:
+            ref_id = self._normalize_id(ref_id)
+        self.conn.execute(
+            """INSERT INTO snippets (entity_id, ref_id, ref_type, text, ordinal)
+               VALUES (?, ?, ?, ?, ?)""",
+            (entity_id, ref_id, ref_type, text.strip(), ordinal),
+        )
+        self.conn.commit()
+
+    def get_snippets(self, entity_id: str, ref_id: str | None = None) -> list[dict]:
+        """Return snippets for a signal, optionally filtered by referenced person."""
+        entity_id = self._normalize_id(entity_id)
+        if ref_id:
+            rows = self.conn.execute(
+                """SELECT * FROM snippets WHERE entity_id = ? AND ref_id = ?
+                   ORDER BY ordinal""",
+                (entity_id, self._normalize_id(ref_id)),
+            ).fetchall()
+        else:
+            rows = self.conn.execute(
+                "SELECT * FROM snippets WHERE entity_id = ? ORDER BY ref_type, ref_id, ordinal",
+                (entity_id,),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def set_research_interests(self, entity_id: str, interests: list[str]):
+        """Replace research interests for a person (full overwrite)."""
+        entity_id = self._normalize_id(entity_id)
+        self.conn.execute(
+            "DELETE FROM research_interests WHERE entity_id = ?", (entity_id,)
+        )
+        for i, interest in enumerate(interests):
+            interest = interest.strip()
+            if interest:
+                self.conn.execute(
+                    """INSERT OR IGNORE INTO research_interests (entity_id, interest, ordinal)
+                       VALUES (?, ?, ?)""",
+                    (entity_id, interest, i),
+                )
+        self.conn.commit()
+
+    def get_research_interests(self, entity_id: str) -> list[str]:
+        """Return ordered research interests for a person."""
+        rows = self.conn.execute(
+            "SELECT interest FROM research_interests WHERE entity_id = ? ORDER BY ordinal",
+            (self._normalize_id(entity_id),),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def upsert_source(self, entity_id: str, source_name: str, *,
+                      url: str | None = None, retrieved_at: str | None = None):
+        """Add or update a provenance source record for an entity."""
+        entity_id = self._normalize_id(entity_id)
+        existing = self.conn.execute(
+            "SELECT id FROM sources WHERE entity_id = ? AND source_name = ?",
+            (entity_id, source_name),
+        ).fetchone()
+        if existing:
+            self.conn.execute(
+                "UPDATE sources SET url = ?, retrieved_at = ? WHERE id = ?",
+                (url, retrieved_at, existing[0]),
+            )
+        else:
+            self.conn.execute(
+                """INSERT INTO sources (entity_id, source_name, url, retrieved_at)
+                   VALUES (?, ?, ?, ?)""",
+                (entity_id, source_name, url, retrieved_at),
+            )
+        self.conn.commit()
+
+    def get_sources(self, entity_id: str) -> list[dict]:
+        """Return provenance sources for an entity."""
+        rows = self.conn.execute(
+            "SELECT source_name, url, retrieved_at FROM sources WHERE entity_id = ? ORDER BY source_name",
+            (self._normalize_id(entity_id),),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def upsert_contact(self, entity_id: str, field: str, value: str):
+        """Set a contact field for a person. Overwrites existing value."""
+        entity_id = self._normalize_id(entity_id)
+        self.conn.execute(
+            """INSERT INTO contact_info (entity_id, field, value) VALUES (?, ?, ?)
+               ON CONFLICT(entity_id, field) DO UPDATE SET value = excluded.value""",
+            (entity_id, field.strip(), value.strip()),
+        )
+        self.conn.commit()
+
+    def get_contact(self, entity_id: str) -> dict:
+        """Return all contact fields for a person as a dict."""
+        rows = self.conn.execute(
+            "SELECT field, value FROM contact_info WHERE entity_id = ? ORDER BY field",
+            (self._normalize_id(entity_id),),
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    # ------------------------------------------------------------------
+    # Tag registry operations
+    # ------------------------------------------------------------------
+    def upsert_tag(self, tag_name: str, *, category: str = "topic",
+                   description: str = "", aliases: list[str] | None = None) -> str:
+        """Create or update a tag entity with category/description metadata."""
+        tag_id = self._normalize_id(tag_name)
+        meta = {"category": category}
+        if description:
+            meta["description"] = description
+        self.upsert_entity("tag", tag_id, name=tag_name, metadata=meta,
+                           aliases=aliases)
+        return tag_id
+
+    def get_tag_registry(self) -> dict[str, dict]:
+        """Return {tag_id: {"category": str, "description": str}} for all tag entities."""
+        rows = self.conn.execute(
+            "SELECT id, metadata FROM entities WHERE type = 'tag' ORDER BY id"
+        ).fetchall()
+        registry = {}
+        for r in rows:
+            meta = json.loads(r["metadata"])
+            registry[r["id"]] = {
+                "category": meta.get("category", "topic"),
+                "description": meta.get("description", ""),
+            }
+        return registry
+
+    def get_tag_aliases(self) -> dict[str, str]:
+        """Return {alias: canonical_tag_id} for all tag entities."""
+        rows = self.conn.execute("""
+            SELECT a.alias, a.entity_id
+            FROM aliases a
+            JOIN entities e ON e.id = a.entity_id
+            WHERE e.type = 'tag'
+            ORDER BY a.alias
+        """).fetchall()
+        return {r["alias"]: r["entity_id"] for r in rows}
+
+    def merge_tags(self, winner_id: str, loser_id: str) -> dict:
+        """
+        Merge loser tag into winner: re-point TAGGED relationships,
+        transfer aliases, add loser as alias of winner, delete loser.
+
+        Returns {"relationships_moved": int, "aliases_moved": int}.
+        """
+        winner_id = self._normalize_id(winner_id)
+        loser_id = self._normalize_id(loser_id)
+
+        if winner_id == loser_id:
+            return {"relationships_moved": 0, "aliases_moved": 0}
+
+        # Re-point TAGGED relationships from loser to winner
+        # Skip duplicates (source already tagged with winner)
+        existing = set(r[0] for r in self.conn.execute(
+            "SELECT source_id FROM relationships WHERE target_id = ? AND rel_type = 'TAGGED'",
+            (winner_id,),
+        ).fetchall())
+
+        loser_rels = self.conn.execute(
+            "SELECT source_id, metadata FROM relationships WHERE target_id = ? AND rel_type = 'TAGGED'",
+            (loser_id,),
+        ).fetchall()
+
+        moved = 0
+        for row in loser_rels:
+            src = row["source_id"]
+            if src not in existing:
+                self.conn.execute(
+                    """INSERT OR IGNORE INTO relationships (source_id, rel_type, target_id, metadata)
+                       VALUES (?, 'TAGGED', ?, ?)""",
+                    (src, winner_id, row["metadata"]),
+                )
+                moved += 1
+
+        # Delete old relationships
+        self.conn.execute(
+            "DELETE FROM relationships WHERE target_id = ? AND rel_type = 'TAGGED'",
+            (loser_id,),
+        )
+
+        # Transfer aliases from loser to winner
+        loser_aliases = self.conn.execute(
+            "SELECT alias FROM aliases WHERE entity_id = ?", (loser_id,)
+        ).fetchall()
+        aliases_moved = 0
+        for row in loser_aliases:
+            try:
+                self.conn.execute(
+                    "UPDATE aliases SET entity_id = ? WHERE alias = ?",
+                    (winner_id, row["alias"]),
+                )
+                aliases_moved += 1
+            except sqlite3.IntegrityError:
+                pass
+
+        # Add loser ID itself as alias of winner
+        try:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO aliases (alias, entity_id) VALUES (?, ?)",
+                (loser_id, winner_id),
+            )
+        except sqlite3.IntegrityError:
+            pass
+
+        # Delete loser entity
+        self.conn.execute("DELETE FROM entities WHERE id = ?", (loser_id,))
+        self.conn.commit()
+
+        return {"relationships_moved": moved, "aliases_moved": aliases_moved}
+
+    # ------------------------------------------------------------------
+    # Tag ontology (BROADER hierarchy)
+    # ------------------------------------------------------------------
+    def add_broader(self, child_id: str, parent_id: str):
+        """Set child tag's parent in the ontology. Replaces any existing parent."""
+        child_id = self._normalize_id(child_id)
+        parent_id = self._normalize_id(parent_id)
+        # Remove existing parent link (a tag has at most one parent)
+        self.conn.execute(
+            "DELETE FROM relationships WHERE source_id = ? AND rel_type = 'BROADER'",
+            (child_id,),
+        )
+        self.conn.execute(
+            """INSERT OR IGNORE INTO relationships (source_id, rel_type, target_id, metadata)
+               VALUES (?, 'BROADER', ?, '{}')""",
+            (child_id, parent_id),
+        )
+        self.conn.commit()
+
+    def get_parent(self, tag_id: str) -> str | None:
+        """Return the direct parent tag, or None if root."""
+        tag_id = self._normalize_id(tag_id)
+        row = self.conn.execute(
+            "SELECT target_id FROM relationships WHERE source_id = ? AND rel_type = 'BROADER'",
+            (tag_id,),
+        ).fetchone()
+        return row["target_id"] if row else None
+
+    def get_children(self, tag_id: str) -> list[str]:
+        """Return direct child tags."""
+        tag_id = self._normalize_id(tag_id)
+        rows = self.conn.execute(
+            "SELECT source_id FROM relationships WHERE target_id = ? AND rel_type = 'BROADER'",
+            (tag_id,),
+        ).fetchall()
+        return [r["source_id"] for r in rows]
+
+    def get_ancestors(self, tag_id: str) -> list[str]:
+        """Walk up the BROADER chain. Returns [parent, grandparent, ...] (nearest first)."""
+        ancestors = []
+        current = self._normalize_id(tag_id)
+        visited = set()
+        while True:
+            parent = self.get_parent(current)
+            if parent is None or parent in visited:
+                break
+            ancestors.append(parent)
+            visited.add(parent)
+            current = parent
+        return ancestors
+
+    def get_descendants(self, tag_id: str) -> list[str]:
+        """Return all tags below this one in the hierarchy (BFS)."""
+        tag_id = self._normalize_id(tag_id)
+        result = []
+        queue = [tag_id]
+        visited = {tag_id}
+        while queue:
+            current = queue.pop(0)
+            children = self.get_children(current)
+            for child in children:
+                if child not in visited:
+                    visited.add(child)
+                    result.append(child)
+                    queue.append(child)
+        return result
+
+    def get_subtree_entities(self, tag_id: str, entity_type: str = "") -> list[dict]:
+        """
+        Get all entities tagged with this tag OR any of its descendants.
+        This is the key query: "show me everything under plant-science".
+        """
+        tag_id = self._normalize_id(tag_id)
+        all_tags = [tag_id] + self.get_descendants(tag_id)
+        placeholders = ",".join("?" * len(all_tags))
+
+        q = f"""
+            SELECT DISTINCT e.id, e.type, e.name
+            FROM entities e
+            JOIN relationships r ON r.source_id = e.id
+            WHERE r.rel_type = 'TAGGED' AND r.target_id IN ({placeholders})
+        """
+        params = list(all_tags)
+        if entity_type:
+            q += " AND e.type = ?"
+            params.append(entity_type)
+        q += " ORDER BY e.name"
+        return [dict(r) for r in self.conn.execute(q, params)]
+
+    def get_tag_tree(self) -> dict:
+        """
+        Return the full tag hierarchy as a nested dict.
+        {tag_id: {"children": {tag_id: {"children": {...}}}}
+        Roots are tags with no parent.
+        """
+        # Get all BROADER edges
+        rows = self.conn.execute(
+            "SELECT source_id, target_id FROM relationships WHERE rel_type = 'BROADER'"
+        ).fetchall()
+        parent_map = {r["source_id"]: r["target_id"] for r in rows}
+        children_map: dict[str, list[str]] = {}
+        for child, parent in parent_map.items():
+            children_map.setdefault(parent, []).append(child)
+
+        # All tag entities
+        all_tags = set(r["id"] for r in self.conn.execute(
+            "SELECT id FROM entities WHERE type = 'tag'"
+        ).fetchall())
+
+        # Roots = tags with no parent
+        roots = sorted(all_tags - set(parent_map.keys()))
+
+        def build(tag_id):
+            node = {}
+            kids = sorted(children_map.get(tag_id, []))
+            if kids:
+                node["children"] = {k: build(k) for k in kids}
+            return node
+
+        return {r: build(r) for r in roots}
+
+    def get_tag_forest_stats(self) -> dict:
+        """Summary stats for the tag ontology."""
+        total = self.conn.execute(
+            "SELECT COUNT(*) FROM entities WHERE type = 'tag'"
+        ).fetchone()[0]
+        with_parent = self.conn.execute(
+            "SELECT COUNT(DISTINCT source_id) FROM relationships WHERE rel_type = 'BROADER'"
+        ).fetchone()[0]
+        parents = self.conn.execute(
+            "SELECT COUNT(DISTINCT target_id) FROM relationships WHERE rel_type = 'BROADER'"
+        ).fetchone()[0]
+        roots = total - with_parent
+        # Max depth
+        max_depth = 0
+        root_ids = self.conn.execute("""
+            SELECT id FROM entities WHERE type = 'tag'
+            AND id NOT IN (SELECT source_id FROM relationships WHERE rel_type = 'BROADER')
+        """).fetchall()
+        for row in root_ids:
+            depth = self._tree_depth(row["id"])
+            if depth > max_depth:
+                max_depth = depth
+        return {
+            "total_tags": total,
+            "with_parent": with_parent,
+            "roots": roots,
+            "internal_nodes": parents,
+            "max_depth": max_depth,
+        }
+
+    def _tree_depth(self, tag_id: str) -> int:
+        """Max depth below a tag node."""
+        children = self.get_children(tag_id)
+        if not children:
+            return 0
+        return 1 + max(self._tree_depth(c) for c in children)
 
     # ------------------------------------------------------------------
     # Helpers
