@@ -275,6 +275,50 @@ The simplest possible LangGraph: one agent, two tools, one loop.
 
 ---
 
+## Data Layer — vault.db
+
+```
+  ┌──────────────────────────────────────────────────────────────┐
+  │  vault.db (SQLite)  — single source of truth                │
+  │                                                              │
+  │  Entity types:                                               │
+  │    person, publication, signal, event, center, tag           │
+  │                                                              │
+  │  Relationship types:                                         │
+  │    AUTHORED   person → publication                           │
+  │    ATTENDED   person → event                                 │
+  │    MENTIONED  person → signal                                │
+  │    TAGGED     any    → tag                                   │
+  │    COAUTHOR   person ↔ person                                │
+  │    MEMBER_OF  person → center                                │
+  │    BROADER    tag    → parent tag  (ontology hierarchy)      │
+  │                                                              │
+  │  Tables: entities, aliases, relationships,                   │
+  │          entity_topics, snippets, research_interests,        │
+  │          contact_info, sources                               │
+  └──────────────────────────────────────────────────────────────┘
+
+  Tag Ontology (BROADER hierarchy):
+  ┌─────────────────────────────────────────────────────────┐
+  │  domain (5)  →  field (36)  →  leaf (~700)              │
+  │                                                         │
+  │  biology ─── plant-science ─── soybean-genetics         │
+  │         ├── genomics ──────── barley-genetics            │
+  │         └── agriculture ───── crop-yield                 │
+  │                                                         │
+  │  computing ── ai ──────────── adversarial-robustness    │
+  │          ├── machine-learning ── reinforcement-learning  │
+  │          └── nlp ──────────── text-analysis              │
+  └─────────────────────────────────────────────────────────┘
+
+  Key queries:
+    db.get_ancestors("soybean-genetics")  → [plant-science, biology]
+    db.get_subtree_entities("plant-science", "person")
+      → all persons tagged plant-science or any child tag
+```
+
+---
+
 ## Key Bugs Fixed
 
 | Bug | Symptom | Fix |
