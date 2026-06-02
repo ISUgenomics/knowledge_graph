@@ -48,17 +48,29 @@ def make_entity_router(db: KnowledgeGraphDB) -> APIRouter:
     @router.get("/entity/{entity_id:path}")
     def get_entity(entity_id: str):
         """
-        Return full entity detail + relationships + neighbors.
+        Return full entity detail + relationships + neighbors + rich content.
         Used by the detail panel on node click.
         """
         entity = db.get_entity(entity_id)
         if not entity:
             raise HTTPException(status_code=404, detail=f"Entity not found: {entity_id}")
+
+        neighbors = db.neighbors(entity_id)
+        # Build name map so the UI can show names instead of raw IDs
+        name_map = {n["id"]: n["name"] for n in neighbors}
+
+        relationships = db.get_relationships(entity_id)
+        # Annotate each relationship with the display name of the other entity
+        for r in relationships:
+            other_id = r["target_id"] if r["source_id"] == entity_id else r["source_id"]
+            r["other_name"] = name_map.get(other_id, other_id)
+
         return {
             "entity": entity,
-            "relationships": db.get_relationships(entity_id),
-            "neighbors": db.neighbors(entity_id),
+            "relationships": relationships,
+            "neighbors": neighbors,
             "degree": db.degree(entity_id),
+            "rich": db.get_rich(entity_id, entity_type=entity["type"]),
         }
 
     return router

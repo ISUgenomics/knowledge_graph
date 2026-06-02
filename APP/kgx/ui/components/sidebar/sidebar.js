@@ -273,6 +273,19 @@ export function initSidebar(container, eventBus, apiClient) {
         eventBus.emit('node:sql-filter', { filter_id: filter.id, ids: [], active: false });
     }
 
+    // Allow chat to save a filter directly into the sidebar
+    eventBus.on('chat:save-filter', ({ name, sql }) => {
+        const filters = sfLoad();
+        const id = 'sf-' + Date.now();
+        filters.push({ id, name, sql, active: false });
+        sfSave(filters);
+        console.log('chat:save-filter saved', { id, name, sql }, 'total:', filters.length);
+        renderSqlFilters();
+        // Scroll sidebar to show the SQL filters section
+        const section = container.querySelector('#sql-filters-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
     function renderSqlFilters() {
         const listEl = container.querySelector('#sf-list');
         if (!listEl) return;

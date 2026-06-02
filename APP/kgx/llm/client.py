@@ -14,7 +14,7 @@ class OllamaClient:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.temperature = temperature
-        self._client = httpx.Client(timeout=120.0)
+        self._client = httpx.Client(timeout=300.0)
 
     def chat(self, messages: list[dict], temperature: float | None = None) -> str:
         """Send messages to Ollama, return assistant reply text."""

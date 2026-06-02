@@ -45,6 +45,8 @@ export function initGraph(container, eventBus, apiClient) {
     let highlightedIds = new Set();
     // SQL filter sets: filter_id → Set<node_id>
     let filterSets = new Map();
+    // Nodes force-shown via "Expand neighbors" — overrides all filters
+    let forceShownIds = new Set();
     let typeColorMap = {};
     let colorIndex = 0;
 
@@ -97,6 +99,11 @@ export function initGraph(container, eventBus, apiClient) {
 
         // Mark nodes
         for (const n of allNodes) {
+            // Force-shown nodes (from Expand neighbors) override all filters
+            if (forceShownIds.has(n.id)) {
+                n.__hidden = false;
+                continue;
+            }
             if (hiddenNodeIds.has(n.id) || (filteredIds && filteredIds.has(n.id))) {
                 n.__hidden = true;
                 continue;
@@ -110,14 +117,23 @@ export function initGraph(container, eventBus, apiClient) {
             }
         }
 
-        // Mark links
+        // Build node hidden lookup for link visibility
+        const nodeHidden = {};
+        for (const n of allNodes) nodeHidden[n.id] = n.__hidden;
+
+        // Mark links — force-show links where both endpoints are visible
         for (const e of allEdges) {
             const src = typeof e.source === 'object' ? e.source.id : e.source;
             const tgt = typeof e.target === 'object' ? e.target.id : e.target;
-            e.__hidden = hiddenRelTypes.has(e.rel_type)
-                || hiddenNodeIds.has(src)
-                || hiddenNodeIds.has(tgt)
-                || (filteredIds && (filteredIds.has(src) || filteredIds.has(tgt)));
+            if (forceShownIds.has(src) || forceShownIds.has(tgt)) {
+                // Show link only if neither endpoint ended up hidden
+                e.__hidden = !!nodeHidden[src] || !!nodeHidden[tgt];
+            } else {
+                e.__hidden = hiddenRelTypes.has(e.rel_type)
+                    || hiddenNodeIds.has(src)
+                    || hiddenNodeIds.has(tgt)
+                    || (filteredIds && (filteredIds.has(src) || filteredIds.has(tgt)));
+            }
         }
     }
 
@@ -134,7 +150,8 @@ export function initGraph(container, eventBus, apiClient) {
             const deg = computeDegrees(data.nodes, rawEdges);
             allNodes = data.nodes.map(n => ({
                 ...n,
-                _color: getTypeColor(n.type),
+                _group: n.group || n.type,  // 'person (stub)' vs 'person' vs 'signal' etc.
+                _color: getTypeColor(n.group || n.type),
                 _degree: deg[n.id] || 0,
                 __hidden: false,
             }));
@@ -172,7 +189,7 @@ export function initGraph(container, eventBus, apiClient) {
             .backgroundColor('#0f0f1a')
             .onDagError(() => {}) // graph has cycles — suppress error, best-effort layout
             .nodeId('id')
-            .nodeLabel(n => `${n.name} (${n.type})`)
+            .nodeLabel(n => `${n.name} (${n._group || n.type})`)
             .nodeColor(n => highlightedIds.size > 0
                 ? (highlightedIds.has(n.id) ? '#ffffff' : n._color + '44')
                 : n._color
@@ -199,9 +216,26 @@ export function initGraph(container, eventBus, apiClient) {
                 });
             })
             .onBackgroundClick(() => {
-                highlightedIds.clear();
-                graphInstance.nodeColor(n => n._color);
+                if (highlightedIds.size > 0) {
+                    highlightedIds.clear();
+                    graphInstance.nodeColor(n => n._color);
+                    eventBus.emit('node:highlight-cleared', {});
+                }
             });
+
+        // Disable damping/inertia so mouse release stops immediately.
+        // 3d-force-graph uses TrackballControls (staticMoving) not OrbitControls (enableDamping).
+        setTimeout(() => {
+            const controls = graphInstance.controls();
+            if (controls) {
+                // TrackballControls: staticMoving=true means no inertia
+                controls.staticMoving = true;
+                controls.dynamicDampingFactor = 1.0; // instant stop if staticMoving ignored
+                // OrbitControls fallback (in case lib version differs)
+                controls.enableDamping = false;
+                controls.dampingFactor = 0;
+            }
+        }, 100);
     }
 
     // Keep renderer dimensions in sync with the container (grid layout can resize it)
@@ -218,7 +252,7 @@ export function initGraph(container, eventBus, apiClient) {
     eventBus.on('labels:toggle', ({ visible }) => {
         showLabels = visible;
         if (graphInstance) {
-            graphInstance.nodeLabel(showLabels ? (n => `${n.name} (${n.type})`) : (() => ''));
+            graphInstance.nodeLabel(showLabels ? (n => `${n.name} (${n._group || n.type})`) : (() => ''));
         }
     });
 
@@ -237,6 +271,7 @@ export function initGraph(container, eventBus, apiClient) {
         hiddenNodeIds.clear();
         hiddenRelTypes.clear();
         filterSets.clear();
+        forceShownIds.clear();
         recomputeHiddenFlags();
         refreshVisibility();
         // Also tell sidebar to re-check all edge filters
@@ -280,17 +315,29 @@ export function initGraph(container, eventBus, apiClient) {
         );
     });
 
+    eventBus.on('node:orbit', ({ id }) => {
+        if (!graphInstance) return;
+        const node = allNodes.find(n => n.id === id);
+        if (!node) return;
+        const controls = graphInstance.controls();
+        if (controls && controls.target) {
+            controls.target.set(node.x || 0, node.y || 0, node.z || 0);
+            controls.update();
+        }
+    });
+
     eventBus.on('node:expand', async ({ id }) => {
+        forceShownIds.add(id);
         hiddenNodeIds.delete(id);
         try {
             const data = await apiClient.get(`/api/entity/${encodeURIComponent(id)}/neighbors`);
             for (const n of (data.neighbors || [])) {
+                forceShownIds.add(n.id);
                 hiddenNodeIds.delete(n.id);
             }
         } catch (_) { /* best-effort */ }
         recomputeHiddenFlags();
         refreshVisibility();
-        eventBus.emit('node:focus', { id });
     });
 
     eventBus.on('edge:filter', ({ rel_type, visible }) => {
@@ -440,7 +487,7 @@ export function initGraph(container, eventBus, apiClient) {
 
         } else if (layout === 'cluster') {
             // Pull each node toward its type's centroid arranged in a circle
-            const types = [...new Set(allNodes.map(n => n.type))];
+            const types = [...new Set(allNodes.map(n => n._group))];
             const radius = 600;
             const typeCentroids = {};
             types.forEach((t, i) => {
@@ -454,7 +501,7 @@ export function initGraph(container, eventBus, apiClient) {
             graphInstance.d3Force('cluster', alpha => {
                 for (const n of allNodes) {
                     if (n.__hidden) continue;
-                    const c = typeCentroids[n.type];
+                    const c = typeCentroids[n._group];
                     if (!c) continue;
                     n.vx = (n.vx || 0) + (c.x - (n.x || 0)) * 0.3 * alpha;
                     n.vy = (n.vy || 0) + (c.y - (n.y || 0)) * 0.3 * alpha;
@@ -526,6 +573,70 @@ export function initGraph(container, eventBus, apiClient) {
     eventBus.on('sidebar:select', ({ id }) => {
         eventBus.emit('node:focus', { id });
         eventBus.emit('node:selected', { id });
+    });
+
+    // ---- Force settings ----
+    eventBus.on('force:get-types', ({ callback }) => {
+        const types = [...new Set(allNodes.map(n => n._group))].sort();
+        callback(types);
+    });
+
+    eventBus.on('force:update', (settings) => {
+        if (!graphInstance) return;
+
+        const linkForce = graphInstance.d3Force('link');
+        if (linkForce) {
+            linkForce.distance(settings.linkDist);
+            linkForce.strength(settings.linkStr / 100);
+        }
+
+        const chargeForce = graphInstance.d3Force('charge');
+        if (chargeForce) {
+            if (settings.typeCharges && Object.keys(settings.typeCharges).length > 0) {
+                chargeForce.strength(node => {
+                    return settings.typeCharges[node._group] ?? settings.charge;
+                });
+            } else {
+                chargeForce.strength(settings.charge);
+            }
+        }
+
+        const centerForce = graphInstance.d3Force('center');
+        if (centerForce) {
+            centerForce.strength(settings.center / 100);
+        }
+
+        // Collision force — only works if d3 is available globally
+        try {
+            if (settings.collision > 0 && typeof d3 !== 'undefined' && d3.forceCollide) {
+                graphInstance.d3Force('collision', d3.forceCollide(settings.collision));
+            } else {
+                graphInstance.d3Force('collision', null);
+            }
+        } catch (_) { /* d3 not available as global — collision slider is a no-op */ }
+
+        // Alpha decay
+        graphInstance.d3AlphaDecay(settings.decay / 1000);
+
+        // Edge visual properties
+        if (settings.edgeWidth !== undefined) {
+            graphInstance.linkWidth(settings.edgeWidth / 10);
+        }
+        if (settings.edgeOpacity !== undefined) {
+            graphInstance.linkOpacity(settings.edgeOpacity / 100);
+        }
+        if (settings.edgeColor !== undefined) {
+            graphInstance.linkColor(() => settings.edgeColor);
+        }
+        if (settings.particles !== undefined) {
+            graphInstance.linkDirectionalParticles(settings.particles);
+        }
+
+        graphInstance.d3ReheatSimulation();
+    });
+
+    eventBus.on('force:reheat', () => {
+        if (graphInstance) graphInstance.d3ReheatSimulation();
     });
 
     // ---- Init ----

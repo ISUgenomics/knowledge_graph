@@ -1,0 +1,250 @@
+---
+title: "Global hotspots of particulate organic carbon losses under climate change"
+doi: "10.1038/s41467-026-71321-2"
+year: 2026
+journal: "Nature communications"
+pmid: "41922363"
+authors:
+  - "[[sun-s]]"
+  - "[[cotrufo-mf]]"
+  - "[[viscarra-rossel-ra]]"
+  - "[[mueller-cw]]"
+  - "[[kida-m]]"
+  - "[[hardie-ag]]"
+  - "[[mackay-a]]"
+  - "[[krichels-ah]]"
+  - "[[amelung-w]]"
+  - "[[kumar-a]]"
+  - "[[suleymanov-a]]"
+  - "[[shi-b]]"
+  - "[[cosby-bj]]"
+  - "[[plaza-c]]"
+  - "[[terrer-c]]"
+  - "[[liang-c]]"
+  - "[[liao-c]]"
+  - "[[just-c]]"
+  - "[[guo-d]]"
+  - "[[lugato-e]]"
+  - "[[hou-e]]"
+  - "[[ding-f]]"
+  - "[[zhao-f]]"
+  - "[[tao-f]]"
+  - "[[maestre-ft]]"
+  - "[[bilotto-f]]"
+  - "[[wu-f]]"
+  - "[[garca-gv]]"
+  - "[[luo-g]]"
+  - "[[han-g]]"
+  - "[[studdert-ga]]"
+  - "[[hernandezramirez-g]]"
+  - "[[niu-g]]"
+  - "[[pieiro-g]]"
+  - "[[saiz-g]]"
+  - "[[zhang-h]]"
+  - "[[abdelrahman-h]]"
+  - "[[xu-h]]"
+  - "[[lebron-i]]"
+  - "[[kurganova-i]]"
+  - "[[blesh-j]]"
+  - "[[kristensen-j]]"
+  - "[[liu-j]]"
+  - "[[zhou-j]]"
+  - "[[wu-j]]"
+  - "[[ahirwal-j]]"
+  - "[[cao-j]]"
+  - "[[olesen-je]]"
+  - "[[kauer-k]]"
+  - "[[georgiou-k]]"
+  - "[[van-groenigen-kj]]"
+  - "[[van-oost-k]]"
+  - "[[frimpong-ka]]"
+  - "[[deng-l]]"
+  - "[[benning-lg]]"
+  - "[[guo-l]]"
+  - "[[mujuru-l]]"
+  - "[[delgadobaquerizo-m]]"
+  - "[[dor-m]]"
+  - "[[rahmati-m]]"
+  - "[[luo-m]]"
+  - "[[kalinina-o]]"
+  - "[[hyvrinen-o]]"
+  - "[[garcapalacios-p]]"
+  - "[[hansen-p]]"
+  - "[[rounak-p]]"
+  - "[[duan-p]]"
+  - "[[zhao-p]]"
+  - "[[homyak-pm]]"
+  - "[[ghimire-r]]"
+  - "[[ydelis-r]]"
+  - "[[bol-r]]"
+  - "[[vibart-r]]"
+  - "[[chang-r]]"
+  - "[[luo-r]]"
+  - "[[villarino-s]]"
+  - "[[xue-s]]"
+  - "[[niu-s]]"
+  - "[[chen-s]]"
+  - "[[yu-t]]"
+  - "[[hall-sj]]"
+  - "[[ktterer-t]]"
+  - "[[ge-t]]"
+  - "[[mbanjwa-ve]]"
+  - "[[semenov-vm]]"
+  - "[[liu-w]]"
+  - "[[shi-w]]"
+  - "[[zhang-w]]"
+  - "[[wanek-w]]"
+  - "[[buss-w]]"
+  - "[[cheng-x]]"
+  - "[[lu-x]]"
+  - "[[shi-x]]"
+  - "[[cheng-x]]"
+  - "[[wei-x]]"
+  - "[[liu-x]]"
+  - "[[zhou-x]]"
+  - "[[kooch-y]]"
+  - "[[zhong-y]]"
+  - "[[cai-y]]"
+  - "[[yang-y]]"
+  - "[[luo-y]]"
+  - "[[zhang-y]]"
+  - "[[qin-y]]"
+  - "[[fang-y]]"
+  - "[[liang-y]]"
+  - "[[li-y]]"
+  - "[[chen-z]]"
+  - "[[liu-z]]"
+  - "[[song-z]]"
+  - "[[luo-z]]"
+  - "[[an-z]]"
+  - "[[chen-j]]"
+tags: []
+_indexed: 2026-06-01
+---
+
+# Global hotspots of particulate organic carbon losses under climate change
+
+## Abstract
+
+Soil organic carbon (SOC) comprises particulate (POC) and mineral-associated organic carbon (MAOC), which differ in formation, stabilization, and loss mechanisms. While the current global distribution of POC and MAOC is characterized, their vulnerability under future climate scenarios remains unclear. Using 3284 topsoil (0-30 cm) observations from six continents, we identify high-latitude soils as global hotspots of SOC vulnerability under shared socioeconomic pathway scenarios (SSP126, SSP245, and SSP585). Under a high-emission scenario (SSP585), high-latitude soils are projected to lose substantial POC by 2100, accounting for about 81 ± 10% of total SOC losses. These declines are driven by the high proportion of SOC stored as POC (fPOC) and its high temperature sensitivity. We show that fPOC is a robust indicator of SOC vulnerability to climate change. Globally, the projected POC decline corresponds to a cumulative carbon dioxide (CO2) release of 81.34 Pg CO2-equivalent by 2100, highlighting the importance of preserving POC to mitigate climate feedbacks.
+
+## Authors
+
+- [[sun-s]]
+- [[cotrufo-mf]]
+- [[viscarra-rossel-ra]]
+- [[mueller-cw]]
+- [[kida-m]]
+- [[hardie-ag]]
+- [[mackay-a]]
+- [[krichels-ah]]
+- [[amelung-w]]
+- [[kumar-a]]
+- [[suleymanov-a]]
+- [[shi-b]]
+- [[cosby-bj]]
+- [[plaza-c]]
+- [[terrer-c]]
+- [[liang-c]]
+- [[liao-c]]
+- [[just-c]]
+- [[guo-d]]
+- [[lugato-e]]
+- [[hou-e]]
+- [[ding-f]]
+- [[zhao-f]]
+- [[tao-f]]
+- [[maestre-ft]]
+- [[bilotto-f]]
+- [[wu-f]]
+- [[garca-gv]]
+- [[luo-g]]
+- [[han-g]]
+- [[studdert-ga]]
+- [[hernandezramirez-g]]
+- [[niu-g]]
+- [[pieiro-g]]
+- [[saiz-g]]
+- [[zhang-h]]
+- [[abdelrahman-h]]
+- [[xu-h]]
+- [[lebron-i]]
+- [[kurganova-i]]
+- [[blesh-j]]
+- [[kristensen-j]]
+- [[liu-j]]
+- [[zhou-j]]
+- [[wu-j]]
+- [[ahirwal-j]]
+- [[cao-j]]
+- [[olesen-je]]
+- [[kauer-k]]
+- [[georgiou-k]]
+- [[van-groenigen-kj]]
+- [[van-oost-k]]
+- [[frimpong-ka]]
+- [[deng-l]]
+- [[benning-lg]]
+- [[guo-l]]
+- [[mujuru-l]]
+- [[delgadobaquerizo-m]]
+- [[dor-m]]
+- [[rahmati-m]]
+- [[luo-m]]
+- [[kalinina-o]]
+- [[hyvrinen-o]]
+- [[garcapalacios-p]]
+- [[hansen-p]]
+- [[rounak-p]]
+- [[duan-p]]
+- [[zhao-p]]
+- [[homyak-pm]]
+- [[ghimire-r]]
+- [[ydelis-r]]
+- [[bol-r]]
+- [[vibart-r]]
+- [[chang-r]]
+- [[luo-r]]
+- [[villarino-s]]
+- [[xue-s]]
+- [[niu-s]]
+- [[chen-s]]
+- [[yu-t]]
+- [[hall-sj]]
+- [[ktterer-t]]
+- [[ge-t]]
+- [[mbanjwa-ve]]
+- [[semenov-vm]]
+- [[liu-w]]
+- [[shi-w]]
+- [[zhang-w]]
+- [[wanek-w]]
+- [[buss-w]]
+- [[cheng-x]]
+- [[lu-x]]
+- [[shi-x]]
+- [[cheng-x]]
+- [[wei-x]]
+- [[liu-x]]
+- [[zhou-x]]
+- [[kooch-y]]
+- [[zhong-y]]
+- [[cai-y]]
+- [[yang-y]]
+- [[luo-y]]
+- [[zhang-y]]
+- [[qin-y]]
+- [[fang-y]]
+- [[liang-y]]
+- [[li-y]]
+- [[chen-z]]
+- [[liu-z]]
+- [[song-z]]
+- [[luo-z]]
+- [[an-z]]
+- [[chen-j]]
+
+**DOI:** 10.1038/s41467-026-71321-2
+**PMID:** [41922363](https://pubmed.ncbi.nlm.nih.gov/41922363/)
+**Journal:** Nature communications
+**Year:** 2026

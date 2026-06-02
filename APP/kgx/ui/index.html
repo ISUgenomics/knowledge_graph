@@ -223,6 +223,7 @@
             <button class="header-btn" id="btn-show-all">Show All</button>
             <button class="header-btn" id="btn-export-json">Export JSON</button>
             <button class="header-btn" id="btn-export-neo4j">Export Neo4j</button>
+            <button class="header-btn" id="btn-force-settings" title="Force settings">Settings</button>
         </div>
     </header>
 
@@ -237,6 +238,17 @@
     </aside>
 
     <section id="chat-panel"><!-- populated by chat.js --></section>
+
+    <aside id="sql-panel" style="grid-column:3;grid-row:3;background:var(--bg-secondary);border-top:1px solid var(--border);
+        border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);">Last SQL</span>
+            <button id="btn-copy-sql" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:3px;
+                color:var(--text-muted);font-size:10px;padding:2px 8px;cursor:pointer;">Copy</button>
+        </div>
+        <pre id="sql-display" style="flex:1;margin:0;padding:10px 12px;font-family:var(--font-mono);font-size:11px;
+            color:var(--text-secondary);overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
+    </aside>
 </div>
 
 <!-- Context menu (shared) -->
@@ -254,6 +266,97 @@
         </div>
     </div>
 </div>
+
+<!-- Force settings panel -->
+<div id="force-settings-panel" style="display:none;position:fixed;top:60px;right:20px;z-index:400;
+    background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);
+    padding:16px 20px;width:340px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    cursor:default;">
+        <div id="force-settings-drag-handle" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:grab;">
+            <h3 style="font-size:13px;color:var(--text-primary);margin:0;user-select:none;">Force Graph Settings</h3>
+            <button id="btn-force-close" class="btn-cancel" style="padding:2px 10px;font-size:11px;">Close</button>
+        </div>
+        <div id="force-settings-body" style="display:flex;flex-direction:column;gap:14px;font-size:12px;color:var(--text-secondary);">
+            <div class="fs-group">
+                <label>Link Distance <span id="fs-link-dist-val" class="fs-val"></span></label>
+                <input type="range" id="fs-link-dist" min="5" max="300" value="30" class="fs-slider">
+            </div>
+            <div class="fs-group">
+                <label>Charge Strength <span id="fs-charge-val" class="fs-val"></span></label>
+                <input type="range" id="fs-charge" min="-500" max="0" value="-30" class="fs-slider">
+            </div>
+            <div class="fs-group">
+                <label>Center Strength <span id="fs-center-val" class="fs-val"></span></label>
+                <input type="range" id="fs-center" min="0" max="100" value="10" class="fs-slider" step="1">
+            </div>
+            <div class="fs-group">
+                <label>Link Strength <span id="fs-link-str-val" class="fs-val"></span></label>
+                <input type="range" id="fs-link-str" min="0" max="100" value="100" class="fs-slider" step="1">
+            </div>
+            <div class="fs-group">
+                <label>Collision Radius <span id="fs-collision-val" class="fs-val"></span></label>
+                <input type="range" id="fs-collision" min="0" max="50" value="0" class="fs-slider" step="1">
+            </div>
+            <div class="fs-group">
+                <label>Simulation Alpha Decay <span id="fs-decay-val" class="fs-val"></span></label>
+                <input type="range" id="fs-decay" min="1" max="100" value="23" class="fs-slider" step="1">
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Edges</div>
+                <div class="fs-group">
+                    <label>Edge Width <span id="fs-edge-width-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-edge-width" min="1" max="50" value="5" class="fs-slider" step="1">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Edge Opacity <span id="fs-edge-opacity-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-edge-opacity" min="0" max="100" value="40" class="fs-slider" step="1">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Edge Color <span id="fs-edge-color-val" class="fs-val"></span></label>
+                    <input type="color" id="fs-edge-color" value="#555566" style="width:100%;height:24px;border:1px solid var(--border);border-radius:3px;background:var(--bg-primary);cursor:pointer;">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Particles <span id="fs-particles-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-particles" min="0" max="5" value="1" class="fs-slider" step="1">
+                </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Per-Type Node Charge</div>
+                <div id="fs-type-charges" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Presets</div>
+                <div id="fs-presets-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="fs-preset-name" placeholder="Preset name…"
+                        style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                        color:var(--text-primary);font-size:11px;padding:4px 8px;outline:none;">
+                    <button id="btn-preset-save" class="btn-cancel" style="font-size:11px;padding:4px 10px;">Save</button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button id="btn-force-reset" class="btn-cancel" style="flex:1;font-size:12px;">Reset Defaults</button>
+                <button id="btn-force-reheat" class="btn-danger" style="flex:1;font-size:12px;background:var(--accent);">Reheat</button>
+            </div>
+        </div>
+</div>
+<style>
+    .fs-group { display:flex; flex-direction:column; gap:4px; }
+    .fs-group label { font-size:11px; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+    .fs-val { font-family:var(--font-mono); color:var(--accent); font-weight:400; }
+    .fs-slider { width:100%; accent-color:var(--accent); cursor:pointer; }
+    .fs-type-row { display:flex; align-items:center; gap:8px; }
+    .fs-type-label { width:90px; font-size:11px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; }
+    .fs-type-slider { flex:1; accent-color:var(--accent); }
+    .fs-type-val { width:40px; font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-align:right; }
+    .fs-preset-row { display:flex; align-items:center; gap:6px; }
+    .fs-preset-name { flex:1; font-size:11px; color:var(--text-secondary); cursor:pointer; padding:4px 8px;
+        border-radius:3px; background:var(--bg-primary); border:1px solid var(--border); }
+    .fs-preset-name:hover { background:var(--bg-hover); color:var(--text-primary); }
+    .fs-preset-name.active { border-color:var(--accent); color:var(--accent); }
+    .fs-preset-del { font-size:10px; color:var(--text-muted); cursor:pointer; padding:2px 4px; }
+    .fs-preset-del:hover { color:var(--danger); }
+</style>
 
 <!-- Vendored libraries (no CDN) -->
 <script src="/lib/3d-force-graph.min.js"></script>
@@ -356,6 +459,27 @@
         if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.style.display = 'none';
     });
 
+    // SQL display panel (lower-right)
+    const sqlDisplay = document.getElementById('sql-display');
+    bus.on('chat:sql-executed', ({ sql }) => {
+        sqlDisplay.textContent = sql;
+    });
+    document.getElementById('btn-copy-sql').addEventListener('click', () => {
+        const sql = sqlDisplay.textContent;
+        if (!sql) return;
+        navigator.clipboard.writeText(sql).catch(() => {
+            const tmp = document.createElement('textarea');
+            tmp.value = sql;
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand('copy');
+            document.body.removeChild(tmp);
+        });
+        const btn = document.getElementById('btn-copy-sql');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+
     // DB file watcher — auto-refresh when skills write to vault.db
     const dbWatcher = new EventSource('/api/watch');
     dbWatcher.addEventListener('changed', () => {
@@ -406,6 +530,201 @@
             document.getElementById('confirm-overlay').classList.remove('visible');
             _pendingMutation = null;
         }
+    });
+
+    // ---- Force settings panel (draggable) ----
+    const fsPanel = document.getElementById('force-settings-panel');
+    const FORCE_DEFAULTS = {
+        linkDist: 30, charge: -30, center: 10, linkStr: 100, collision: 0, decay: 23,
+        edgeWidth: 5, edgeOpacity: 40, edgeColor: '#555566', particles: 1,
+    };
+    let forceState = { ...FORCE_DEFAULTS };
+    let typeCharges = {};
+    let activePresetName = '';
+    const FS_KEY = 'kgx:force-presets';
+
+    function fsOpen() {
+        fsPanel.style.display = 'block';
+        fsSync();
+        fsPopulateTypes();
+        fsRenderPresets();
+    }
+    function fsClose() { fsPanel.style.display = 'none'; }
+
+    // Drag support
+    {
+        const handle = document.getElementById('force-settings-drag-handle');
+        let dragging = false, dx = 0, dy = 0;
+        handle.addEventListener('mousedown', e => {
+            dragging = true;
+            dx = e.clientX - fsPanel.offsetLeft;
+            dy = e.clientY - fsPanel.offsetTop;
+            handle.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            fsPanel.style.left = (e.clientX - dx) + 'px';
+            fsPanel.style.top = (e.clientY - dy) + 'px';
+            fsPanel.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            handle.style.cursor = 'grab';
+        });
+    }
+
+    function fsSync() {
+        document.getElementById('fs-link-dist').value = forceState.linkDist;
+        document.getElementById('fs-link-dist-val').textContent = forceState.linkDist;
+        document.getElementById('fs-charge').value = forceState.charge;
+        document.getElementById('fs-charge-val').textContent = forceState.charge;
+        document.getElementById('fs-center').value = forceState.center;
+        document.getElementById('fs-center-val').textContent = (forceState.center / 100).toFixed(2);
+        document.getElementById('fs-link-str').value = forceState.linkStr;
+        document.getElementById('fs-link-str-val').textContent = (forceState.linkStr / 100).toFixed(2);
+        document.getElementById('fs-collision').value = forceState.collision;
+        document.getElementById('fs-collision-val').textContent = forceState.collision;
+        document.getElementById('fs-decay').value = forceState.decay;
+        document.getElementById('fs-decay-val').textContent = (forceState.decay / 1000).toFixed(3);
+        document.getElementById('fs-edge-width').value = forceState.edgeWidth;
+        document.getElementById('fs-edge-width-val').textContent = (forceState.edgeWidth / 10).toFixed(1);
+        document.getElementById('fs-edge-opacity').value = forceState.edgeOpacity;
+        document.getElementById('fs-edge-opacity-val').textContent = (forceState.edgeOpacity / 100).toFixed(2);
+        document.getElementById('fs-edge-color').value = forceState.edgeColor;
+        document.getElementById('fs-edge-color-val').textContent = forceState.edgeColor;
+        document.getElementById('fs-particles').value = forceState.particles;
+        document.getElementById('fs-particles-val').textContent = forceState.particles;
+    }
+
+    function fsPopulateTypes() {
+        const wrap = document.getElementById('fs-type-charges');
+        // Get types from graph instance
+        bus.emit('force:get-types', { callback: (types) => {
+            wrap.innerHTML = types.map(t => {
+                const val = typeCharges[t] ?? forceState.charge;
+                return `<div class="fs-type-row">
+                    <span class="fs-type-label">${escH(t)}</span>
+                    <input type="range" class="fs-type-slider" data-type="${escH(t)}"
+                           min="-500" max="0" value="${val}">
+                    <span class="fs-type-val">${val}</span>
+                </div>`;
+            }).join('');
+            wrap.querySelectorAll('.fs-type-slider').forEach(sl => {
+                sl.addEventListener('input', () => {
+                    const t = sl.dataset.type;
+                    const v = parseInt(sl.value);
+                    typeCharges[t] = v;
+                    sl.nextElementSibling.textContent = v;
+                    bus.emit('force:update', { ...forceState, typeCharges });
+                });
+            });
+        }});
+    }
+
+    function fsApply() { bus.emit('force:update', { ...forceState, typeCharges }); }
+
+    document.getElementById('btn-force-settings').addEventListener('click', () => {
+        fsPanel.style.display === 'none' || fsPanel.style.display === '' ? fsOpen() : fsClose();
+    });
+    document.getElementById('btn-force-close').addEventListener('click', fsClose);
+
+    ['link-dist', 'charge', 'center', 'link-str', 'collision', 'decay'].forEach(key => {
+        const el = document.getElementById(`fs-${key}`);
+        const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        el.addEventListener('input', () => {
+            forceState[camel] = parseInt(el.value);
+            fsSync();
+            fsApply();
+        });
+    });
+
+    // Edge sliders
+    ['edge-width', 'edge-opacity', 'particles'].forEach(key => {
+        const el = document.getElementById(`fs-${key}`);
+        const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        el.addEventListener('input', () => {
+            forceState[camel] = parseInt(el.value);
+            fsSync();
+            fsApply();
+        });
+    });
+    document.getElementById('fs-edge-color').addEventListener('input', () => {
+        forceState.edgeColor = document.getElementById('fs-edge-color').value;
+        fsSync();
+        fsApply();
+    });
+
+    // ---- Presets ----
+    function fsLoadPresets() {
+        try { return JSON.parse(localStorage.getItem(FS_KEY)) || []; }
+        catch (_) { return []; }
+    }
+    function fsSavePresets(presets) {
+        localStorage.setItem(FS_KEY, JSON.stringify(presets));
+    }
+    function fsRenderPresets() {
+        const list = document.getElementById('fs-presets-list');
+        const presets = fsLoadPresets();
+        if (presets.length === 0) {
+            list.innerHTML = '<div style="font-size:11px;color:var(--text-muted);font-style:italic;">No saved presets</div>';
+            return;
+        }
+        list.innerHTML = presets.map((p, i) => `
+            <div class="fs-preset-row">
+                <span class="fs-preset-name ${p.name === activePresetName ? 'active' : ''}" data-idx="${i}">${escH(p.name)}</span>
+                <span class="fs-preset-del" data-idx="${i}" title="Delete preset">&times;</span>
+            </div>
+        `).join('');
+        list.querySelectorAll('.fs-preset-name').forEach(el => {
+            el.addEventListener('click', () => {
+                const p = fsLoadPresets()[parseInt(el.dataset.idx)];
+                if (!p) return;
+                forceState = { ...FORCE_DEFAULTS, ...p.state };
+                typeCharges = p.typeCharges || {};
+                activePresetName = p.name;
+                fsSync();
+                fsPopulateTypes();
+                fsApply();
+                fsRenderPresets();
+            });
+        });
+        list.querySelectorAll('.fs-preset-del').forEach(el => {
+            el.addEventListener('click', () => {
+                const presets = fsLoadPresets();
+                const removed = presets.splice(parseInt(el.dataset.idx), 1);
+                fsSavePresets(presets);
+                if (removed[0] && removed[0].name === activePresetName) activePresetName = '';
+                fsRenderPresets();
+            });
+        });
+    }
+    document.getElementById('btn-preset-save').addEventListener('click', () => {
+        const nameEl = document.getElementById('fs-preset-name');
+        const name = nameEl.value.trim();
+        if (!name) return;
+        const presets = fsLoadPresets();
+        const existing = presets.findIndex(p => p.name === name);
+        const entry = { name, state: { ...forceState }, typeCharges: { ...typeCharges } };
+        if (existing >= 0) presets[existing] = entry;
+        else presets.push(entry);
+        fsSavePresets(presets);
+        activePresetName = name;
+        nameEl.value = '';
+        fsRenderPresets();
+    });
+
+    document.getElementById('btn-force-reset').addEventListener('click', () => {
+        forceState = { ...FORCE_DEFAULTS };
+        typeCharges = {};
+        activePresetName = '';
+        fsSync();
+        fsPopulateTypes();
+        fsApply();
+        fsRenderPresets();
+    });
+    document.getElementById('btn-force-reheat').addEventListener('click', () => {
+        bus.emit('force:reheat', {});
     });
 </script>
 </body>

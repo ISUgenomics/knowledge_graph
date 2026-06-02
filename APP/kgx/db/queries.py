@@ -127,8 +127,18 @@ class KnowledgeGraphDB:
     # ------------------------------------------------------------------
 
     def graph_nodes(self) -> list[dict]:
-        """Return all nodes with just id/type/name — for graph rendering."""
-        cur = self.conn.execute("SELECT id, type, name FROM entities ORDER BY type, name")
+        """Return all nodes with id/type/name/group — for graph rendering.
+        group splits person into 'person' (profiled) vs 'person (stub)'."""
+        cur = self.conn.execute("""
+            SELECT id, type, name,
+                CASE
+                    WHEN type = 'person'
+                         AND COALESCE(json_extract(metadata, '$.profiled'), 0) != 1
+                    THEN 'person (stub)'
+                    ELSE type
+                END AS "group"
+            FROM entities ORDER BY type, name
+        """)
         return _rows(cur)
 
     def graph_edges(self) -> list[dict]:
@@ -423,6 +433,81 @@ class KnowledgeGraphDB:
             "total_entities": sum(entity_counts.values()),
             "total_relationships": sum(rel_counts.values()),
         }
+
+    # ------------------------------------------------------------------
+    # Rich content (topics, snippets, research interests, contact, sources)
+    # ------------------------------------------------------------------
+
+    def get_topics(self, entity_id: str) -> list[str]:
+        """Return topic strings for an entity."""
+        rows = self.conn.execute(
+            "SELECT topic FROM entity_topics WHERE entity_id = ? ORDER BY topic",
+            (entity_id,),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def get_snippets(self, entity_id: str) -> list[dict]:
+        """Return snippets for a signal, grouped by ref_type/ref_id."""
+        rows = self.conn.execute(
+            """SELECT id, ref_id, ref_type, text, ordinal
+               FROM snippets WHERE entity_id = ?
+               ORDER BY ref_type, ref_id, ordinal""",
+            (entity_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_snippets_about(self, ref_id: str) -> list[dict]:
+        """Return all snippets that reference a given entity (e.g. a person),
+        along with the signal name they came from."""
+        rows = self.conn.execute(
+            """SELECT s.id, s.entity_id, e.name AS signal_name,
+                      s.ref_type, s.text, s.ordinal
+               FROM snippets s
+               JOIN entities e ON e.id = s.entity_id
+               WHERE s.ref_id = ?
+               ORDER BY e.name, s.ordinal""",
+            (ref_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_research_interests(self, entity_id: str) -> list[str]:
+        """Return ordered research interests for a person."""
+        rows = self.conn.execute(
+            "SELECT interest FROM research_interests WHERE entity_id = ? ORDER BY ordinal",
+            (entity_id,),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def get_contact(self, entity_id: str) -> dict:
+        """Return contact fields for a person as {field: value}."""
+        rows = self.conn.execute(
+            "SELECT field, value FROM contact_info WHERE entity_id = ? ORDER BY field",
+            (entity_id,),
+        ).fetchall()
+        return {r[0]: r[1] for r in rows}
+
+    def get_sources(self, entity_id: str) -> list[dict]:
+        """Return provenance sources for an entity."""
+        rows = self.conn.execute(
+            "SELECT source_name, url, retrieved_at FROM sources WHERE entity_id = ? ORDER BY source_name",
+            (entity_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_rich(self, entity_id: str, entity_type: str = "") -> dict:
+        """Return all rich-content tables for one entity in a single call."""
+        result = {
+            "topics": self.get_topics(entity_id),
+            "snippets": self.get_snippets(entity_id),
+            "snippets_about": [],
+            "research_interests": self.get_research_interests(entity_id),
+            "contact": self.get_contact(entity_id),
+            "sources": self.get_sources(entity_id),
+        }
+        # For persons: also fetch snippets that mention this person
+        if entity_type == "person":
+            result["snippets_about"] = self.get_snippets_about(entity_id)
+        return result
 
     # ------------------------------------------------------------------
     # Raw SQL (for chat-to-SQL)

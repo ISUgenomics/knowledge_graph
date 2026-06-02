@@ -37,6 +37,7 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
             <div class="ctx-separator"></div>
             <div class="ctx-item" data-action="detail">Show detail</div>
             <div class="ctx-item" data-action="focus">Focus in graph</div>
+            <div class="ctx-item" data-action="orbit">Orbit around this node</div>
             <div class="ctx-item" data-action="expand">Expand neighbors</div>
             <div class="ctx-separator"></div>
             <div class="ctx-item" data-action="hide">Hide this node</div>
@@ -71,6 +72,9 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
                 break;
             case 'focus':
                 eventBus.emit('node:focus', { id: node.id });
+                break;
+            case 'orbit':
+                eventBus.emit('node:orbit', { id: node.id });
                 break;
             case 'expand':
                 eventBus.emit('node:expand', { id: node.id });

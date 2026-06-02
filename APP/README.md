@@ -5,17 +5,20 @@ A local-first web app for exploring, querying, and curating a knowledge graph st
 No cloud services, no accounts, no telemetry. Everything runs on your machine.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Browser                                                     │
-│  ┌──────────┐ ┌──────────────┐ ┌────────┐ ┌──────────────┐ │
-│  │ Sidebar  │ │  3D Graph    │ │ Detail │ │  Chat Panel  │ │
-│  │          │ │              │ │        │ │  (NL → SQL)  │ │
-│  └──────────┘ └──────────────┘ └────────┘ └──────────────┘ │
-│                        │  REST + SSE                         │
-│  ┌─────────────────────┴─────────────────────────────────┐  │
-│  │  FastAPI  →  SQLite (vault.db)  ←  Ollama (optional)  │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Browser                                                         │
+│  ┌──────────┐ ┌──────────────┐ ┌────────┐ ┌────────────────┐  │
+│  │ Sidebar  │ │  3D Graph    │ │ Detail │ │ SQL Panel      │  │
+│  │- Entities│ │  + Settings  │ │+ Rich  │ │ (last query    │  │
+│  │- Filters │ │  + Layouts   │ │  content│ │  + copy)       │  │
+│  └──────────┘ └──────────────┘ └────────┘ └────────────────┘  │
+│               │  Chat Panel (NL → SQL + filter/highlight)  │    │
+│               └────────────────────────────────────────────┘    │
+│                        │  REST + SSE                             │
+│  ┌─────────────────────┴─────────────────────────────────────┐  │
+│  │  FastAPI  →  SQLite (vault.db v3)  ←  Ollama (optional)   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -32,7 +35,9 @@ No cloud services, no accounts, no telemetry. Everything runs on your machine.
   - [Sidebar](#sidebar)
   - [Detail Panel](#detail-panel)
   - [Chat Panel](#chat-panel)
+  - [SQL Panel](#sql-panel)
   - [Context Menu](#context-menu)
+  - [Force Settings](#force-settings)
   - [Header Controls](#header-controls)
 - [Chat-to-SQL (Ollama)](#chat-to-sql-ollama)
 - [Skill Integration](#skill-integration)
@@ -176,7 +181,7 @@ Knowledge Graph Explorer
 
 ## Using the Interface
 
-The UI is a four-panel layout: sidebar (left), graph (center), detail (right), and chat (bottom).
+The UI is a five-panel layout: sidebar (left), graph (center), detail (upper-right), chat (bottom-center), and SQL panel (bottom-right).
 
 ### 3D Graph
 
@@ -191,14 +196,27 @@ The main panel renders all entities and relationships as a 3D force-directed gra
 | Zoom | Scroll wheel |
 | Select node | Left-click a node |
 | Right-click menu | Right-click a node |
-| Deselect | Click empty space |
+| Deselect / clear highlight | Click empty space |
+
+Mouse damping/inertia is disabled — releasing the mouse stops all motion immediately.
 
 **Visual encoding:**
 
-- **Node color** — each entity type gets a distinct color (auto-assigned)
+- **Node color** — each entity type gets a distinct color (auto-assigned). Profiled persons vs unprofiled stubs get separate colors.
 - **Node size** — proportional to degree (number of connections)
-- **Text labels** — shown on high-degree nodes (degree >= 3 on large graphs)
 - **Edge particles** — animated directional particles show relationship direction
+- **Edge styling** — width, opacity, color, and particle count are adjustable via Settings
+
+**Layouts** (switchable via header dropdown):
+
+| Layout | Description |
+|---|---|
+| Force | Default — d3-force with adjustable parameters |
+| Cluster by Type | Nodes pulled toward type-based centroids arranged in a circle |
+| Timeline | X-axis locked to year (from metadata dates) |
+| UMAP | Semantic layout from embeddings (requires `ollama pull nomic-embed-text`) |
+| Hierarchical | DAG modes: top-down, bottom-up, left-right, right-left |
+| Radial | Radial out / radial in DAG |
 
 ### Sidebar
 
@@ -207,41 +225,80 @@ The left panel shows all entity types discovered in the database, with counts.
 - **Expand a type** — click the type header to list all entities of that type
 - **Select an entity** — click an entity name to focus the camera on it and load its detail panel
 - **Search entities** — type in the search box at the top to filter across all types
-- **Edge type filters** — checkboxes at the bottom toggle relationship types on/off in the graph. Unchecking a type hides those edges and any nodes connected only by that type.
+- **Edge type filters** — checkboxes toggle relationship types on/off in the graph
+- **SQL filters** — write custom SQL (`SELECT id FROM entities WHERE ...`) to hide matching nodes. Filters are saved to localStorage and can be toggled on/off. Filters can also be saved here directly from chat results.
 
 ### Detail Panel
 
-The right panel shows full details for a selected node.
+The right panel shows full details for a selected node with type-specific rendering.
 
-- **Properties** — all metadata fields displayed in a table
-- **Relationships** — grouped by type, with clickable links to connected entities
-- **Export markdown** — button to download the entity as an Obsidian-compatible markdown file
+**Person entities show:**
+- Type badge, name, degree
+- Topics (as colored chips)
+- Contact info (email, title, department, etc.)
+- Research interests
+- Snippets about this person (from signals that mention them, with signal name)
+- Sources (provenance URLs)
+- Relationships (grouped by type, with clickable entity names)
 
-Click any linked entity in the detail panel to navigate to it.
+**Signal/publication entities show:**
+- Topics, abstract
+- Snippets (blockquote excerpts)
+- Sources, relationships
+
+**Arrow key navigation:** Press `↑`/`↓` to cycle through entities of the same type without going back to the graph.
 
 ### Chat Panel
 
 The bottom panel provides natural language querying of the database.
 
 **How it works:**
-1. Type a question like "who has the most publications?"
+1. Type a question like "show all persons with > 10 edges"
 2. The LLM (Ollama) translates it to SQL
 3. SELECT queries execute immediately and results appear as a table
 4. Mutations (INSERT/UPDATE/DELETE) show a confirmation dialog first
-5. Multi-turn context is preserved within the session
+
+**Instant answers (no LLM, no waiting):**
+
+Some questions are answered directly from the database without calling the LLM:
+
+| Question pattern | What you get |
+|---|---|
+| "what types are there?" | Entity and relationship types with counts |
+| "what can I order by?" | Sortable fields and metadata keys per type |
+| "what topics exist?" | All topics with entity counts |
+| "help" | Usage guide with examples |
+
+**Filter/highlight actions on results:**
+
+When query results contain an `id` column, three action buttons appear:
+
+| Button | Effect |
+|---|---|
+| **Highlight N** | Turns matched nodes white, dims everything else. Click background to clear. Button resets and can be clicked again. |
+| **Hide N** | Applies an immediate SQL filter to hide those nodes from the graph |
+| **Save filter** | Prompts for a name and saves the query as a toggleable SQL filter in the sidebar |
+
+**Clickable result rows:** Click any row with an ID to select that entity in the detail panel and set it as the orbit center for graph rotation.
+
+**Input history:** Press `↑`/`↓` in the chat input to browse previous queries (like a terminal).
 
 **Example queries:**
 
 ```
-How many people are in the graph?
-Show me all events from 2024
-Who are the coauthors of john-doe?
-What metadata keys do person entities have?
-List the top 10 most connected nodes
-Find people tagged with "machine-learning"
+show all persons with more than 20 edges
+publications from 2024 ordered by degree
+find signals about genomics
+who has the most connections?
+give me IDs of nodes with fewer than 5 edges  (→ filter buttons appear)
+filter out persons not tagged with any topic   (→ filter buttons appear)
 ```
 
-**Requirements:** Ollama must be running (`ollama serve`). The status indicator in the chat panel shows green when connected.
+**Requirements:** Ollama must be running (`ollama serve`). The status indicator shows the model name when connected.
+
+### SQL Panel
+
+The bottom-right panel displays the last SQL query that was executed (whether generated by the LLM or from a filter). Click **Copy** to copy it to the clipboard.
 
 ### Context Menu
 
@@ -251,10 +308,43 @@ Right-click any node in the graph for these actions:
 |---|---|
 | Show Detail | Load the detail panel for this node |
 | Focus | Pan the camera to center on this node |
-| Expand Neighbors | Un-hide all directly connected nodes |
+| Orbit | Set this node as the orbit rotation pivot (doesn't change zoom) |
+| Expand Neighbors | Show all directly connected nodes, **overriding all active filters** |
 | Hide Node | Remove this node from the current view |
 | Research Person | (person nodes only) Run the person_research skill |
 | Copy ID | Copy the entity ID to clipboard |
+
+**Expand Neighbors** is powerful — it force-shows neighbors even if they're hidden by SQL filters or edge type filters. This lets you explore around a node without disabling your filters. The camera stays in place (no automatic zoom/pan).
+
+### Force Settings
+
+Click the **Settings** button in the header to open a draggable floating panel with live-adjustable graph parameters:
+
+**Force parameters:**
+
+| Slider | Controls |
+|---|---|
+| Link Distance | How far apart connected nodes prefer to be |
+| Charge Strength | Global repulsion (negative = repel) |
+| Center Strength | How strongly nodes are pulled toward the center |
+| Link Strength | How rigid the link constraints are |
+| Collision Radius | Minimum distance between nodes (0 = off) |
+| Alpha Decay | How quickly the simulation cools down |
+
+**Per-type node charge:** Override the global charge for specific entity types (e.g., make publications repel more strongly than persons).
+
+**Edge styling:**
+
+| Slider | Controls |
+|---|---|
+| Edge Width | Line thickness |
+| Edge Opacity | Transparency |
+| Edge Color | Color picker |
+| Particles | Number of directional particles per edge |
+
+**Presets:** Save named presets (stored in localStorage). Click a preset name to load it. Delete with the × button. Works like saved SQL filters.
+
+**Reset Defaults** restores all parameters. **Reheat** restarts the simulation.
 
 ### Header Controls
 
@@ -263,11 +353,12 @@ The header bar contains global controls:
 | Control | Description |
 |---|---|
 | **Search** | Global search box — finds entities by name across all types |
-| **Layout** | Dropdown to switch between Force (default) and Hierarchical |
+| **Layout** | Dropdown: Force, Cluster, Timeline, UMAP, Hierarchical (6 modes), Radial |
 | **Labels** | Toggle text labels on/off |
-| **Show All** | Reset all hidden nodes and edge filters |
+| **Show All** | Reset all hidden nodes, edge filters, SQL filters, and force-shown nodes |
 | **Export JSON** | Download the full graph as JSON |
 | **Export Neo4j** | Download Neo4j-importable CSV files as a zip |
+| **Settings** | Open/close the force graph settings panel |
 
 ---
 
@@ -299,11 +390,16 @@ The chat panel uses a local Ollama instance to translate natural language to SQL
 ### How it works
 
 The LLM receives a system prompt containing:
-- The full database schema (tables, columns, types)
-- A live snapshot of entity types, relationship types, and metadata keys from the actual database
-- Rules for output format (SQL in fences, MUTATION prefix for DML)
+- The full database schema (all 11 tables with columns)
+- A live snapshot of entity types, relationship types, metadata keys, topics, and contact fields
+- Common query patterns (degree counting, topic filtering, filter queries)
+- Rules for output format and the `/no_think` suffix to suppress reasoning tokens
 
-This means the LLM knows your actual data shape — it can query metadata JSON fields with `json_extract()`, filter by real entity types, and use real relationship names.
+The chat module includes:
+- **Fast-path answers** — schema questions ("what types?", "what topics?") are answered instantly from the DB without calling the LLM
+- **Robust SQL parsing** — handles `\`\`\`sql`, plain `\`\`\``, bare SQL, single backticks, and missing fences
+- **`<think>` block stripping** — removes qwen3's reasoning tokens from output
+- **Context trimming** — only last 4 history messages sent to avoid filling the context window
 
 ### Mutation safety
 
@@ -388,7 +484,7 @@ All endpoints are prefixed with `/api/`. The server also serves the UI at `/`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/graph` | All nodes (id, type, name) and edges (source, target, rel_type) |
+| GET | `/api/graph` | All nodes (id, type, name, group) and edges (source, target, rel_type) |
 | GET | `/api/types` | Entity and relationship types with counts |
 | GET | `/api/stats` | Summary statistics |
 
@@ -397,9 +493,11 @@ All endpoints are prefixed with `/api/`. The server also serves the UI at `/`.
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/api/entities/{type}` | List entities of a type. Query params: `search`, `limit` |
-| GET | `/api/entity/{id}` | Full entity detail + relationships + neighbors + degree |
+| GET | `/api/entity/{id}` | Full entity detail + relationships + neighbors + degree + rich content |
 | GET | `/api/entity/{id}/neighbors` | Direct neighbors. Query param: `rel_type` |
 | GET | `/api/entity/{id}/markdown` | Entity rendered as Obsidian markdown |
+
+The `/api/entity/{id}` response includes a `rich` object with: `topics`, `snippets`, `snippets_about` (for persons), `interests`, `contact`, `sources`.
 
 ### Query
 
@@ -415,6 +513,14 @@ All endpoints are prefixed with `/api/`. The server also serves the UI at `/`.
 |---|---|---|
 | GET | `/api/chat/status` | Ollama health check + model info |
 | POST | `/api/chat` | Natural language → SQL. Body: `{message, history}` |
+
+### Layout
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/layout/umap/status` | Embedding and position counts |
+| POST | `/api/layout/umap/compute` | Generate embeddings + compute UMAP (SSE progress) |
+| GET | `/api/layout/umap/positions` | Get 3D positions for all entities |
 
 ### Skills
 
@@ -471,16 +577,33 @@ Click **Export .md** in the detail panel or visit `/api/export/markdown/{entity_
 
 ## Database
 
-KGX uses a single SQLite file (`vault.db`) as its data store.
+KGX uses a single SQLite file (`vault.db`) as its data store. Schema version 3.
 
 ### Schema
+
+**Core tables:**
 
 ```
 entities         — id, type, name, metadata (JSON), created_at, updated_at
 relationships    — source_id, rel_type, target_id, metadata (JSON)
 aliases          — alias → entity_id mapping
-embeddings       — entity_id → vector blob (for future clustering)
-saved_views      — named view configurations (for future saved layouts)
+```
+
+**Rich content tables (v3):**
+
+```
+entity_topics       — entity_id, topic (multiple per entity)
+snippets            — entity_id, ref_id, ref_type, text, ordinal
+research_interests  — entity_id, interest, ordinal
+sources             — entity_id, source_name, url, retrieved_at
+contact_info        — entity_id, field, value (email, phone, orcid, etc.)
+```
+
+**Support tables:**
+
+```
+embeddings       — entity_id → vector blob (for UMAP layout)
+saved_views      — named view configurations
 chat_history     — session-based chat log
 ```
 
@@ -575,11 +698,25 @@ KGX needs an existing vault.db. Either:
 - Test directly: `curl http://localhost:11434/api/tags`
 - Pull a model if none installed: `ollama pull qwen3-coder:30b`
 
+### Chat stops responding after a few queries
+
+The LLM context window may fill up. KGX sends only the last 4 history messages to mitigate this. If it still hangs:
+- Click the clear button (↻) to reset chat history
+- Refresh the page for a full reset
+- Schema questions ("what types?", "help") use the fast-path and never call the LLM
+
+### Chat shows SQL but no results
+
+The LLM may have output SQL with broken backtick fences. KGX handles most variations (single backtick, missing opening fence, bare SQL), but if parsing fails:
+- The SQL still appears in the SQL panel (bottom-right) — copy and run it manually via the sidebar SQL filter
+- Try rephrasing the query
+
 ### Edge filter doesn't seem to work
 
 - Unchecking an edge type hides those edges and any nodes connected *only* by that type
 - Nodes with other visible connections remain shown
 - Click **Show All** to reset all filters
+- **Expand Neighbors** (right-click) overrides all filters for that node's connections
 
 ### Nodes "explode" or scatter
 
@@ -599,8 +736,9 @@ Another process is using port 8000. Either:
 
 - Toggle labels off (Labels button) — text sprites are the main performance cost
 - Use edge filters to hide less important relationship types
+- Reduce particles to 0 in Settings
 - The graph handles ~5,000 nodes + ~11,000 edges at interactive frame rates
-- Beyond ~10,000 nodes, consider filtering to a subgraph
+- Beyond ~10,000 nodes, consider filtering to a subgraph via SQL filters
 
 ---
 
@@ -608,9 +746,9 @@ Another process is using port 8000. Either:
 
 See [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md) for full diagrams including:
 - System overview diagram
-- Event bus protocol
-- API routes map
-- Database schema
+- Event bus protocol (30+ events)
+- API routes map (21 endpoints)
+- Database schema (11 tables, v3)
 - File tree
 
 ### Key design decisions
@@ -621,3 +759,7 @@ See [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md) for full diagra
 - **Schema-agnostic** — no hardcoded entity or relationship types; everything is discovered from the database at runtime
 - **Local LLM only** — chat uses Ollama (localhost), no data leaves your machine
 - **Mutation safety** — all DML requires explicit user confirmation via a token-based flow
+- **Rich content in DB** — topics, snippets, contacts, interests, sources stored in dedicated tables (not just metadata JSON)
+- **Profiled vs stubs** — person entities distinguished by `metadata.profiled` flag, rendered as separate groups with distinct colors/forces
+- **Filter override** — Expand Neighbors force-shows nodes regardless of active filters
+- **Fast-path chat** — schema questions answered instantly from DB without LLM round-trip

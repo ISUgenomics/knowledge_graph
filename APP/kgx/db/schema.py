@@ -4,9 +4,10 @@ Schema creation and migration for the Knowledge Graph DB.
 Version history:
   1 — initial schema (entities, aliases, relationships)
   2 — add embeddings, saved_views, chat_history tables
+  3 — add entity_topics, snippets, research_interests, sources, contact_info
 """
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 CREATE_SCHEMA = """
     CREATE TABLE IF NOT EXISTS schema_version (
@@ -67,6 +68,65 @@ CREATE_SCHEMA = """
         created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);
+
+    -- Topics: multiple topics per entity (signal, event, etc.)
+    -- Enables sidebar filtering by topic across entity types
+    CREATE TABLE IF NOT EXISTS entity_topics (
+        entity_id   TEXT NOT NULL,
+        topic       TEXT NOT NULL,
+        PRIMARY KEY (entity_id, topic),
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_topics_entity ON entity_topics(entity_id);
+    CREATE INDEX IF NOT EXISTS idx_topics_topic  ON entity_topics(topic);
+
+    -- Snippets: blockquote excerpts extracted from source text
+    -- entity_id = the signal the snippet came from
+    -- ref_id    = person entity_id OR NULL for topic-level snippets
+    -- ref_type  = 'person' | 'topic' | NULL
+    CREATE TABLE IF NOT EXISTS snippets (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_id   TEXT NOT NULL,
+        ref_id      TEXT,
+        ref_type    TEXT,
+        text        TEXT NOT NULL,
+        ordinal     INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_snippets_entity ON snippets(entity_id);
+    CREATE INDEX IF NOT EXISTS idx_snippets_ref    ON snippets(ref_id);
+
+    -- Research interests: ordered list of interest strings per person
+    CREATE TABLE IF NOT EXISTS research_interests (
+        entity_id   TEXT NOT NULL,
+        interest    TEXT NOT NULL,
+        ordinal     INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (entity_id, interest),
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_interests_entity ON research_interests(entity_id);
+
+    -- Sources: per-entity provenance records (which API/URL was checked and when)
+    CREATE TABLE IF NOT EXISTS sources (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_id    TEXT NOT NULL,
+        source_name  TEXT NOT NULL,
+        url          TEXT,
+        retrieved_at TEXT,
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_sources_entity ON sources(entity_id);
+
+    -- Contact info: queryable key/value contact fields for persons
+    -- field values: 'email' | 'phone' | 'orcid' | 'website' | 'department' | 'title'
+    CREATE TABLE IF NOT EXISTS contact_info (
+        entity_id   TEXT NOT NULL,
+        field       TEXT NOT NULL,
+        value       TEXT NOT NULL,
+        PRIMARY KEY (entity_id, field),
+        FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_contact_entity ON contact_info(entity_id);
 """
 
 
