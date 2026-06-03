@@ -26,7 +26,7 @@ export function initSidebar(container, eventBus, apiClient) {
     let edgeDefaultsApplied = false;
 
     // Receive color map and edge types from the actual graph data
-    eventBus.on('graph:loaded', ({ typeColors, relTypeCounts }) => {
+    eventBus.on('graph:loaded', ({ typeColors, relTypeCounts, autoHiddenRelTypes }) => {
         if (typeColors) {
             typeColorMap = { ...typeColors };
         }
@@ -36,6 +36,12 @@ export function initSidebar(container, eventBus, apiClient) {
                 .map(([rel_type, count]) => ({ rel_type, count }))
                 .sort((a, b) => a.rel_type.localeCompare(b.rel_type));
             edgeDefaultsApplied = false;
+        }
+        // Sync auto-hidden edge types (e.g. >3000 edges in display mode)
+        if (autoHiddenRelTypes && autoHiddenRelTypes.length) {
+            for (const rt of autoHiddenRelTypes) {
+                uncheckedRelTypes.add(rt);
+            }
         }
         // Only re-render if type data has loaded; otherwise loadTypes()
         // will call render() itself once it completes.

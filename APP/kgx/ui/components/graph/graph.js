@@ -307,11 +307,27 @@ export function initGraph(container, eventBus, apiClient) {
                 relTypeCounts[e.rel_type] = (relTypeCounts[e.rel_type] || 0) + 1;
             }
 
+            // In display mode, auto-hide edge types with > 3000 edges for performance
+            const autoHidden = [];
+            if (graphMode === 'display') {
+                for (const [rt, cnt] of Object.entries(relTypeCounts)) {
+                    if (cnt > 3000) {
+                        hiddenRelTypes.add(rt);
+                        autoHidden.push(rt);
+                    }
+                }
+                if (autoHidden.length) {
+                    recomputeHiddenFlags();
+                    refreshVisibility();
+                }
+            }
+
             eventBus.emit('graph:loaded', {
                 nodeCount: allNodes.length,
                 edgeCount: allEdges.length,
                 typeColors: { ...typeColorMap },
                 relTypeCounts,
+                autoHiddenRelTypes: autoHidden,
             });
         } catch (err) {
             console.error('Failed to load graph:', err);
@@ -409,9 +425,12 @@ export function initGraph(container, eventBus, apiClient) {
         }
     });
 
-    // Toggle explore/full graph mode
+    // Toggle explore/display graph mode
     eventBus.on('graph:mode', ({ mode }) => {
         graphMode = mode;
+        // Reset edge filters when switching modes — each mode has different edge types
+        hiddenRelTypes.clear();
+        eventBus.emit('edge:reset', {});
         loadGraph();
     });
 
