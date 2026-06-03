@@ -51,6 +51,8 @@ export function initGraph(container, eventBus, apiClient) {
     let colorIndex = 0;
     let communityMode = false;  // toggle: type colors vs community colors
     let communityColorMap = {}; // node_id -> color
+    let communityResolution = 1.0; // <1 = fewer/larger communities, >1 = more/smaller
+    let graphMode = 'explore';  // 'explore' or 'display'
 
     // Community detection color palette (distinct from type palette)
     const COMMUNITY_COLORS = [
@@ -92,10 +94,21 @@ export function initGraph(container, eventBus, apiClient) {
         }
     }
 
+    // Seeded PRNG for deterministic community detection
+    function _seededRng(seed) {
+        let s = seed | 0;
+        return () => { s = (s * 1664525 + 1013904223) & 0x7fffffff; return s / 0x7fffffff; };
+    }
+
     // Label propagation community detection on visible subgraph
+    // resolution: <1 = fewer/larger communities, >1 = more/smaller communities
     function detectCommunities() {
-        // Build adjacency from visible edges
+        const rng = _seededRng(42);
+        const res = communityResolution;
+
+        // Build weighted adjacency from visible edges
         const adj = {};
+        const edgeWeight = {};
         for (const n of allNodes) {
             if (!n.__hidden) adj[n.id] = [];
         }
@@ -106,6 +119,9 @@ export function initGraph(container, eventBus, apiClient) {
             if (adj[src] && adj[tgt]) {
                 adj[src].push(tgt);
                 adj[tgt].push(src);
+                const w = e.weight || 1;
+                edgeWeight[src + '|' + tgt] = w;
+                edgeWeight[tgt + '|' + src] = w;
             }
         }
 
@@ -114,28 +130,39 @@ export function initGraph(container, eventBus, apiClient) {
         const ids = Object.keys(adj);
         for (const id of ids) label[id] = id;
 
-        // Iterate label propagation (max 20 rounds)
-        for (let iter = 0; iter < 20; iter++) {
+        // Iterate label propagation (max 30 rounds)
+        for (let iter = 0; iter < 30; iter++) {
             let changed = false;
-            // Shuffle order each iteration
-            const shuffled = [...ids].sort(() => Math.random() - 0.5);
+            // Shuffle order each iteration (deterministic via seeded rng)
+            const shuffled = [...ids].sort(() => rng() - 0.5);
             for (const id of shuffled) {
                 const neighbors = adj[id];
                 if (neighbors.length === 0) continue;
-                // Count neighbor labels
+                // Count neighbor labels, weighted by edge weight
                 const counts = {};
                 for (const nb of neighbors) {
                     const l = label[nb];
-                    counts[l] = (counts[l] || 0) + 1;
+                    const w = edgeWeight[id + '|' + nb] || 1;
+                    counts[l] = (counts[l] || 0) + w;
                 }
-                // Pick most frequent (break ties randomly)
+                // Resolution: penalize joining large communities
+                // Higher resolution → stronger penalty → more communities
+                if (res !== 1.0) {
+                    const labelSizes = {};
+                    for (const lid of Object.values(label)) labelSizes[lid] = (labelSizes[lid] || 0) + 1;
+                    for (const l in counts) {
+                        counts[l] = counts[l] / Math.pow(labelSizes[l] || 1, res - 1);
+                    }
+                }
+                // Pick most frequent (break ties deterministically)
                 let maxCount = 0;
                 let candidates = [];
                 for (const [l, c] of Object.entries(counts)) {
                     if (c > maxCount) { maxCount = c; candidates = [l]; }
                     else if (c === maxCount) candidates.push(l);
                 }
-                const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                candidates.sort(); // deterministic tie-breaking
+                const pick = candidates[0];
                 if (pick !== label[id]) { label[id] = pick; changed = true; }
             }
             if (!changed) break;
@@ -249,7 +276,7 @@ export function initGraph(container, eventBus, apiClient) {
 
     async function loadGraph() {
         try {
-            const data = await apiClient.get('/api/graph?mode=explore');
+            const data = await apiClient.get(`/api/graph?mode=${graphMode}`);
             const rawEdges = data.edges.map(e => ({
                 source: e.source,
                 target: e.target,
@@ -371,6 +398,21 @@ export function initGraph(container, eventBus, apiClient) {
             detectCommunities();
         }
         refreshNodeAppearance();
+    });
+
+    // Community resolution slider
+    eventBus.on('community:resolution', ({ value }) => {
+        communityResolution = value;
+        if (communityMode) {
+            detectCommunities();
+            refreshNodeAppearance();
+        }
+    });
+
+    // Toggle explore/full graph mode
+    eventBus.on('graph:mode', ({ mode }) => {
+        graphMode = mode;
+        loadGraph();
     });
 
     // Toggle labels on/off — controls the built-in nodeLabel tooltip visibility
