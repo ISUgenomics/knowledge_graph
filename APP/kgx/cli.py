@@ -59,6 +59,8 @@ def main():
         "ui": config.ui.model_dump(),
         "llm": config.llm.model_dump(),
         "skills": config.skills.model_dump(),
+        "explore": config.explore.model_dump(),
+        "embedding": config.embedding.model_dump(),
     }
     app = create_app(app_config)
 

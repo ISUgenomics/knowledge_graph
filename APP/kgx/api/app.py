@@ -55,15 +55,21 @@ def create_app(config: dict) -> FastAPI:
     # Database — single instance shared across all routes via dependency
     db = KnowledgeGraphDB(config["db_path"])
 
-    # Store config subset in app.state for routes that need it
+    # Store config subsets in app.state for routes that need it
     app.state.ui_config = config.get("ui", {})
+    explore_config = config.get("explore", {})
+    embedding_config = config.get("embedding", {})
 
     @app.get("/api/config")
     def get_config():
-        return {"ui": app.state.ui_config}
+        return {
+            "ui": app.state.ui_config,
+            "explore": explore_config,
+            "embedding": embedding_config,
+        }
 
     # Register route modules — each gets only what it needs
-    app.include_router(make_graph_router(db),  prefix="/api")
+    app.include_router(make_graph_router(db, explore_config),  prefix="/api")
     app.include_router(make_entity_router(db), prefix="/api")
     app.include_router(make_query_router(db),  prefix="/api")
     app.include_router(make_export_router(db), prefix="/api")
@@ -75,7 +81,7 @@ def create_app(config: dict) -> FastAPI:
     runner = SkillRunner(python=skills_cfg.get("python", "python3"))
     app.include_router(make_skills_router(registry, runner), prefix="/api")
     app.include_router(make_watch_router(config["db_path"]), prefix="/api")
-    app.include_router(make_layout_router(db, config.get("llm", {})), prefix="/api")
+    app.include_router(make_layout_router(db, config.get("llm", {}), embedding_config), prefix="/api")
 
     # Serve UI static files at root (must be last — catches all unmatched routes)
     if UI_DIR.exists():

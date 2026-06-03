@@ -96,46 +96,53 @@ export function initDetail(container, eventBus, apiClient) {
     function renderSnippets(snippets) {
         if (!snippets?.length) return '';
 
-        // Group: topic snippets first, then by person
-        const topicSnips = snippets.filter(s => s.ref_type === 'topic' || !s.ref_type);
-        const personSnips = snippets.filter(s => s.ref_type === 'person');
-
-        let html = '';
-
-        if (topicSnips.length) {
-            const quotes = topicSnips.map(s =>
-                `<blockquote class="detail-snippet">${esc(s.text)}</blockquote>`
-            ).join('');
-            html += `
-                <section class="detail-section">
-                    <h3 class="detail-section-title">Topic Snippets</h3>
-                    ${quotes}
-                </section>`;
+        // Group by ref_type
+        const groups = {};
+        for (const s of snippets) {
+            const key = s.ref_type || 'general';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
         }
 
-        if (personSnips.length) {
-            // Group by ref_id (person)
-            const byPerson = {};
-            for (const s of personSnips) {
-                const key = s.ref_id || 'unknown';
-                if (!byPerson[key]) byPerson[key] = [];
-                byPerson[key].push(s);
+        let html = '';
+        for (const [refType, snips] of Object.entries(groups)) {
+            // Sub-group by ref_id within each ref_type
+            const byRef = {};
+            for (const s of snips) {
+                const key = s.ref_id || '_ungrouped';
+                if (!byRef[key]) byRef[key] = [];
+                byRef[key].push(s);
             }
-            const personSections = Object.entries(byPerson).map(([personId, snips]) => {
+
+            if (Object.keys(byRef).length === 1 && byRef['_ungrouped']) {
+                // Flat list — no sub-grouping
                 const quotes = snips.map(s =>
                     `<blockquote class="detail-snippet">${esc(s.text)}</blockquote>`
                 ).join('');
-                return `
-                    <div class="detail-person-snippets">
-                        <div class="detail-person-snippet-name detail-rel-link" data-entity-id="${esc(personId)}">${esc(personId)}</div>
+                const title = refType === 'general' ? 'Snippets' : `${esc(refType)} Snippets`;
+                html += `
+                    <section class="detail-section">
+                        <h3 class="detail-section-title">${title}</h3>
                         ${quotes}
-                    </div>`;
-            }).join('');
-            html += `
-                <section class="detail-section">
-                    <h3 class="detail-section-title">People Context</h3>
-                    ${personSections}
-                </section>`;
+                    </section>`;
+            } else {
+                const subSections = Object.entries(byRef).map(([refId, refSnips]) => {
+                    const quotes = refSnips.map(s =>
+                        `<blockquote class="detail-snippet">${esc(s.text)}</blockquote>`
+                    ).join('');
+                    return `
+                        <div class="detail-person-snippets">
+                            <div class="detail-person-snippet-name detail-rel-link" data-entity-id="${esc(refId)}">${esc(refId)}</div>
+                            ${quotes}
+                        </div>`;
+                }).join('');
+                const title = refType === 'general' ? 'Snippets' : `${esc(refType)} Context`;
+                html += `
+                    <section class="detail-section">
+                        <h3 class="detail-section-title">${title}</h3>
+                        ${subSections}
+                    </section>`;
+            }
         }
 
         return html;
@@ -144,22 +151,22 @@ export function initDetail(container, eventBus, apiClient) {
     function renderSnippetsAbout(snippetsAbout) {
         if (!snippetsAbout?.length) return '';
 
-        // Group by signal (entity_id)
-        const bySignal = {};
+        // Group by source entity (entity_id)
+        const bySource = {};
         for (const s of snippetsAbout) {
             const key = s.entity_id;
-            if (!bySignal[key]) bySignal[key] = { name: s.signal_name, quotes: [] };
-            bySignal[key].quotes.push(s.text);
+            if (!bySource[key]) bySource[key] = { name: s.signal_name, quotes: [] };
+            bySource[key].quotes.push(s.text);
         }
 
-        const sections = Object.entries(bySignal).map(([signalId, data]) => {
+        const sections = Object.entries(bySource).map(([sourceId, data]) => {
             const quotes = data.quotes.map(q =>
                 `<blockquote class="detail-snippet">${esc(q)}</blockquote>`
             ).join('');
             return `
                 <div class="detail-person-snippets">
                     <div class="detail-person-snippet-name detail-rel-link"
-                         data-entity-id="${esc(signalId)}">${esc(data.name)}</div>
+                         data-entity-id="${esc(sourceId)}">${esc(data.name)}</div>
                     ${quotes}
                 </div>`;
         }).join('');
@@ -220,59 +227,51 @@ export function initDetail(container, eventBus, apiClient) {
             </section>`;
     }
 
-    // ---- Type-specific section ordering ----
+    // ---- Data-driven section rendering ----
+    // Renders all available sections based on what data exists.
+    // No type-specific branches — works for any entity type.
+
+    function renderLongText(meta) {
+        // Render long text fields (abstract, description, summary) in dedicated blocks
+        const longFields = ['abstract', 'description', 'summary'];
+        const rendered = [];
+        for (const field of longFields) {
+            const val = meta[field];
+            if (val && String(val).length > 200) {
+                rendered.push(`
+                    <section class="detail-section">
+                        <h3 class="detail-section-title">${esc(field.charAt(0).toUpperCase() + field.slice(1))}</h3>
+                        <p class="detail-abstract">${esc(val)}</p>
+                    </section>`);
+            }
+        }
+        return rendered.join('');
+    }
 
     function renderBody(entity, relationships, rich) {
-        const type = entity.type;
         const meta = entity.metadata || {};
         const r = rich || {};
 
-        if (type === 'person') {
-            // Contact fields already in contact_info — exclude from raw metadata dump
-            const excludeFromMeta = new Set(['email', 'phone', 'orcid', 'website', 'department', 'title']);
-            return [
-                renderContact(r.contact),
-                renderInterests(r.research_interests),
-                renderTopics(r.topics),
-                renderSnippetsAbout(r.snippets_about),
-                renderMeta(meta, excludeFromMeta),
-                renderRelationships(relationships, entity.id),
-                renderSources(r.sources),
-            ].join('');
+        // Fields shown in dedicated sections should be excluded from the meta table
+        const excludeFromMeta = new Set();
+        // Exclude contact fields if contact info exists
+        if (r.contact && Object.keys(r.contact).length > 0) {
+            for (const f of Object.keys(r.contact)) excludeFromMeta.add(f);
+        }
+        // Exclude long text fields rendered separately
+        for (const f of ['abstract', 'description', 'summary']) {
+            if (meta[f] && String(meta[f]).length > 200) excludeFromMeta.add(f);
         }
 
-        if (type === 'signal') {
-            return [
-                renderTopics(r.topics),
-                renderMeta(meta, new Set(['topic'])),
-                renderSnippets(r.snippets),
-                renderRelationships(relationships, entity.id),
-                renderSources(r.sources),
-            ].join('');
-        }
-
-        if (type === 'publication') {
-            // Abstract is long — show it in a dedicated block
-            const abstract = meta.abstract;
-            const abstractHtml = abstract
-                ? `<section class="detail-section">
-                       <h3 class="detail-section-title">Abstract</h3>
-                       <p class="detail-abstract">${esc(abstract)}</p>
-                   </section>`
-                : '';
-            return [
-                renderTopics(r.topics),
-                renderMeta(meta, new Set(['abstract'])),
-                abstractHtml,
-                renderRelationships(relationships, entity.id),
-                renderSources(r.sources),
-            ].join('');
-        }
-
-        // Default: event, center, tag, unknown
+        // Render all sections — each returns '' if no data
         return [
+            renderContact(r.contact),
+            renderInterests(r.research_interests),
             renderTopics(r.topics),
-            renderMeta(meta),
+            renderSnippetsAbout(r.snippets_about),
+            renderMeta(meta, excludeFromMeta),
+            renderLongText(meta),
+            renderSnippets(r.snippets),
             renderRelationships(relationships, entity.id),
             renderSources(r.sources),
         ].join('');

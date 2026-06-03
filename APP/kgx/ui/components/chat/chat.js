@@ -38,7 +38,28 @@ export function initChat(container, eventBus, apiClient) {
     const clearBtn   = container.querySelector('#chat-clear');
     const statusEl   = container.querySelector('#chat-status');
 
-    function showHelp() {
+    async function showHelp() {
+        // Fetch actual types from the DB to build dynamic examples
+        let typeNames = [];
+        try {
+            const typesData = await apiClient.get('/api/types');
+            typeNames = (typesData.entity_types || []).map(t => t.type);
+        } catch (_) {}
+
+        // Build example queries using actual entity types
+        const exType1 = typeNames[0] || 'nodes';
+        const exType2 = typeNames[1] || 'nodes';
+        const queryExamples = [
+            `show all ${exType1} with > 10 edges`,
+            `who has the most connections?`,
+            typeNames.length > 1 ? `list ${exType2} ordered by degree` : 'nodes ordered by degree',
+        ].map(e => `<code>${e}</code>`).join('<br>');
+
+        const filterExamples = [
+            `give me IDs of nodes with fewer than 5 edges`,
+            typeNames.length > 0 ? `select IDs of ${exType1} not tagged with any topic` : `select IDs of nodes not tagged`,
+        ].map(e => `<code>${e}</code>`).join('<br>');
+
         const div = document.createElement('div');
         div.className = 'chat-msg chat-msg-help';
         div.innerHTML = `
@@ -46,17 +67,11 @@ export function initChat(container, eventBus, apiClient) {
             <div style="font-size:11px;color:var(--text-secondary);line-height:1.7;">
                 <div style="font-weight:600;color:var(--text-muted);margin-top:6px;">Query examples (sent to LLM):</div>
                 <div style="padding-left:8px;">
-                    <code>show all persons with > 10 edges</code><br>
-                    <code>publications from 2024 ordered by degree</code><br>
-                    <code>find signals about genomics</code><br>
-                    <code>who has the most connections?</code><br>
-                    <code>persons in department "agronomy"</code>
+                    ${queryExamples}
                 </div>
                 <div style="font-weight:600;color:var(--text-muted);margin-top:8px;">Filter examples (returns IDs &rarr; apply to graph):</div>
                 <div style="padding-left:8px;">
-                    <code>give me IDs of nodes with fewer than 5 edges</code><br>
-                    <code>select IDs of persons not tagged with any topic</code><br>
-                    <code>IDs of publications from before 2020</code><br>
+                    ${filterExamples}<br>
                     When results include an <b>id</b> column, buttons appear to<br>
                     <b>Hide</b> those nodes or <b>Save as sidebar filter</b>
                 </div>

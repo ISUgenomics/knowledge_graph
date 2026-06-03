@@ -57,7 +57,7 @@
 │   │        │                │                     │                    │   │
 │   │   ┌────┴────┐   ┌──────┴───┐   ┌─────────────┴──┐                │   │
 │   │   │Registry │   │ Runner   │   │  SQLite         │                │   │
-│   │   │(skills) │   │(subprocess)  │  vault.db       │                │   │
+│   │   │(skills) │   │(subprocess)  │  database.db    │                │   │
 │   │   └─────────┘   └──────────┘   │  (schema v3)    │                │   │
 │   │                                 └────────────────┘                │   │
 │   └──────────────────────────────────────────────────────────────────────┘   │
@@ -67,12 +67,12 @@
 │   ┌────────────────────────────────────────┴──────────────────────────────┐  │
 │   │                    LangGraph Skills (external)                        │  │
 │   │                                                                       │  │
-│   │   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌────────────┐  │  │
-│   │   │person_research│ │center_research│ │event_research│ │signal_     │  │  │
-│   │   │              │ │              │ │              │ │capture     │  │  │
-│   │   └──────────────┘ └──────────────┘ └──────────────┘ └────────────┘  │  │
+│   │   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                  │  │
+│   │   │  skill_one   │ │  skill_two   │ │  skill_three │   ...            │  │
+│   │   │              │ │              │ │              │                  │  │
+│   │   └──────────────┘ └──────────────┘ └──────────────┘                  │  │
 │   │              │                                                        │  │
-│   │              └──────────── write ──────────────> vault.db             │  │
+│   │              └──────────── write ──────────────> database.db             │  │
 │   └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
 │   ┌───────────────────────────────────────────────────────────────────────┐  │
@@ -91,10 +91,10 @@
 | **LLM Module** | Ollama client + chat-to-SQL translation + fast-path schema answers | `kgx/llm/client.py`, `kgx/llm/chat_sql.py` |
 | **Layout Module** | UMAP embedding + layout computation via Ollama nomic-embed-text | `kgx/layout/embedder.py`, `kgx/layout/umap_layout.py` |
 | **Skill System** | Auto-discover + run LangGraph plugins as subprocesses | `kgx/skills/registry.py`, `kgx/skills/runner.py` |
-| **Config** | YAML loader with Pydantic models | `kgx/config/loader.py` |
+| **Config** | YAML loader with Pydantic models (ExploreConfig, EmbeddingConfig) | `kgx/config/loader.py` |
 | **Graph UI** | 3D force-directed graph (3d-force-graph / Three.js) with explore mode, community detection, dynamic sizing | `kgx/ui/components/graph/graph.js` |
 | **Sidebar UI** | Entity browser, edge type filters, SQL filters (localStorage) | `kgx/ui/components/sidebar/sidebar.js` |
-| **Detail UI** | Entity detail — properties, rich content, relationships, arrow key nav | `kgx/ui/components/detail/detail.js` |
+| **Detail UI** | Entity detail — data-driven rendering of properties, rich content, relationships, arrow key nav | `kgx/ui/components/detail/detail.js` |
 | **Chat UI** | NL query panel with result tables, filter/highlight actions, input history | `kgx/ui/components/chat/chat.js` |
 | **SQL Panel** | Displays last executed SQL with copy button | `kgx/ui/index.html` (inline) |
 | **Force Settings** | Draggable panel for force graph parameters, edge styling, presets | `kgx/ui/index.html` (inline) |
@@ -104,7 +104,7 @@
 ## Data Flow
 
 ```
-  User types NL query         User clicks node           Skill writes to vault.db
+  User types NL query         User clicks node           Skill writes to database
        │                           │                            │
        ▼                           ▼                            ▼
   POST /api/chat              GET /api/entity/:id          mtime changes
@@ -277,9 +277,9 @@ All UI components communicate via the shared EventBus. No component imports anot
   │ field       TEXT             │
   │ value       TEXT             │
   │ PK (entity_id, field)       │
-  │ field values: email, phone,  │
-  │   orcid, website, department,│
-  │   title                      │
+  │ field values: any key-value   │
+  │   pairs (domain-specific)    │
+  │                              │
   └──────────────────────────────┘
 
   Support Tables
@@ -331,7 +331,8 @@ All UI components communicate via the shared EventBus. No component imports anot
 
 ```
 APP/
-├── config.yaml                         # Server, LLM, skills, UI config
+├── config.yaml                         # Default config (server, LLM, skills, UI, explore, embedding)
+├── config-proteins.yaml                # Example: protein features database config
 ├── pyproject.toml                      # Package metadata + dependencies
 ├── requirements.txt                    # Pinned dependencies
 ├── README.md                           # User-facing docs
@@ -400,7 +401,7 @@ APP/
 │           │   │                       #   + chat:save-filter listener
 │           │   └── sidebar.css
 │           ├── detail/
-│           │   ├── detail.js           # Entity detail: type-specific render
+│           │   ├── detail.js           # Entity detail: data-driven render
 │           │   │                       #   topics, contacts, interests,
 │           │   │                       #   snippets, snippets-about, sources,
 │           │   │                       #   relationships with names, ↑↓ nav
@@ -419,11 +420,12 @@ APP/
 
 | Date | Change |
 |---|---|
+| 2026-06-03 | Data-agnosticity refactor: all explore mode transformations now config-driven via ExploreConfig (stub filtering, entity exclusion, collaboration synthesis, hierarchy flattening). EmbeddingConfig for per-type metadata fields. Detail panel uses data-driven rendering. Chat help examples generated from actual DB types. Per-database config via `--config` flag. |
 | 2026-06-02 | Explore mode: server-side graph projection — removes stubs/publications, flattens tag hierarchy to field level, synthesizes COLLABORATOR edges from shared AUTHORED, rolls up person→tag via publications, prunes orphan nodes |
 | 2026-06-02 | Community detection: client-side label propagation (max 20 iterations) that recomputes on edge filter changes, toggleable via header button |
 | 2026-06-02 | Dynamic node sizing: filtered degree recomputes based on visible edges only |
-| 2026-06-02 | Link thickness by weight: COLLABORATOR edges with more shared papers render thicker |
-| 2026-06-02 | Edge type filters rebuilt from graph data (explore mode types: TAGGED, COLLABORATOR, ATTENDED, MENTIONED_IN, MEMBER_OF) instead of raw DB types |
+| 2026-06-02 | Link thickness by weight: collaboration edges with more shared connections render thicker |
+| 2026-06-02 | Edge type filters rebuilt from graph data (explore mode types) instead of raw DB types |
 | 2026-06-02 | All edge types visible by default (was: only AUTHORED) |
 | 2026-06-02 | Highlight neighbors: right-click menu action + node:highlight-neighbors event |
 | 2026-06-02 | Expand neighbors uses current graph edges (explore-aware) instead of raw DB API |
@@ -432,10 +434,10 @@ APP/
 | 2026-06-02 | Communities toggle button in header |
 | 2026-06-02 | nodeResolution(8) for GPU performance improvement |
 | 2026-06-01 | v3 schema: entity_topics, snippets, research_interests, sources, contact_info |
-| 2026-06-01 | Rich content in detail panel (type-specific rendering, snippets-about for persons) |
+| 2026-06-01 | Rich content in detail panel (data-driven rendering, snippets-about for all entity types) |
 | 2026-06-01 | Arrow key navigation (↑↓) to cycle entities of same type in detail panel |
 | 2026-06-01 | Force settings panel: draggable, per-type charges, edge styling, presets |
-| 2026-06-01 | Profiled vs unprofiled person distinction (group field, separate force charges) |
+| 2026-06-01 | Configurable profiled vs stub distinction (group field, separate force charges) |
 | 2026-06-01 | Orbit pivot (right-click), expand neighbors overrides all filters |
 | 2026-06-01 | Chat: fast-path schema answers, input history, filter/highlight/save actions |
 | 2026-06-01 | Chat: clickable result rows orbit + select node in graph |

@@ -22,15 +22,16 @@ from kgx.db import KnowledgeGraphDB
 class ComputeRequest(BaseModel):
     embedding_model: str = "nomic-embed-text"
     entity_types: list[str] | None = None  # None = all qualifying types
-    skip_stubs: bool = True                 # skip unprofiled person stubs
+    skip_stubs: bool = True                 # skip stub entities
     n_neighbors: int = 15
     min_dist: float = 0.1
     spread: float = 500.0
 
 
-def make_layout_router(db: KnowledgeGraphDB, llm_config: dict) -> APIRouter:
+def make_layout_router(db: KnowledgeGraphDB, llm_config: dict, embedding_config: dict | None = None) -> APIRouter:
     router = APIRouter(tags=["layout"])
     base_url = llm_config.get("base_url", "http://localhost:11434")
+    _emb_cfg = embedding_config or {}
 
     @router.get("/layout/umap/status")
     def get_umap_status():
@@ -77,6 +78,7 @@ def make_layout_router(db: KnowledgeGraphDB, llm_config: dict) -> APIRouter:
                     embedder,
                     entity_types=req.entity_types,
                     skip_stubs=req.skip_stubs,
+                    embedding_config=_emb_cfg,
                 )
                 embedder.close()
 

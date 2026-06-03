@@ -8,6 +8,8 @@ Design rules:
 - execute_read() raises if SQL is not SELECT.
 - execute_write() raises if SQL is SELECT (use execute_read instead).
 - Domain-agnostic: no hardcoded entity or relationship types.
+  Explore mode transformations (stub filtering, hierarchy flattening,
+  collaboration synthesis) are driven by explore_config dict.
 """
 
 import json
@@ -126,19 +128,25 @@ class KnowledgeGraphDB:
     # Bulk graph data (for visualization — minimal fields only)
     # ------------------------------------------------------------------
 
-    def graph_nodes(self) -> list[dict]:
-        """Return all nodes with id/type/name/group — for graph rendering.
-        group splits person into 'person' (profiled) vs 'person (stub)'."""
-        cur = self.conn.execute("""
-            SELECT id, type, name,
-                CASE
-                    WHEN type = 'person'
-                         AND COALESCE(json_extract(metadata, '$.profiled'), 0) != 1
-                    THEN 'person (stub)'
-                    ELSE type
-                END AS "group"
-            FROM entities ORDER BY type, name
-        """)
+    def graph_nodes(self, stub_type: str = "", stub_flag: str = "profiled") -> list[dict]:
+        """Return all nodes with id/type/name — for graph rendering.
+        If stub_type is set, entities of that type without the stub_flag
+        metadata key get group='<type> (stub)'; otherwise group=type."""
+        if stub_type and stub_flag:
+            cur = self.conn.execute("""
+                SELECT id, type, name,
+                    CASE
+                        WHEN type = ?
+                             AND COALESCE(json_extract(metadata, '$.' || ?), 0) != 1
+                        THEN type || ' (stub)'
+                        ELSE type
+                    END AS "group"
+                FROM entities ORDER BY type, name
+            """, (stub_type, stub_flag))
+        else:
+            cur = self.conn.execute(
+                'SELECT id, type, name, type AS "group" FROM entities ORDER BY type, name'
+            )
         return _rows(cur)
 
     def graph_edges(self) -> list[dict]:
@@ -150,28 +158,30 @@ class KnowledgeGraphDB:
 
     def graph_display(self, *, collapse_rel_types: list[str] | None = None,
                       top_k: int = 20, min_weight: int = 2,
-                      collapse_stub_persons: bool = True) -> dict:
+                      collapse_stubs: bool = True,
+                      stub_type: str = "", stub_flag: str = "profiled") -> dict:
         """Return a reduced graph projection for visualization.
 
         - collapse_rel_types: relationship types to hide by default
-        - top_k/min_weight kept for API compatibility; not used for cluster nodes
-        - collapse_stub_persons: hide unprofiled person entities unless expanded
+        - collapse_stubs: hide stub entities (of stub_type without stub_flag)
+        - stub_type/stub_flag: configurable stub detection
         """
-        nodes = self.graph_nodes()
+        nodes = self.graph_nodes(stub_type=stub_type, stub_flag=stub_flag)
         edges = self.graph_edges()
         collapse_rel_types = {r.upper() for r in (collapse_rel_types or []) if r}
 
-        stub_person_ids = set()
-        if collapse_stub_persons:
-            stub_person_ids = {
+        stub_ids = set()
+        if collapse_stubs and stub_type:
+            stub_suffix = f"{stub_type} (stub)"
+            stub_ids = {
                 n["id"] for n in nodes
-                if n.get("type") == "person" and n.get("group") == "person (stub)"
+                if n.get("type") == stub_type and n.get("group") == stub_suffix
             }
 
         projected_nodes = []
         for n in nodes:
             projected = dict(n)
-            projected["hidden"] = bool(collapse_stub_persons and n["id"] in stub_person_ids)
+            projected["hidden"] = bool(collapse_stubs and n["id"] in stub_ids)
             projected_nodes.append(projected)
 
         projected_edges = []
@@ -179,8 +189,8 @@ class KnowledgeGraphDB:
             projected = dict(e)
             projected["hidden"] = bool(
                 e["rel_type"].upper() in collapse_rel_types
-                or e["source"] in stub_person_ids
-                or e["target"] in stub_person_ids
+                or e["source"] in stub_ids
+                or e["target"] in stub_ids
             )
             projected_edges.append(projected)
 
@@ -192,139 +202,165 @@ class KnowledgeGraphDB:
                 "collapse_rel_types": sorted(collapse_rel_types),
                 "top_k": top_k,
                 "min_weight": min_weight,
-                "collapse_stub_persons": collapse_stub_persons,
+                "collapse_stubs": collapse_stubs,
             },
         }
 
-    def graph_explore(self) -> dict:
+    def graph_explore(self, explore_config: dict | None = None) -> dict:
         """Return an exploration-optimized graph projection.
 
-        Design: database-agnostic — uses only structural patterns already
-        present in the data (BROADER relationships, profiled metadata flag,
-        AUTHORED co-occurrence) rather than hardcoded entity type lists.
+        All transformations are driven by explore_config. When a config field
+        is empty/unset, the corresponding transformation is skipped — making
+        this method fully data-agnostic.
 
-        Three transformations applied server-side:
-
-        1. **Exclude stub persons** — entities of type 'person' without
-           metadata.profiled=1 are omitted entirely (not hidden, not sent).
-
-        2. **Synthesize COLLABORATOR edges** — for every pair of profiled
-           persons who co-authored the same publication, emit a single
-           COLLABORATOR edge with weight = number of shared publications.
-           Publication nodes and AUTHORED/COAUTHOR edges are excluded.
-
-        3. **Flatten tag hierarchy** — any entity TAGGED with a leaf tag
-           that has a BROADER parent is re-linked directly to the parent
-           (field-level) tag. Leaf tags and BROADER edges are excluded from
-           the visualization. Tags without a BROADER parent are kept as-is.
+        Configurable transformations:
+        1. Exclude stubs — entities of stub_type without stub_flag metadata.
+        2. Exclude entity types — types listed in exclude_types.
+        3. Flatten hierarchy — collapse hierarchy_edge into parent tags;
+           re-link tagging_edge through the hierarchy.
+        4. Synthesize collaboration — co-occurrence via collaboration_via_edge
+           on a shared collaboration_via_type.
+        5. Skip rel types — remove skip_rel_types from the output.
         """
-        # --- 1. Nodes: exclude stubs, publications, and leaf tags ---
+        cfg = explore_config or {}
+        stub_type = cfg.get("stub_type", "")
+        stub_flag = cfg.get("stub_flag", "profiled")
+        exclude_types = set(cfg.get("exclude_types", []))
+        collab_via_type = cfg.get("collaboration_via_type", "")
+        collab_via_edge = cfg.get("collaboration_via_edge", "")
+        collab_label = cfg.get("collaboration_label", "COLLABORATOR")
+        hierarchy_edge = cfg.get("hierarchy_edge", "")
+        tagging_edge = cfg.get("tagging_edge", "")
+        skip_rel_types = set(cfg.get("skip_rel_types", []))
 
-        # Identify field-level tags (targets of BROADER) and leaf tags (sources of BROADER)
-        broader_rows = self._exec(
-            "SELECT source_id, target_id FROM relationships WHERE rel_type = 'BROADER'"
-        ).fetchall()
-        leaf_to_field = {}  # leaf_tag_id -> field_tag_id
-        field_tag_ids = set()
-        for row in broader_rows:
-            leaf_to_field[row[0]] = row[1]
-            field_tag_ids.add(row[1])
-        # leaf tags are sources of BROADER that are NOT themselves fields
-        leaf_tag_ids = set(leaf_to_field.keys()) - field_tag_ids
+        # --- 1. Build exclusion sets ---
 
-        # Stub person IDs (unprofiled)
-        stub_ids = {
-            r[0] for r in self._exec(
-                """SELECT id FROM entities
-                   WHERE type = 'person'
-                   AND COALESCE(json_extract(metadata, '$.profiled'), 0) != 1"""
+        # Hierarchy: leaf→field mapping
+        leaf_to_field: dict[str, str] = {}
+        field_tag_ids: set[str] = set()
+        leaf_tag_ids: set[str] = set()
+        if hierarchy_edge:
+            broader_rows = self._exec(
+                "SELECT source_id, target_id FROM relationships WHERE rel_type = ?",
+                (hierarchy_edge,),
             ).fetchall()
-        }
+            for row in broader_rows:
+                leaf_to_field[row[0]] = row[1]
+                field_tag_ids.add(row[1])
+            leaf_tag_ids = set(leaf_to_field.keys()) - field_tag_ids
 
-        # Publication IDs
-        pub_ids = {
-            r[0] for r in self._exec(
-                "SELECT id FROM entities WHERE type = 'publication'"
-            ).fetchall()
-        }
+        # Stub IDs
+        stub_ids: set[str] = set()
+        if stub_type and stub_flag:
+            stub_ids = {
+                r[0] for r in self._exec(
+                    "SELECT id FROM entities WHERE type = ?"
+                    " AND COALESCE(json_extract(metadata, '$.' || ?), 0) != 1",
+                    (stub_type, stub_flag),
+                ).fetchall()
+            }
 
-        exclude_ids = stub_ids | pub_ids | leaf_tag_ids
-        all_nodes = self.graph_nodes()
+        # Excluded entity type IDs
+        excluded_type_ids: set[str] = set()
+        if exclude_types:
+            placeholders = ",".join("?" * len(exclude_types))
+            excluded_type_ids = {
+                r[0] for r in self._exec(
+                    f"SELECT id FROM entities WHERE type IN ({placeholders})",
+                    list(exclude_types),
+                ).fetchall()
+            }
+
+        exclude_ids = stub_ids | excluded_type_ids | leaf_tag_ids
+        all_nodes = self.graph_nodes(stub_type=stub_type, stub_flag=stub_flag)
         nodes = [n for n in all_nodes if n["id"] not in exclude_ids]
 
-        # --- 2. Edges: filter, synthesize COLLABORATOR, flatten tags ---
+        # --- 2. Edges: filter, synthesize collaboration, flatten hierarchy ---
 
         all_edges = self.graph_edges()
 
-        # Build COLLABORATOR edges from shared AUTHORED relationships
-        # pub_id -> set of profiled person ids
-        pub_authors: dict[str, set[str]] = {}
-        profiled_ids = {n["id"] for n in nodes if n.get("type") == "person"}
-        for e in all_edges:
-            if e["rel_type"] == "AUTHORED":
-                pub = e["target"] if e["source"] in profiled_ids else (
-                    e["source"] if e["target"] in profiled_ids else None
-                )
-                author = e["source"] if e["source"] in profiled_ids else (
-                    e["target"] if e["target"] in profiled_ids else None
-                )
-                if pub and author and pub in pub_ids:
-                    pub_authors.setdefault(pub, set()).add(author)
-
+        # Build collaboration edges from co-occurrence
         collab_weights: dict[tuple[str, str], int] = {}
-        for _pub, authors in pub_authors.items():
-            authors_list = sorted(authors)
-            for i in range(len(authors_list)):
-                for j in range(i + 1, len(authors_list)):
-                    key = (authors_list[i], authors_list[j])
-                    collab_weights[key] = collab_weights.get(key, 0) + 1
+        mediator_tags: dict[str, set[str]] = {}  # mediator_id → set of tag_ids
+        if collab_via_type and collab_via_edge:
+            # mediator_id → set of non-excluded entity ids
+            mediator_actors: dict[str, set[str]] = {}
+            node_id_set_temp = {n["id"] for n in nodes}
+            for e in all_edges:
+                if e["rel_type"] != collab_via_edge:
+                    continue
+                # Determine which end is the mediator and which is the actor
+                if e["source"] in excluded_type_ids:
+                    mediator, actor = e["source"], e["target"]
+                elif e["target"] in excluded_type_ids:
+                    mediator, actor = e["target"], e["source"]
+                else:
+                    continue
+                if actor in node_id_set_temp:
+                    mediator_actors.setdefault(mediator, set()).add(actor)
 
-        # Synthesize person->tag edges via publications:
-        # person -AUTHORED-> publication -TAGGED-> tag
-        # Roll up to field level if the tag has a BROADER parent.
-        pub_tags: dict[str, set[str]] = {}  # pub_id -> set of tag_ids
-        for e in all_edges:
-            if e["rel_type"] == "TAGGED":
-                pub = e["source"] if e["source"] in pub_ids else (
-                    e["target"] if e["target"] in pub_ids else None
-                )
-                tag = e["target"] if e["source"] in pub_ids else (
-                    e["source"] if e["target"] in pub_ids else None
-                )
-                if pub and tag:
-                    # Roll up leaf -> field
-                    resolved_tag = leaf_to_field.get(tag, tag)
-                    pub_tags.setdefault(pub, set()).add(resolved_tag)
+            for _med, actors in mediator_actors.items():
+                actors_list = sorted(actors)
+                for i in range(len(actors_list)):
+                    for j in range(i + 1, len(actors_list)):
+                        key = (actors_list[i], actors_list[j])
+                        collab_weights[key] = collab_weights.get(key, 0) + 1
 
-        # Excluded rel types — these are replaced by synthetic edges
-        skip_rel_types = {"AUTHORED", "COAUTHOR", "BROADER"}
+            # Synthesize actor→tag edges via mediators (mediator -TAGGED-> tag)
+            if tagging_edge:
+                for e in all_edges:
+                    if e["rel_type"] != tagging_edge:
+                        continue
+                    med = e["source"] if e["source"] in excluded_type_ids else (
+                        e["target"] if e["target"] in excluded_type_ids else None
+                    )
+                    tag = e["target"] if e["source"] in excluded_type_ids else (
+                        e["source"] if e["target"] in excluded_type_ids else None
+                    )
+                    if med and tag:
+                        resolved_tag = leaf_to_field.get(tag, tag)
+                        mediator_tags.setdefault(med, set()).add(resolved_tag)
 
         edges = []
         node_id_set = {n["id"] for n in nodes}
         for e in all_edges:
             if e["rel_type"] in skip_rel_types:
                 continue
-            # Flatten TAGGED: remap leaf tag -> field tag
             src, tgt = e["source"], e["target"]
-            if e["rel_type"] == "TAGGED":
+            # Flatten hierarchy: remap leaf tag → field tag
+            if tagging_edge and e["rel_type"] == tagging_edge:
                 if tgt in leaf_to_field:
                     tgt = leaf_to_field[tgt]
                 elif src in leaf_to_field:
                     src = leaf_to_field[src]
-            # Only keep edges where both endpoints are in our node set
             if src in node_id_set and tgt in node_id_set:
                 edges.append({"source": src, "target": tgt, "rel_type": e["rel_type"]})
 
-        # Add person->tag edges derived from publications
-        for pub, tags in pub_tags.items():
-            authors = pub_authors.get(pub, set())
-            for author in authors:
-                for tag in tags:
-                    if author in node_id_set and tag in node_id_set:
-                        edges.append({"source": author, "target": tag, "rel_type": "TAGGED"})
+        # Add actor→tag edges derived from mediators
+        if collab_via_type and collab_via_edge and tagging_edge:
+            # Rebuild mediator_actors for tag synthesis
+            mediator_actors_for_tags: dict[str, set[str]] = {}
+            for e in all_edges:
+                if e["rel_type"] != collab_via_edge:
+                    continue
+                if e["source"] in excluded_type_ids:
+                    med, actor = e["source"], e["target"]
+                elif e["target"] in excluded_type_ids:
+                    med, actor = e["target"], e["source"]
+                else:
+                    continue
+                if actor in node_id_set:
+                    mediator_actors_for_tags.setdefault(med, set()).add(actor)
 
-        # Deduplicate edges (multiple paths may produce the same edge)
-        seen_edges = set()
+            for med, tags in mediator_tags.items():
+                actors = mediator_actors_for_tags.get(med, set())
+                for actor in actors:
+                    for tag in tags:
+                        if actor in node_id_set and tag in node_id_set:
+                            edges.append({"source": actor, "target": tag, "rel_type": tagging_edge})
+
+        # Deduplicate edges
+        seen_edges: set[tuple[str, str, str]] = set()
         deduped_edges = []
         for e in edges:
             key = (e["source"], e["rel_type"], e["target"])
@@ -333,17 +369,15 @@ class KnowledgeGraphDB:
                 deduped_edges.append(e)
         edges = deduped_edges
 
-        # Add COLLABORATOR edges
+        # Add collaboration edges
         for (a, b), weight in collab_weights.items():
             if a in node_id_set and b in node_id_set:
                 edges.append({
                     "source": a, "target": b,
-                    "rel_type": "COLLABORATOR", "weight": weight,
+                    "rel_type": collab_label, "weight": weight,
                 })
 
-        # Prune orphan nodes — nodes with zero edges after all projections.
-        # Tags connected only to excluded entities would otherwise float
-        # disconnected in the graph.
+        # Prune orphan nodes
         connected_ids: set[str] = set()
         for e in edges:
             connected_ids.add(e["source"])
@@ -357,7 +391,7 @@ class KnowledgeGraphDB:
             "projection": {
                 "mode": "explore",
                 "excluded_stubs": len(stub_ids),
-                "excluded_publications": len(pub_ids),
+                "excluded_types": sorted(exclude_types),
                 "excluded_leaf_tags": len(leaf_tag_ids),
                 "collaborator_edges": len(collab_weights),
                 "pruned_orphans": pruned,
@@ -537,13 +571,15 @@ class KnowledgeGraphDB:
     # Graph queries
     # ------------------------------------------------------------------
 
-    def _descendant_ids(self, entity_id: str) -> set[str]:
-        """Walk BROADER relationships to find all descendant entity IDs.
+    def _descendant_ids(self, entity_id: str, hierarchy_edge: str = "BROADER") -> set[str]:
+        """Walk hierarchy relationships to find all descendant entity IDs.
 
-        Returns the set of IDs that have a (transitive) BROADER path to
+        Returns the set of IDs that have a (transitive) hierarchy_edge path to
         entity_id. Uses iterative BFS — no recursion, no hardcoded depth.
-        Returns an empty set if the entity has no BROADER children.
+        Returns an empty set if the entity has no children or hierarchy_edge is empty.
         """
+        if not hierarchy_edge:
+            return set()
         descendants: set[str] = set()
         frontier = {entity_id}
         while frontier:
@@ -551,8 +587,8 @@ class KnowledgeGraphDB:
             children = {
                 r[0] for r in self._exec(
                     f"SELECT source_id FROM relationships "
-                    f"WHERE rel_type = 'BROADER' AND target_id IN ({placeholders})",
-                    list(frontier),
+                    f"WHERE rel_type = ? AND target_id IN ({placeholders})",
+                    [hierarchy_edge] + list(frontier),
                 ).fetchall()
             }
             new = children - descendants
@@ -585,30 +621,32 @@ class KnowledgeGraphDB:
             params = [entity_id, entity_id]
         return _rows(self._exec(sql, params))
 
-    def neighbors_explore(self, entity_id: str) -> list[dict]:
+    def neighbors_explore(self, entity_id: str,
+                          hierarchy_edge: str = "BROADER",
+                          tagging_edge: str = "TAGGED") -> list[dict]:
         """Like neighbors() but tag-hierarchy-aware.
 
-        If entity_id is a field-level tag (has BROADER children), include
-        entities transitively TAGGED through its descendant leaf tags.
-        Database-agnostic: discovers hierarchy from BROADER relationships.
+        If entity_id is a field-level tag (has hierarchy_edge children), include
+        entities transitively connected via tagging_edge through its descendant
+        leaf tags. Fully configurable — no hardcoded relationship types.
         """
         direct = self.neighbors(entity_id)
-        descendants = self._descendant_ids(entity_id)
+        if not hierarchy_edge or not tagging_edge:
+            return direct
+        descendants = self._descendant_ids(entity_id, hierarchy_edge)
         if not descendants:
             return direct
 
-        # Find entities TAGGED with any descendant leaf tag
         placeholders = ",".join("?" * len(descendants))
         transitive = _rows(self._exec(
             f"""SELECT DISTINCT e.id, e.type, e.name FROM entities e
                 WHERE e.id IN (
                     SELECT source_id FROM relationships
-                    WHERE rel_type = 'TAGGED' AND target_id IN ({placeholders})
+                    WHERE rel_type = ? AND target_id IN ({placeholders})
                 )""",
-            list(descendants),
+            [tagging_edge] + list(descendants),
         ))
 
-        # Merge, dedup by id
         seen = {n["id"] for n in direct}
         for n in transitive:
             if n["id"] not in seen:
@@ -635,22 +673,24 @@ class KnowledgeGraphDB:
         min_degree: int = 5,
         entity_type: str = "",
         exclude_stubs: bool = False,
+        stub_type: str = "",
+        stub_flag: str = "profiled",
     ) -> list[dict]:
         """Find entities with the most connections."""
         where = "WHERE e.type = ?" if entity_type else ""
         params: list = [entity_type] if entity_type else []
 
-        if exclude_stubs:
+        stub_filter = ""
+        if exclude_stubs and stub_type and stub_flag:
             stub_filter = """
                 AND o.id NOT IN (
                     SELECT id FROM entities
-                    WHERE type = 'person'
-                    AND (json_extract(metadata, '$.profiled') IS NULL
-                         OR json_extract(metadata, '$.profiled') = 0)
+                    WHERE type = ?
+                    AND (json_extract(metadata, '$.' || ?) IS NULL
+                         OR json_extract(metadata, '$.' || ?) = 0)
                 )
             """
-        else:
-            stub_filter = ""
+            params.extend([stub_type, stub_flag, stub_flag])
 
         sql = f"""
             SELECT e.id, e.type, e.name, COUNT(*) AS degree
@@ -681,17 +721,21 @@ class KnowledgeGraphDB:
         """, (entity_id, entity_id)).fetchone()
         return row[0]
 
-    def degree_explore(self, entity_id: str) -> int:
-        """Like degree() but counts transitive TAGGED via BROADER descendants."""
+    def degree_explore(self, entity_id: str,
+                       hierarchy_edge: str = "BROADER",
+                       tagging_edge: str = "TAGGED") -> int:
+        """Like degree() but counts transitive tagging_edge via hierarchy descendants."""
         base = self.degree(entity_id)
-        descendants = self._descendant_ids(entity_id)
+        if not hierarchy_edge or not tagging_edge:
+            return base
+        descendants = self._descendant_ids(entity_id, hierarchy_edge)
         if not descendants:
             return base
         placeholders = ",".join("?" * len(descendants))
         transitive = self._exec(
             f"""SELECT COUNT(DISTINCT source_id) FROM relationships
-                WHERE rel_type = 'TAGGED' AND target_id IN ({placeholders})""",
-            list(descendants),
+                WHERE rel_type = ? AND target_id IN ({placeholders})""",
+            [tagging_edge] + list(descendants),
         ).fetchone()[0]
         return base + transitive
 
@@ -731,7 +775,7 @@ class KnowledgeGraphDB:
         return [r[0] for r in rows]
 
     def get_snippets(self, entity_id: str) -> list[dict]:
-        """Return snippets for a signal, grouped by ref_type/ref_id."""
+        """Return snippets for an entity, grouped by ref_type/ref_id."""
         rows = self.conn.execute(
             """SELECT id, ref_id, ref_type, text, ordinal
                FROM snippets WHERE entity_id = ?
@@ -741,8 +785,8 @@ class KnowledgeGraphDB:
         return [dict(r) for r in rows]
 
     def get_snippets_about(self, ref_id: str) -> list[dict]:
-        """Return all snippets that reference a given entity (e.g. a person),
-        along with the signal name they came from."""
+        """Return all snippets that reference a given entity,
+        along with the source entity name they came from."""
         rows = self.conn.execute(
             """SELECT s.id, s.entity_id, e.name AS signal_name,
                       s.ref_type, s.text, s.ordinal
@@ -755,7 +799,7 @@ class KnowledgeGraphDB:
         return [dict(r) for r in rows]
 
     def get_research_interests(self, entity_id: str) -> list[str]:
-        """Return ordered research interests for a person."""
+        """Return ordered research interests for an entity."""
         rows = self.conn.execute(
             "SELECT interest FROM research_interests WHERE entity_id = ? ORDER BY ordinal",
             (entity_id,),
@@ -763,7 +807,7 @@ class KnowledgeGraphDB:
         return [r[0] for r in rows]
 
     def get_contact(self, entity_id: str) -> dict:
-        """Return contact fields for a person as {field: value}."""
+        """Return contact fields for an entity as {field: value}."""
         rows = self.conn.execute(
             "SELECT field, value FROM contact_info WHERE entity_id = ? ORDER BY field",
             (entity_id,),
@@ -779,19 +823,17 @@ class KnowledgeGraphDB:
         return [dict(r) for r in rows]
 
     def get_rich(self, entity_id: str, entity_type: str = "") -> dict:
-        """Return all rich-content tables for one entity in a single call."""
-        result = {
+        """Return all rich-content tables for one entity in a single call.
+        All sections are fetched regardless of entity type — the UI decides
+        what to display based on available data."""
+        return {
             "topics": self.get_topics(entity_id),
             "snippets": self.get_snippets(entity_id),
-            "snippets_about": [],
+            "snippets_about": self.get_snippets_about(entity_id),
             "research_interests": self.get_research_interests(entity_id),
             "contact": self.get_contact(entity_id),
             "sources": self.get_sources(entity_id),
         }
-        # For persons: also fetch snippets that mention this person
-        if entity_type == "person":
-            result["snippets_about"] = self.get_snippets_about(entity_id)
-        return result
 
     # ------------------------------------------------------------------
     # Raw SQL (for chat-to-SQL)

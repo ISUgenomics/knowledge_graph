@@ -27,3 +27,28 @@ ui:
   node_size_by_degree: true
   show_labels: true
   max_visible_nodes: 5000
+
+# Explore mode: academic knowledge graph (persons, publications, tags)
+# - Hide 8,700+ stub persons, show only 61 profiled researchers
+# - Collapse publications: synthesize COLLABORATOR edges between co-authors
+# - Flatten tag hierarchy: leaf tags roll up to field-level via BROADER
+explore:
+  stub_type: person
+  stub_flag: profiled
+  exclude_types: [publication]
+  collaboration_via_type: publication
+  collaboration_via_edge: AUTHORED
+  collaboration_label: COLLABORATOR
+  hierarchy_edge: BROADER
+  tagging_edge: TAGGED
+  skip_rel_types: [AUTHORED, COAUTHOR, BROADER]
+
+# Embedding: use academic-specific metadata fields
+embedding:
+  type_fields:
+    person: [title, institution, department, summary]
+    publication: [title, year, journal, abstract]
+    signal: [title, topic, summary]
+  default_fields: [title, summary, description]
+  skip_stub_type: person
+  skip_stub_flag: profiled

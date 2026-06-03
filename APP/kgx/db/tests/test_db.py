@@ -93,7 +93,7 @@ class TestGraphData:
         nodes = populated_db.graph_nodes()
         assert len(nodes) == 8  # 3 people + 2 pubs + 1 event + 2 tags
         for n in nodes:
-            assert set(n.keys()) == {"id", "type", "name"}
+            assert set(n.keys()) == {"id", "type", "name", "group"}
 
     def test_graph_edges(self, populated_db):
         edges = populated_db.graph_edges()

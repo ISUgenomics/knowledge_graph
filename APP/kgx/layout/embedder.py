@@ -2,10 +2,12 @@
 Generate text embeddings for entities using Ollama's embedding API.
 Stores results in the embeddings table (entity_id, vector BLOB, model TEXT).
 
-Only embeds entities with meaningful content:
-  - persons with profiled=true
-  - publications, signals, events, centers (all have text metadata)
-  - tags (just the name — lightweight but useful for semantic clustering)
+Text extraction is config-driven via embedding_config:
+  type_fields:      {type: [field1, field2, ...]} — per-type metadata fields
+  default_fields:   [field1, field2, ...]         — fallback for unlisted types
+  max_field_length: int                           — truncate long field values
+  skip_stub_type:   str                           — entity type to skip stubs for
+  skip_stub_flag:   str                           — metadata key marking non-stubs
 """
 
 from __future__ import annotations
@@ -18,47 +20,29 @@ import httpx
 from kgx.db import KnowledgeGraphDB
 
 
-def _entity_text(entity: dict) -> str:
-    """Build a plain-text description for embedding."""
+def _entity_text(entity: dict, embedding_config: dict | None = None) -> str:
+    """Build a plain-text description for embedding.
+
+    Uses embedding_config to determine which metadata fields to extract
+    per entity type. Falls back to name + default_fields."""
+    cfg = embedding_config or {}
     meta = entity.get("metadata", {}) or {}
     name = entity["name"]
     etype = entity["type"]
 
-    if etype == "person":
-        parts = [name]
-        if meta.get("title"):
-            parts.append(meta["title"])
-        if meta.get("institution"):
-            parts.append(f"at {meta['institution']}")
-        if meta.get("department"):
-            parts.append(meta["department"])
-        if meta.get("summary"):
-            parts.append(str(meta["summary"])[:400])
-        return " | ".join(parts)
+    type_fields = cfg.get("type_fields", {})
+    default_fields = cfg.get("default_fields", ["title", "summary", "description"])
+    max_len = cfg.get("max_field_length", 600)
 
-    if etype == "publication":
-        title = meta.get("title") or name
-        parts = [title]
-        if meta.get("year"):
-            parts.append(str(meta["year"]))
-        if meta.get("journal"):
-            parts.append(meta["journal"])
-        if meta.get("abstract"):
-            parts.append(str(meta["abstract"])[:600])
-        return " | ".join(parts)
+    # Determine which fields to extract
+    fields = type_fields.get(etype, default_fields)
 
-    if etype == "signal":
-        parts = [meta.get("title") or name]
-        if meta.get("topic"):
-            parts.append(f"Topic: {meta['topic']}")
-        if meta.get("summary"):
-            parts.append(str(meta["summary"])[:400])
-        return " | ".join(parts)
-
-    # event, center, tag — use name + summary if available
     parts = [name]
-    if meta.get("summary"):
-        parts.append(str(meta["summary"])[:300])
+    for field in fields:
+        val = meta.get(field)
+        if val:
+            parts.append(str(val)[:max_len])
+
     return " | ".join(parts)
 
 
@@ -93,6 +77,7 @@ def generate_embeddings(
     entity_types: list[str] | None = None,
     skip_stubs: bool = True,
     progress_cb=None,
+    embedding_config: dict | None = None,
 ) -> dict:
     """
     Generate and store embeddings for all qualifying entities.
@@ -100,6 +85,10 @@ def generate_embeddings(
     Skips entities that already have an embedding from the same model.
     Returns {done, skipped, errors}.
     """
+    cfg = embedding_config or {}
+    skip_stub_type = cfg.get("skip_stub_type", "")
+    skip_stub_flag = cfg.get("skip_stub_flag", "profiled")
+
     rows = db.conn.execute(
         "SELECT id, type, name, metadata FROM entities ORDER BY type, name"
     ).fetchall()
@@ -122,8 +111,8 @@ def generate_embeddings(
             skipped += 1
             continue
 
-        # Skip unprofiled person stubs — they have no useful text
-        if skip_stubs and etype == "person" and not meta.get("profiled"):
+        # Skip stubs — configurable entity type and metadata flag
+        if skip_stubs and skip_stub_type and etype == skip_stub_type and not meta.get(skip_stub_flag):
             skipped += 1
             continue
 
@@ -137,7 +126,7 @@ def generate_embeddings(
                 progress_cb(i + 1, total, name, "skip")
             continue
 
-        text = _entity_text(entity)
+        text = _entity_text(entity, cfg)
         try:
             vector = embedder.embed(text)
             blob = struct.pack(f"{len(vector)}f", *vector)

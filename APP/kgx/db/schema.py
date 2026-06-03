@@ -69,7 +69,7 @@ CREATE_SCHEMA = """
     );
     CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);
 
-    -- Topics: multiple topics per entity (signal, event, etc.)
+    -- Topics: multiple topics per entity (any type)
     -- Enables sidebar filtering by topic across entity types
     CREATE TABLE IF NOT EXISTS entity_topics (
         entity_id   TEXT NOT NULL,
@@ -81,9 +81,9 @@ CREATE_SCHEMA = """
     CREATE INDEX IF NOT EXISTS idx_topics_topic  ON entity_topics(topic);
 
     -- Snippets: blockquote excerpts extracted from source text
-    -- entity_id = the signal the snippet came from
-    -- ref_id    = person entity_id OR NULL for topic-level snippets
-    -- ref_type  = 'person' | 'topic' | NULL
+    -- entity_id = the source entity the snippet came from
+    -- ref_id    = referenced entity_id OR NULL for topic-level snippets
+    -- ref_type  = categorizes the reference (e.g. entity type, 'topic', etc.)
     CREATE TABLE IF NOT EXISTS snippets (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         entity_id   TEXT NOT NULL,
@@ -96,7 +96,7 @@ CREATE_SCHEMA = """
     CREATE INDEX IF NOT EXISTS idx_snippets_entity ON snippets(entity_id);
     CREATE INDEX IF NOT EXISTS idx_snippets_ref    ON snippets(ref_id);
 
-    -- Research interests: ordered list of interest strings per person
+    -- Research interests: ordered list of interest strings per entity
     CREATE TABLE IF NOT EXISTS research_interests (
         entity_id   TEXT NOT NULL,
         interest    TEXT NOT NULL,

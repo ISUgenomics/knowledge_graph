@@ -36,7 +36,6 @@ Rich content tables:
   research_interests(entity_id TEXT, interest TEXT, ordinal INTEGER, PK(entity_id, interest))
   sources(id INTEGER PK, entity_id TEXT, source_name TEXT, url TEXT, retrieved_at TEXT)
   contact_info(entity_id TEXT, field TEXT, value TEXT, PK(entity_id, field))
-    — field values: 'email', 'phone', 'orcid', 'website', 'department', 'title'
 
 The `metadata` column is a JSON string. Use json_extract() to query it.
 Example: json_extract(metadata, '$.orcid')
@@ -64,7 +63,7 @@ FROM entities e JOIN entity_topics t ON e.id = t.entity_id
 WHERE t.topic LIKE '%genomics%'
 ```
 
-Find a person's contact info:
+Find an entity's contact info:
 ```sql
 SELECT e.name, c.field, c.value
 FROM entities e JOIN contact_info c ON e.id = c.entity_id
@@ -220,18 +219,23 @@ class ChatToSQL:
                 pass
 
         if any(w in low for w in ["help", "what can"]):
+            # Build examples from actual types in the DB
+            try:
+                type_names = [t["type"] for t in self.db.entity_types()]
+            except Exception:
+                type_names = []
+            ex1 = type_names[0] if type_names else "nodes"
+            ex2 = type_names[1] if len(type_names) > 1 else "nodes"
             parts.append(
-                "**I can help you query the knowledge graph.** Try:\n"
-                "  - \"show all persons\" or \"list signals\"\n"
-                "  - \"nodes with > 10 edges\"\n"
-                "  - \"tagged nodes about genomics\"\n"
-                "  - \"what types are there?\"\n"
-                "  - \"find person named Smith\"\n"
-                "  - \"publications by year\"\n\n"
-                "**Filters** (returns IDs → apply to graph):\n"
-                "  - \"filter out nodes with fewer than 5 edges\"\n"
-                "  - \"hide persons not tagged with any topic\"\n"
-                "  When results have an `id` column, you can **Hide** those nodes or **Save as sidebar filter**."
+                f"**I can help you query the knowledge graph.** Try:\n"
+                f"  - \"show all {ex1}\" or \"list {ex2}\"\n"
+                f"  - \"nodes with > 10 edges\"\n"
+                f"  - \"what types are there?\"\n"
+                f"  - \"find {ex1} named Smith\"\n\n"
+                f"**Filters** (returns IDs → apply to graph):\n"
+                f"  - \"filter out nodes with fewer than 5 edges\"\n"
+                f"  - \"hide {ex1} not tagged with any topic\"\n"
+                f"  When results have an `id` column, you can **Hide** those nodes or **Save as sidebar filter**."
             )
 
         if parts:

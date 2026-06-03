@@ -4,6 +4,8 @@ A local-first web app for exploring, querying, and curating a knowledge graph st
 
 No cloud services, no accounts, no telemetry. Everything runs on your machine.
 
+> **New to KGX?** Use an LLM (Claude, ChatGPT, Codex, etc.) to help convert your data into a KGX database and configure explore mode. Give it [`prompts/kgx-data-setup.md`](prompts/kgx-data-setup.md) as context — it covers schema design, import scripts, tag optimization, and config tuning.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Browser                                                         │
@@ -16,7 +18,7 @@ No cloud services, no accounts, no telemetry. Everything runs on your machine.
 │               └────────────────────────────────────────────┘    │
 │                        │  REST + SSE                             │
 │  ┌─────────────────────┴─────────────────────────────────────┐  │
-│  │  FastAPI  →  SQLite (vault.db v3)  ←  Ollama (optional)   │  │
+│  │  FastAPI  →  SQLite (any .db v3)  ←  Ollama (optional)   │  │
 │  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -152,7 +154,38 @@ ui:
   node_size_by_degree: true    # Larger nodes = more connections
   show_labels: true            # Text labels on high-degree nodes
   max_visible_nodes: 5000
+
+# Explore mode conventions — all optional, set to "" to disable
+explore:
+  stub_type: ""                # Entity type that has stubs (e.g. "person")
+  stub_flag: profiled          # Metadata key marking non-stubs
+  exclude_types: []            # Entity types to exclude (e.g. ["publication"])
+  collaboration_via_type: ""   # Mediator entity type (e.g. "publication")
+  collaboration_via_edge: ""   # Rel type linking actors to mediator (e.g. "AUTHORED")
+  collaboration_label: COLLABORATOR  # Label for synthesized collaboration edges
+  hierarchy_edge: ""           # Rel type for tag hierarchy (e.g. "BROADER")
+  tagging_edge: ""             # Rel type for tagging (e.g. "TAGGED")
+  skip_rel_types: []           # Rel types to hide (e.g. ["AUTHORED", "COAUTHOR"])
+
+# Embedding text extraction — which metadata fields to use per entity type
+embedding:
+  type_fields: {}              # e.g. {person: [title, institution, summary]}
+  default_fields: [title, summary, description]
+  max_field_length: 600
+  skip_stub_type: ""           # Skip stubs of this type (e.g. "person")
+  skip_stub_flag: profiled
 ```
+
+### Per-database configs
+
+Different databases benefit from different explore mode settings. Use `--config` to switch:
+
+```bash
+kgx --config config-proteins.yaml   # protein feature graph
+kgx --config config.yaml            # academic knowledge graph (default)
+```
+
+See [Explore Mode](#explore-mode) for examples of both.
 
 ### CLI overrides
 
@@ -278,34 +311,56 @@ Mouse damping/inertia is disabled — releasing the mouse stops all motion immed
 
 **Explore mode (default):**
 
-The graph loads in **explore mode** — a server-side projection that transforms the raw database into a meaningful exploration view:
+The graph loads in **explore mode** — a config-driven server-side projection that transforms the raw database into a meaningful exploration view. All transformations are controlled by the `explore:` section of your config file — nothing is hardcoded.
 
-- **Stubs removed** — unprofiled person entities (coauthor stubs) are excluded
-- **Publications hidden** — publication nodes are excluded; their relationships are preserved transitively
-- **Tag hierarchy flattened** — leaf-level tags are rolled up to their field-level parent via BROADER relationships
-- **Person-to-tag connections** — persons connect to field-level tags through their publications (person→AUTHORED→pub→TAGGED→leaf→BROADER→field)
-- **COLLABORATOR edges** — synthetic edges between profiled persons who co-authored papers, with weight = number of shared publications
-- **Orphan pruning** — nodes with zero edges after filtering are removed
+Available transformations (each is optional — configure only what applies to your data):
 
-This reduces a raw graph of ~10,000 nodes / ~50,000 edges to ~300-400 meaningful nodes with clear clustering.
+- **Stub filtering** — remove low-value entities (e.g., unprofiled coauthor stubs). Controlled by `stub_type` + `stub_flag`.
+- **Entity type exclusion** — hide intermediate entity types (e.g., publications, LCR types). Controlled by `exclude_types`.
+- **Tag hierarchy flattening** — roll up leaf-level tags to field-level parents. Controlled by `hierarchy_edge`.
+- **Transitive tag connections** — connect entities to tags through excluded intermediaries. Controlled by `tagging_edge`.
+- **Collaboration synthesis** — create weighted edges between entities that co-occur on the same intermediate type. Controlled by `collaboration_via_type` + `collaboration_via_edge` + `collaboration_label`.
+- **Relationship skipping** — hide raw relationship types that are replaced by synthetic ones. Controlled by `skip_rel_types`.
+- **Orphan pruning** — nodes with zero edges after all transformations are removed automatically.
 
-**Database-agnostic design:**
+**Example: Academic knowledge graph**
 
-Explore mode discovers all structure from the database at runtime — nothing is hardcoded to a specific dataset. It relies on three conventions:
+```yaml
+explore:
+  stub_type: person              # filter unprofiled person stubs
+  stub_flag: profiled            # keep entities where metadata.profiled = true
+  exclude_types: [publication]   # hide publication nodes
+  collaboration_via_type: publication
+  collaboration_via_edge: AUTHORED
+  collaboration_label: COLLABORATOR  # synthesize co-author edges
+  hierarchy_edge: BROADER        # flatten tag hierarchy
+  tagging_edge: TAGGED           # re-link tags through publications
+  skip_rel_types: [AUTHORED, COAUTHOR, BROADER]
+```
 
-| Convention | How it's used |
-|---|---|
-| `metadata.profiled` | Distinguishes full profiles from stubs. Entities where `json_extract(metadata, '$.profiled') = 1` are kept; others of type `person` are treated as stubs and excluded. |
-| `BROADER` relationship type | Defines the tag hierarchy. Explore mode walks BROADER edges via BFS to find leaf→field→domain chains. Any depth or shape of hierarchy works. |
-| `AUTHORED` + `TAGGED` relationship types | Used for transitive connections. Person→AUTHORED→publication→TAGGED→tag chains are collapsed into direct person→tag edges, and shared AUTHORED targets produce COLLABORATOR edges. |
+This reduces ~10,000 raw nodes to ~300-400 meaningful nodes with clear clustering.
 
-If your database uses different entity types, has no tag hierarchy, or lacks publications entirely, explore mode still works — it simply skips the transformations that don't apply. No code changes needed.
+**Example: Protein feature graph**
+
+```yaml
+explore:
+  stub_type: ""                  # no stubs to filter
+  exclude_types: [lcr_type]     # hide individual LCR type nodes
+  collaboration_via_type: lcr_type
+  collaboration_via_edge: HAS_LCR
+  collaboration_label: SIMILAR_COMPOSITION  # synthesize shared-composition edges
+  hierarchy_edge: ""             # no tag hierarchy
+  tagging_edge: ""
+  skip_rel_types: [HAS_LCR]
+```
+
+If a transformation field is left empty or omitted, that transformation is skipped — no code changes needed for any dataset.
 
 **Visual encoding:**
 
 - **Node color** — each entity type gets a distinct color (auto-assigned), or community-based coloring (toggle with Communities button)
 - **Node size** — proportional to filtered degree (recomputes dynamically when edge types are toggled)
-- **Link thickness** — proportional to edge weight (COLLABORATOR edges with more shared papers appear thicker)
+- **Link thickness** — proportional to edge weight (synthesized collaboration edges with more shared connections appear thicker)
 - **Edge particles** — animated directional particles show relationship direction
 - **Edge styling** — width, opacity, color, and particle count are adjustable via Settings
 
@@ -331,21 +386,18 @@ The left panel shows all entity types discovered in the database, with counts.
 
 ### Detail Panel
 
-The right panel shows full details for a selected node with type-specific rendering.
+The right panel shows full details for a selected node with data-driven rendering. All sections appear based on what data exists for the entity — no type-specific logic.
 
-**Person entities show:**
+**Available sections (shown when data is present):**
 - Type badge, name, degree
 - Topics (as colored chips)
-- Contact info (email, title, department, etc.)
+- Long text fields (abstract, description, summary — auto-detected from metadata)
+- Contact info (any key-value pairs stored in the contact_info table)
 - Research interests
-- Snippets about this person (from signals that mention them, with signal name)
+- Snippets (blockquote excerpts, grouped by source type)
+- Snippets about this entity (from other entities that reference it)
 - Sources (provenance URLs)
 - Relationships (grouped by type, with clickable entity names)
-
-**Signal/publication entities show:**
-- Topics, abstract
-- Snippets (blockquote excerpts)
-- Sources, relationships
 
 **Arrow key navigation:** Press `↑`/`↓` to cycle through entities of the same type without going back to the graph.
 
@@ -354,7 +406,7 @@ The right panel shows full details for a selected node with type-specific render
 The bottom panel provides natural language querying of the database.
 
 **How it works:**
-1. Type a question like "show all persons with > 10 edges"
+1. Type a question like "show all entities with > 10 edges"
 2. The LLM (Ollama) translates it to SQL
 3. SELECT queries execute immediately and results appear as a table
 4. Mutations (INSERT/UPDATE/DELETE) show a confirmation dialog first
@@ -520,28 +572,24 @@ No mutation ever runs without your explicit confirmation.
 
 ## Skill Integration
 
-KGX can discover and run LangGraph skills (Python plugins) that write to the same vault.db.
+KGX can discover and run LangGraph skills (Python plugins) that write to the same database.
 
 ### Skill directory structure
 
 ```
 skills/
-  person_research/
+  my_research_skill/
     plugin.py          # Required: entry point
     manifest.yaml      # Optional: metadata
-  event_research/
-    plugin.py
-  center_research/
-    plugin.py
-  signal_capture/
+  another_skill/
     plugin.py
 ```
 
 ### manifest.yaml format
 
 ```yaml
-name: Person Research
-description: Research a person and build their profile
+name: My Research Skill
+description: Research an entity and build its profile
 entity_types:
   - person
 args:
@@ -555,10 +603,10 @@ If no manifest exists, the skill ID is derived from the directory name.
 
 ### Running skills from the UI
 
-1. Right-click a person node → "Research person..."
+1. Right-click a node → "Research..."
 2. The skill runs as a subprocess
 3. Output streams live to the chat panel via SSE
-4. When the skill writes to vault.db, the graph auto-refreshes
+4. When the skill writes to the database, the graph auto-refreshes
 
 ### Running skills from the API
 
@@ -569,7 +617,7 @@ curl http://localhost:8000/api/skill/list
 # Run a skill
 curl -X POST http://localhost:8000/api/skill/run \
   -H "Content-Type: application/json" \
-  -d '{"skill_id": "person_research", "args": ["--input", "john-doe"]}'
+  -d '{"skill_id": "my_research_skill", "args": ["--input", "entity-id"]}'
 
 # Stream job output (SSE)
 curl http://localhost:8000/api/skill/stream/<job_id>
@@ -577,7 +625,7 @@ curl http://localhost:8000/api/skill/stream/<job_id>
 
 ### Auto-refresh
 
-KGX watches vault.db for filesystem changes (mtime polling every 2 seconds). When a skill writes new data, the graph and sidebar reload automatically — no manual refresh needed.
+KGX watches the database file for filesystem changes (mtime polling every 2 seconds). When a skill writes new data, the graph and sidebar reload automatically — no manual refresh needed.
 
 ---
 
@@ -602,7 +650,7 @@ All endpoints are prefixed with `/api/`. The server also serves the UI at `/`.
 | GET | `/api/entity/{id}/neighbors` | Direct neighbors. Query param: `rel_type` |
 | GET | `/api/entity/{id}/markdown` | Entity rendered as Obsidian markdown |
 
-The `/api/entity/{id}` response includes a `rich` object with: `topics`, `snippets`, `snippets_about` (for persons), `interests`, `contact`, `sources`.
+The `/api/entity/{id}` response includes a `rich` object with: `topics`, `snippets`, `snippets_about`, `interests`, `contact`, `sources`. All sections are returned for any entity type — the UI renders whichever sections have data.
 
 ### Query
 
@@ -649,7 +697,7 @@ The `/api/entity/{id}` response includes a `rich` object with: `topics`, `snippe
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/watch` | SSE stream — emits `changed` event when vault.db is modified |
+| GET | `/api/watch` | SSE stream — emits `changed` event when the database file is modified |
 
 ---
 
@@ -667,11 +715,11 @@ Click **Export Neo4j** in the header or visit `/api/export/neo4j`. Downloads a z
 
 Import into Neo4j with:
 ```bash
+# Example — substitute your actual entity and relationship types:
 neo4j-admin import \
-  --nodes=Person=nodes_person.csv \
-  --nodes=Publication=nodes_publication.csv \
-  --relationships=AUTHORED=rels_authored.csv \
-  --relationships=COAUTHOR=rels_coauthor.csv
+  --nodes=YourType=nodes_yourtype.csv \
+  --nodes=AnotherType=nodes_anothertype.csv \
+  --relationships=REL_TYPE=rels_rel_type.csv
 ```
 
 ### Markdown export
@@ -682,7 +730,7 @@ Click **Export .md** in the detail panel or visit `/api/export/markdown/{entity_
 
 ## Database
 
-KGX uses a single SQLite file (`vault.db`) as its data store. Schema version 3.
+KGX uses a single SQLite file as its data store. Schema version 3.
 
 ### Schema
 
@@ -701,7 +749,7 @@ entity_topics       — entity_id, topic (multiple per entity)
 snippets            — entity_id, ref_id, ref_type, text, ordinal
 research_interests  — entity_id, interest, ordinal
 sources             — entity_id, source_name, url, retrieved_at
-contact_info        — entity_id, field, value (email, phone, orcid, etc.)
+contact_info        — entity_id, field, value (any key-value pairs)
 ```
 
 **Support tables:**
@@ -714,7 +762,7 @@ chat_history     — session-based chat log
 
 ### Creating a database from scratch
 
-If you don't have a vault.db yet, you can create one with the API:
+If you don't have a database yet, you can create one with the API:
 
 ```bash
 # Start with an empty DB (KGX creates the schema automatically)
@@ -727,27 +775,26 @@ curl -X POST http://localhost:8000/api/mutate/preview \
   -d '{"sql": "INSERT INTO entities (id, type, name) VALUES (\"alice\", \"person\", \"Alice Smith\")"}'
 ```
 
-Or populate it from the skill suite — the person_research, event_research, center_research, and signal_capture skills all write to vault.db automatically.
+Or populate it from your skill suite — any configured skills write to the database automatically.
 
 ### Metadata
 
 The `metadata` column stores arbitrary JSON. Query it with SQLite's `json_extract()`:
 
 ```sql
--- Find people with an ORCID
+-- Find entities with a specific metadata field
 SELECT name FROM entities
-WHERE type = 'person'
-AND json_extract(metadata, '$.orcid') IS NOT NULL;
+WHERE json_extract(metadata, '$.some_field') IS NOT NULL;
 
--- Find profiled people (not stubs)
+-- Find entities matching a metadata flag
 SELECT name FROM entities
-WHERE type = 'person'
+WHERE type = 'your_type'
 AND json_extract(metadata, '$.profiled') = 1;
 ```
 
 ### Backup
 
-vault.db is a regular SQLite file. Copy it to back up:
+The database is a regular SQLite file. Copy it to back up:
 
 ```bash
 cp vault.db vault.db.backup
@@ -785,14 +832,14 @@ pytest kgx/db/tests/test_db.py::test_upsert_entity
 Error: Database not found at ./vault.db
 ```
 
-KGX needs an existing vault.db. Either:
-- Point to one: `kgx --db /path/to/vault.db`
-- Create one: `touch vault.db && kgx` (empty DB, schema auto-created)
-- Run your skills first — they create vault.db in the vault directory
+KGX needs an existing database file. Either:
+- Point to one: `kgx --db /path/to/your.db`
+- Create one: `touch my.db && kgx --db my.db` (empty DB, schema auto-created)
+- Run your skills first — they create the database automatically
 
 ### Graph is empty
 
-- Check that vault.db has data: `sqlite3 vault.db "SELECT COUNT(*) FROM entities"`
+- Check that the database has data: `sqlite3 your.db "SELECT COUNT(*) FROM entities"`
 - Check the API: `curl http://localhost:8000/api/stats`
 - Check the browser console for errors (F12)
 
@@ -839,7 +886,7 @@ Another process is using port 8000. Either:
 
 ### Large graph is slow
 
-- The default explore mode already reduces ~10,000 raw nodes to ~300-400 meaningful nodes
+- Explore mode can significantly reduce the visible graph (e.g., ~10,000 raw nodes to ~300-400 meaningful nodes with proper config)
 - Toggle labels off (Labels button) — text sprites are the main performance cost
 - Use edge filters to hide less important relationship types
 - Reduce particles to 0 in Settings
@@ -858,15 +905,15 @@ See [project-docs/ARCHITECTURE.md](project-docs/ARCHITECTURE.md) for full diagra
 
 ### Key design decisions
 
-- **vault.db is the sole source of truth** — markdown is a generated export, not a data store
+- **The database is the sole source of truth** — markdown is a generated export, not a data store
 - **No CDN dependencies** — 3d-force-graph is vendored in `kgx/ui/lib/`
 - **Event bus architecture** — UI components communicate only via pub/sub, never import each other
-- **Schema-agnostic** — no hardcoded entity or relationship types; explore mode discovers structure from BROADER relationships and `profiled` metadata at runtime
+- **Schema-agnostic** — no hardcoded entity or relationship types; explore mode is fully config-driven via `explore:` section (stub filtering, entity exclusion, collaboration synthesis, hierarchy flattening)
 - **Local LLM only** — chat uses Ollama (localhost), no data leaves your machine
 - **Mutation safety** — all DML requires explicit user confirmation via a token-based flow
 - **Rich content in DB** — topics, snippets, contacts, interests, sources stored in dedicated tables (not just metadata JSON)
-- **Profiled vs stubs** — person entities distinguished by `metadata.profiled` flag, rendered as separate groups with distinct colors/forces
-- **Explore mode projection** — server-side graph simplification: removes stubs/publications, flattens tag hierarchy, synthesizes COLLABORATOR edges, prunes orphans
+- **Configurable stub filtering** — any entity type can be split into profiled vs stub groups via config (`stub_type` + `stub_flag`), rendered with distinct colors/forces
+- **Explore mode projection** — config-driven server-side graph simplification: stub filtering, entity type exclusion, hierarchy flattening, collaboration synthesis, orphan pruning — all controlled by `explore:` config
 - **Community detection** — client-side label propagation that recomputes when edge filters change, with toggleable coloring
 - **Dynamic sizing** — node sizes recompute based on filtered degree (visible edges only)
 - **Filter override** — Expand Neighbors force-shows nodes regardless of active filters
