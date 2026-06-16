@@ -1,0 +1,164 @@
+---
+title: "Author Correction: GWAS for systemic sclerosis identifies six novel susceptibility loci including one in the Fcγ receptor region"
+doi: "10.1038/s41467-026-68405-4"
+year: 2026
+journal: "Nature communications"
+pmid: "41554714"
+authors:
+  - "[[akira-suzuki]]"
+  - "[[ishikawa-y]]"
+  - "[[tanaka-n]]"
+  - "[[asano-y]]"
+  - "[[kodera-m]]"
+  - "[[shirai-y]]"
+  - "[[akahoshi-m]]"
+  - "[[hasegawa-m]]"
+  - "[[matsushita-t]]"
+  - "[[saito-k]]"
+  - "[[motegi-si]]"
+  - "[[yoshifuji-h]]"
+  - "[[yoshizaki-a]]"
+  - "[[kohmoto-t]]"
+  - "[[takagi-k]]"
+  - "[[oka-a]]"
+  - "[[kanda-m]]"
+  - "[[tanaka-y]]"
+  - "[[ito-y]]"
+  - "[[nakano-k]]"
+  - "[[kasamatsu-h]]"
+  - "[[utsunomiya-a]]"
+  - "[[sekiguchi-a]]"
+  - "[[niiro-h]]"
+  - "[[jinnin-m]]"
+  - "[[makino-k]]"
+  - "[[makino-t]]"
+  - "[[ihn-h]]"
+  - "[[yamamoto-m]]"
+  - "[[suzuki-c]]"
+  - "[[takahashi-h]]"
+  - "[[nishida-e]]"
+  - "[[morita-a]]"
+  - "[[yamamoto-t]]"
+  - "[[fujimoto-m]]"
+  - "[[kondo-y]]"
+  - "[[goto-d]]"
+  - "[[sumida-t]]"
+  - "[[ayuzawa-n]]"
+  - "[[yanagida-h]]"
+  - "[[horita-t]]"
+  - "[[atsumi-t]]"
+  - "[[endo-h]]"
+  - "[[shima-y]]"
+  - "[[kumanogoh-a]]"
+  - "[[hirata-j]]"
+  - "[[otomo-n]]"
+  - "[[suetsugu-h]]"
+  - "[[koike-y]]"
+  - "[[tomizuka-k]]"
+  - "[[yoshino-s]]"
+  - "[[liu-x]]"
+  - "[[ito-s]]"
+  - "[[hikino-k]]"
+  - "[[momozawa-y]]"
+  - "[[ikegawa-s]]"
+  - "[[ishikawa-o]]"
+  - "[[takehara-k]]"
+  - "[[torii-t]]"
+  - "[[sato-s]]"
+  - "[[okada-y]]"
+  - "[[mimori-t]]"
+  - "[[matsuda-f]]"
+  - "[[matsuda-k]]"
+  - "[[amariuta-t]]"
+  - "[[imoto-i]]"
+  - "[[matsuo-k]]"
+  - "[[kuwana-m]]"
+  - "[[kawaguchi-y]]"
+  - "[[ohmura-k]]"
+  - "[[terao-c]]"
+  - "[[suzuki-a]]"
+tags: []
+_indexed: 2026-06-09
+---
+
+# Author Correction: GWAS for systemic sclerosis identifies six novel susceptibility loci including one in the Fcγ receptor region
+
+## Authors
+
+- [[akira-suzuki]]
+- [[ishikawa-y]]
+- [[tanaka-n]]
+- [[asano-y]]
+- [[kodera-m]]
+- [[shirai-y]]
+- [[akahoshi-m]]
+- [[hasegawa-m]]
+- [[matsushita-t]]
+- [[saito-k]]
+- [[motegi-si]]
+- [[yoshifuji-h]]
+- [[yoshizaki-a]]
+- [[kohmoto-t]]
+- [[takagi-k]]
+- [[oka-a]]
+- [[kanda-m]]
+- [[tanaka-y]]
+- [[ito-y]]
+- [[nakano-k]]
+- [[kasamatsu-h]]
+- [[utsunomiya-a]]
+- [[sekiguchi-a]]
+- [[niiro-h]]
+- [[jinnin-m]]
+- [[makino-k]]
+- [[makino-t]]
+- [[ihn-h]]
+- [[yamamoto-m]]
+- [[suzuki-c]]
+- [[takahashi-h]]
+- [[nishida-e]]
+- [[morita-a]]
+- [[yamamoto-t]]
+- [[fujimoto-m]]
+- [[kondo-y]]
+- [[goto-d]]
+- [[sumida-t]]
+- [[ayuzawa-n]]
+- [[yanagida-h]]
+- [[horita-t]]
+- [[atsumi-t]]
+- [[endo-h]]
+- [[shima-y]]
+- [[kumanogoh-a]]
+- [[hirata-j]]
+- [[otomo-n]]
+- [[suetsugu-h]]
+- [[koike-y]]
+- [[tomizuka-k]]
+- [[yoshino-s]]
+- [[liu-x]]
+- [[ito-s]]
+- [[hikino-k]]
+- [[momozawa-y]]
+- [[ikegawa-s]]
+- [[ishikawa-o]]
+- [[takehara-k]]
+- [[torii-t]]
+- [[sato-s]]
+- [[okada-y]]
+- [[mimori-t]]
+- [[matsuda-f]]
+- [[matsuda-k]]
+- [[amariuta-t]]
+- [[imoto-i]]
+- [[matsuo-k]]
+- [[kuwana-m]]
+- [[kawaguchi-y]]
+- [[ohmura-k]]
+- [[terao-c]]
+- [[suzuki-a]]
+
+**DOI:** 10.1038/s41467-026-68405-4
+**PMID:** [41554714](https://pubmed.ncbi.nlm.nih.gov/41554714/)
+**Journal:** Nature communications
+**Year:** 2026

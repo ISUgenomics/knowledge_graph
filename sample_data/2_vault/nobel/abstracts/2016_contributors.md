@@ -1,0 +1,208 @@
+---
+title: "Contributors"
+doi: "https://doi.org/10.1016/b978-0-12-801224-6.00016-3"
+year: 2016
+journal: "Elsevier eBooks"
+authors:
+  - "[[alan-macdiarmid]]"
+  - "[[francesco-bennardo]]"
+  - "[[m-chow]]"
+  - "[[j-engels]]"
+  - "[[david-goodsell]]"
+  - "[[oliver-kayser]]"
+  - "[[oliver-ullrich]]"
+  - "[[rita-bernhardt]]"
+  - "[[uwe-bornscheuer]]"
+  - "[[george-cautherley]]"
+  - "[[ananda-chakrabarty]]"
+  - "[[emmanuelle-charpentier]]"
+  - "[[king-chow]]"
+  - "[[david-clark]]"
+  - "[[arnold-demain]]"
+  - "[[theodor-dingermann]]"
+  - "[[stefan-dbel]]"
+  - "[[r-friedrich]]"
+  - "[[peter-fromherz]]"
+  - "[[dietmar-fuchs]]"
+  - "[[saburo-fukui]]"
+  - "[[karla-gnler]]"
+  - "[[oreste-ghisalba]]"
+  - "[[horst-grunz]]"
+  - "[[g-halpern]]"
+  - "[[albrecht-hempel]]"
+  - "[[c-hew]]"
+  - "[[franz-hillenkamp]]"
+  - "[[bertold-hock]]"
+  - "[[martin-holtzhauer]]"
+  - "[[jon-huntoon]]"
+  - "[[frank-kempken]]"
+  - "[[albrecht-kiderlen]]"
+  - "[[uwe-klenz]]"
+  - "[[louiza-law]]"
+  - "[[inca-lewendrr]]"
+  - "[[hwa-lim]]"
+  - "[[jutta-ludwigmller]]"
+  - "[[stephan-martin]]"
+  - "[[alex-matter]]"
+  - "[[wolfgang-meyer]]"
+  - "[[marc-van-montagu]]"
+  - "[[werner-mlleresterl]]"
+  - "[[reinhard-niener]]"
+  - "[[susanne-pauly]]"
+  - "[[jrgen-ew-polle]]"
+  - "[[tom-rapoport]]"
+  - "[[matthias-reu]]"
+  - "[[hermann-sahm]]"
+  - "[[frieder-scheller]]"
+  - "[[steffen-schmidt]]"
+  - "[[olaf-schulz]]"
+  - "[[georg-sprenger]]"
+  - "[[eric-stewart]]"
+  - "[[gary-strobel]]"
+  - "[[kurt-stber]]"
+  - "[[atsuo-tanaka]]"
+  - "[[dieter-trau]]"
+  - "[[thomas-tuschl]]"
+  - "[[larry-wadsworth]]"
+  - "[[terence-wan]]"
+  - "[[zengyu-wang]]"
+  - "[[eckhard-wellmann]]"
+  - "[[michael-wink]]"
+  - "[[d-wolf]]"
+  - "[[l-zastrow]]"
+  - "[[wolfgang-aehle]]"
+  - "[[werner-arber]]"
+  - "[[susan-barnum]]"
+  - "[[hildburg-beier]]"
+  - "[[ian-ian]]"
+  - "[[john-billings]]"
+  - "[[cangel-pui-yee-chan]]"
+  - "[[charles-coutelle]]"
+  - "[[carl-djerassi]]"
+  - "[[endo-akira]]"
+  - "[[herrmann-feldmeier]]"
+  - "[[ernst-peter-fischer]]"
+  - "[[michael-gnzle]]"
+  - "[[erhard-geiler]]"
+  - "[[sa-greenfield]]"
+  - "[[alan-guttmacher]]"
+  - "[[christian-haass]]"
+  - "[[frank-hatzak]]"
+  - "[[sir-alec-jeffreys]]"
+  - "[[alexander-kekul]]"
+  - "[[shukuo-kinoshita]]"
+  - "[[stephen-nj-korsman]]"
+  - "[[james-larrick]]"
+  - "[[frances-ligler]]"
+  - "[[dominik-paquet]]"
+  - "[[uwe-perlitz]]"
+  - "[[ingo-potrykus]]"
+  - "[[wolfgang-preiser]]"
+  - "[[timothy-rainer]]"
+tags: [materials-science]
+_indexed: 2026-06-09
+---
+
+# Contributors
+
+## Authors
+
+- [[alan-macdiarmid]]
+- [[francesco-bennardo]]
+- [[m-chow]]
+- [[j-engels]]
+- [[david-goodsell]]
+- [[oliver-kayser]]
+- [[oliver-ullrich]]
+- [[rita-bernhardt]]
+- [[uwe-bornscheuer]]
+- [[george-cautherley]]
+- [[ananda-chakrabarty]]
+- [[emmanuelle-charpentier]]
+- [[king-chow]]
+- [[david-clark]]
+- [[arnold-demain]]
+- [[theodor-dingermann]]
+- [[stefan-dbel]]
+- [[r-friedrich]]
+- [[peter-fromherz]]
+- [[dietmar-fuchs]]
+- [[saburo-fukui]]
+- [[karla-gnler]]
+- [[oreste-ghisalba]]
+- [[horst-grunz]]
+- [[g-halpern]]
+- [[albrecht-hempel]]
+- [[c-hew]]
+- [[franz-hillenkamp]]
+- [[bertold-hock]]
+- [[martin-holtzhauer]]
+- [[jon-huntoon]]
+- [[frank-kempken]]
+- [[albrecht-kiderlen]]
+- [[uwe-klenz]]
+- [[louiza-law]]
+- [[inca-lewendrr]]
+- [[hwa-lim]]
+- [[jutta-ludwigmller]]
+- [[stephan-martin]]
+- [[alex-matter]]
+- [[wolfgang-meyer]]
+- [[marc-van-montagu]]
+- [[werner-mlleresterl]]
+- [[reinhard-niener]]
+- [[susanne-pauly]]
+- [[jrgen-ew-polle]]
+- [[tom-rapoport]]
+- [[matthias-reu]]
+- [[hermann-sahm]]
+- [[frieder-scheller]]
+- [[steffen-schmidt]]
+- [[olaf-schulz]]
+- [[georg-sprenger]]
+- [[eric-stewart]]
+- [[gary-strobel]]
+- [[kurt-stber]]
+- [[atsuo-tanaka]]
+- [[dieter-trau]]
+- [[thomas-tuschl]]
+- [[larry-wadsworth]]
+- [[terence-wan]]
+- [[zengyu-wang]]
+- [[eckhard-wellmann]]
+- [[michael-wink]]
+- [[d-wolf]]
+- [[l-zastrow]]
+- [[wolfgang-aehle]]
+- [[werner-arber]]
+- [[susan-barnum]]
+- [[hildburg-beier]]
+- [[ian-ian]]
+- [[john-billings]]
+- [[cangel-pui-yee-chan]]
+- [[charles-coutelle]]
+- [[carl-djerassi]]
+- [[endo-akira]]
+- [[herrmann-feldmeier]]
+- [[ernst-peter-fischer]]
+- [[michael-gnzle]]
+- [[erhard-geiler]]
+- [[sa-greenfield]]
+- [[alan-guttmacher]]
+- [[christian-haass]]
+- [[frank-hatzak]]
+- [[sir-alec-jeffreys]]
+- [[alexander-kekul]]
+- [[shukuo-kinoshita]]
+- [[stephen-nj-korsman]]
+- [[james-larrick]]
+- [[frances-ligler]]
+- [[dominik-paquet]]
+- [[uwe-perlitz]]
+- [[ingo-potrykus]]
+- [[wolfgang-preiser]]
+- [[timothy-rainer]]
+
+**DOI:** https://doi.org/10.1016/b978-0-12-801224-6.00016-3
+**Journal:** Elsevier eBooks
+**Year:** 2016

@@ -1,0 +1,224 @@
+---
+title: "The CosmoVerse White Paper: Addressing observational tensions in cosmology with systematics and fundamental physics"
+doi: "https://doi.org/10.1016/j.dark.2025.101965"
+year: 2025
+journal: "Physics of the Dark Universe"
+authors:
+  - "[[adam-g.-riess]]"
+  - "[[eleonora-di-valentino]]"
+  - "[[jackson-levi-said]]"
+  - "[[adam-riess]]"
+  - "[[agnieszka-pollo]]"
+  - "[[vivian-poulin]]"
+  - "[[adri-gmezvalent]]"
+  - "[[amanda-weltman]]"
+  - "[[a-palmese]]"
+  - "[[caroline-huang]]"
+  - "[[carsten-van-de-bruck]]"
+  - "[[chandra-shekhar-saraf]]"
+  - "[[chengyu-kuo]]"
+  - "[[cora-uhlemann]]"
+  - "[[daniela-grandn]]"
+  - "[[dante-paz]]"
+  - "[[d-eckert]]"
+  - "[[elsa-teixeira]]"
+  - "[[emmanuel-saridakis]]"
+  - "[[eoin-colgin]]"
+  - "[[florian-beutler]]"
+  - "[[florian-niedermann]]"
+  - "[[francesco-bajardi]]"
+  - "[[gabriela-barenboim]]"
+  - "[[giulia-gubitosi]]"
+  - "[[i-musella]]"
+  - "[[indranil-banik]]"
+  - "[[istvn-szapudi]]"
+  - "[[j-singal]]"
+  - "[[jaume-de-haro]]"
+  - "[[jens-chluba]]"
+  - "[[jess-torrado]]"
+  - "[[jurgen-mifsud]]"
+  - "[[karsten-jedamzik]]"
+  - "[[khaled-said]]"
+  - "[[konstantinos-dialektopoulos]]"
+  - "[[laura-herold]]"
+  - "[[leandros-perivolaropoulos]]"
+  - "[[lei-zu]]"
+  - "[[l-galbany]]"
+  - "[[louise-breuval]]"
+  - "[[luca-visinelli]]"
+  - "[[luis-escamilla]]"
+  - "[[luis-anchordoqui]]"
+  - "[[m-sheikhjabbari]]"
+  - "[[m-lembo]]"
+  - "[[maria-giovanna-dainotti]]"
+  - "[[m-vincenzi]]"
+  - "[[marika-asgari]]"
+  - "[[m-gerbino]]"
+  - "[[matteo-forconi]]"
+  - "[[michele-cantiello]]"
+  - "[[m-moresco]]"
+  - "[[micol-benetti]]"
+  - "[[nils-schneberg]]"
+  - "[[zgr-akarsu]]"
+  - "[[rafael-nunes]]"
+  - "[[reginald-christian-bernardo]]"
+  - "[[ricardo-chvez]]"
+  - "[[richard-anderson]]"
+  - "[[richard-watkins]]"
+  - "[[salvatore-capozzello]]"
+  - "[[siyang-li]]"
+  - "[[sunny-vagnozzi]]"
+  - "[[supriya-pan]]"
+  - "[[tommaso-treu]]"
+  - "[[vid-iri]]"
+  - "[[will-handley]]"
+  - "[[william-giar]]"
+  - "[[yukei-murakami]]"
+  - "[[abdolali-banihashemi]]"
+  - "[[adle-poudou]]"
+  - "[[alan-heavens]]"
+  - "[[a-kogut]]"
+  - "[[alba-domi]]"
+  - "[[aleksander-ukasz-lenart]]"
+  - "[[a-melchiorri]]"
+  - "[[alessandro-vadal]]"
+  - "[[a-amon]]"
+  - "[[alexander-bonilla-rivera]]"
+  - "[[alexander-reeves]]"
+  - "[[alexander-zhuk]]"
+  - "[[a-bonanno]]"
+  - "[[ali-vgn]]"
+  - "[[alice-pisani]]"
+  - "[[alireza-talebian]]"
+  - "[[amare-abebe]]"
+  - "[[amin-aboubrahim]]"
+  - "[[ana-luisa-gonzlez-morn]]"
+  - "[[andrs-kovcs]]"
+  - "[[andreas-lymperis]]"
+  - "[[andreas-papatriantafyllou]]"
+  - "[[andrew-liddle]]"
+  - "[[andronikos-paliathanasis]]"
+  - "[[a-borowiec]]"
+  - "[[anil-yadav]]"
+  - "[[anita-yadav]]"
+  - "[[anjan-sen]]"
+  - "[[anjitha-john-william]]"
+  - "[[annechristine-davis]]"
+  - "[[anowar-shajib]]"
+tags: []
+_indexed: 2026-06-09
+---
+
+# The CosmoVerse White Paper: Addressing observational tensions in cosmology with systematics and fundamental physics
+
+## Abstract
+
+The standard model of cosmology has provided a good phenomenological description of a wide range of observations both at astrophysical and cosmological scales for several decades. This concordance model is constructed by a universal cosmological constant and supported by a matter sector described by the standard model of particle physics and a cold dark matter contribution, as well as very early-time inflationary physics, and underpinned by gravitation through general relativity. There have always been open questions about the soundness of the foundations of the standard model. However, recent years have shown that there may also be questions from the observational sector with the emergence of differences between certain cosmological probes. In this White Paper, we identify the key objectives that need to be addressed over the coming decade together with the core science projects that aim to meet these challenges. These discordances primarily rest on the divergence in the measurement of core cosmological parameters with varying levels of statistical confidence. These possible statistical tensions may be partially accounted for by systematics in various measurements or cosmological probes but there is also a growing indication of potential new physics beyond the standard model. After reviewing the principal probes used in the measurement of cosmological parameters, as well as potential systematics, we discuss the most promising array of potential new physics that may be observable in upcoming surveys. We also discuss the growing set of novel data analysis approaches that go beyond traditional methods to test physical models. These new methods will become increasingly important in the coming years as the volume of survey data continues to increase, and as the degeneracy between predictions of different physical models grows. There are several perspectives on the divergences between the values of cosmological parameters, such as the model-independent probes in the late
+
+## Authors
+
+- [[adam-g.-riess]]
+- [[eleonora-di-valentino]]
+- [[jackson-levi-said]]
+- [[adam-riess]]
+- [[agnieszka-pollo]]
+- [[vivian-poulin]]
+- [[adri-gmezvalent]]
+- [[amanda-weltman]]
+- [[a-palmese]]
+- [[caroline-huang]]
+- [[carsten-van-de-bruck]]
+- [[chandra-shekhar-saraf]]
+- [[chengyu-kuo]]
+- [[cora-uhlemann]]
+- [[daniela-grandn]]
+- [[dante-paz]]
+- [[d-eckert]]
+- [[elsa-teixeira]]
+- [[emmanuel-saridakis]]
+- [[eoin-colgin]]
+- [[florian-beutler]]
+- [[florian-niedermann]]
+- [[francesco-bajardi]]
+- [[gabriela-barenboim]]
+- [[giulia-gubitosi]]
+- [[i-musella]]
+- [[indranil-banik]]
+- [[istvn-szapudi]]
+- [[j-singal]]
+- [[jaume-de-haro]]
+- [[jens-chluba]]
+- [[jess-torrado]]
+- [[jurgen-mifsud]]
+- [[karsten-jedamzik]]
+- [[khaled-said]]
+- [[konstantinos-dialektopoulos]]
+- [[laura-herold]]
+- [[leandros-perivolaropoulos]]
+- [[lei-zu]]
+- [[l-galbany]]
+- [[louise-breuval]]
+- [[luca-visinelli]]
+- [[luis-escamilla]]
+- [[luis-anchordoqui]]
+- [[m-sheikhjabbari]]
+- [[m-lembo]]
+- [[maria-giovanna-dainotti]]
+- [[m-vincenzi]]
+- [[marika-asgari]]
+- [[m-gerbino]]
+- [[matteo-forconi]]
+- [[michele-cantiello]]
+- [[m-moresco]]
+- [[micol-benetti]]
+- [[nils-schneberg]]
+- [[zgr-akarsu]]
+- [[rafael-nunes]]
+- [[reginald-christian-bernardo]]
+- [[ricardo-chvez]]
+- [[richard-anderson]]
+- [[richard-watkins]]
+- [[salvatore-capozzello]]
+- [[siyang-li]]
+- [[sunny-vagnozzi]]
+- [[supriya-pan]]
+- [[tommaso-treu]]
+- [[vid-iri]]
+- [[will-handley]]
+- [[william-giar]]
+- [[yukei-murakami]]
+- [[abdolali-banihashemi]]
+- [[adle-poudou]]
+- [[alan-heavens]]
+- [[a-kogut]]
+- [[alba-domi]]
+- [[aleksander-ukasz-lenart]]
+- [[a-melchiorri]]
+- [[alessandro-vadal]]
+- [[a-amon]]
+- [[alexander-bonilla-rivera]]
+- [[alexander-reeves]]
+- [[alexander-zhuk]]
+- [[a-bonanno]]
+- [[ali-vgn]]
+- [[alice-pisani]]
+- [[alireza-talebian]]
+- [[amare-abebe]]
+- [[amin-aboubrahim]]
+- [[ana-luisa-gonzlez-morn]]
+- [[andrs-kovcs]]
+- [[andreas-lymperis]]
+- [[andreas-papatriantafyllou]]
+- [[andrew-liddle]]
+- [[andronikos-paliathanasis]]
+- [[a-borowiec]]
+- [[anil-yadav]]
+- [[anita-yadav]]
+- [[anjan-sen]]
+- [[anjitha-john-william]]
+- [[annechristine-davis]]
+- [[anowar-shajib]]
+
+**DOI:** https://doi.org/10.1016/j.dark.2025.101965
+**Journal:** Physics of the Dark Universe
+**Year:** 2025

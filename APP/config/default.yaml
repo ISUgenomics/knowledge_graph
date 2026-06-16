@@ -1,0 +1,200 @@
+# Knowledge Graph Explorer configuration
+
+domain:
+  name: default
+
+db:
+  path: ../../runtime_data/vault/vault.db
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: true
+  directory: ../../skills
+  python: python3
+  model: qwen3-coder:30b
+
+server:
+  host: 127.0.0.1
+  port: 8005
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
+  layouts:
+    timeline:
+      enabled: false
+      profile_name: default
+      anchor_type: ""
+      featured_top_ids: []
+      order:
+        field_candidates: []
+        derive: []
+        numeric_range:
+          min: null
+          max: null
+        direction: asc
+      anchors:
+        x_step: 140
+        z: 0
+        same_value_spread: symmetric
+        same_value_y_step: 90
+      assignment:
+        primary_anchor_rule: strongest_then_earliest
+        edge_type_priority: []
+      layers: {}
+      unanchored:
+        mode: hide_or_dim
+      detection:
+        allow_anchor_type_override: true
+        allow_order_field_override: true
+        detected_type_min_count: 1
+    hierarchical:
+      enabled: true
+      profile_name: default
+
+explore:
+  stub_type: ""
+  stub_flag: profiled
+  excluded_node_types: []
+  mediator_type: ""
+  mediator_edge: ""
+  derived_edge_type: RELATED
+  hierarchy_edge: ""
+  annotation_edge: ""
+  skipped_rel_types: []
+
+embedding:
+  type_fields:
+    award: [title, year, category, motivation]
+    organization: [title, summary, country]
+  default_fields: [title, summary, description]
+  max_field_length: 600
+  skip_stub_type: ""
+  skip_stub_flag: profiled
+
+db_build:
+  source_policy:
+    allowed_domains: []
+    preferred_domains: []
+    blocked_domains: []
+    official_only: false
+  visualization:
+    timeline:
+      preferred_anchor_types: []
+      anchor_order_fields: {}
+      field_aliases: {}
+      weak_order_fields: [created_at, updated_at, pmid]
+      required_metadata_by_type: {}
+    hierarchical:
+      relation_classes:
+        hierarchy: [BROADER, PARENT_OF, NARROWER, CHILD_OF]
+        structural: [AUTHORED, CREATED, WROTE, PUBLISHED, PRODUCED, PRESENTED, ISSUED, FILED, FUNDED, GRANTED]
+        affiliation: [MEMBER_OF, AFFILIATED_WITH, BELONGS_TO, WORKS_AT, PART_OF]
+        annotation: [TAGGED, HAS_TAG, ABOUT, TOPIC, KEYWORD, MENTIONS]
+        associative: [COAUTHOR, RELATED, SIMILAR, CITES, CITED, COLLABORATOR]
+      type_families: {}
+      bands:
+        organization_y: 0.6
+        person_y: 0.0
+        publication_y: -0.65
+        tag_core_y: -3.25
+        tag_domain_y: -2.6
+        tag_field_y: -1.95
+        tag_topic_y: -1.3
+      annotation_driver_default: true
+      mediator_one_side_default: false
+      strict_bands_default: false
+  tagging:
+    ontology:
+      registry_path: ""
+      aliases_path: ""
+      hierarchy_path: ""
+      apply_on_build: false
+    entity_policies:
+      person:
+        enabled: true
+        relationship_type: TAGGED
+        default_category: topic
+      publication:
+        enabled: true
+        relationship_type: TAGGED
+        default_category: topic
+    person_tag_promotion:
+      enabled: false
+      source_entity_type: publication
+      source_relation_type: AUTHORED
+      annotation_relation_type: TAGGED
+      hierarchy_relation_type: BROADER
+      min_support_count: 2
+      include_ancestor_tags: false
+      max_tags_per_person: 0
+  person_research:
+    enabled: false
+    extensions: []
+    role_profile:
+      allowed_roles: [person]
+      faculty_titles: []
+      staff_title_keywords: []
+      staff_department_keywords: []
+      student_title_keywords: []
+      default_role: staff
+      summary_target: "who they are and what they do"
+      role_instructions: {}
+    affiliation_verification:
+      not_found_action: skip
+      unavailable_action: fallback
+      fallback_require_any: [department, institutional_email, profile_page]
+    help_prompts: []
+  signal_capture:
+    enabled: true
+    affiliation_profile:
+      institution: ""
+      flag_field: affiliated
+      internal_label: Internal
+      external_label: External
+      internal_domain_keywords: []
+      internal_org_keywords: []
+      external_org_keywords: []
+      default_affiliated: false
+    help_prompts:
+      - capture this article and classify mentioned people
+      - ingest this official announcement and produce a signal note
+  event_research:
+    enabled: true
+    affiliation_profile:
+      institution: ""
+      flag_field: affiliated
+      internal_label: Internal
+      external_label: External
+      internal_domain_keywords: []
+      internal_org_keywords: []
+      external_org_keywords: []
+      default_affiliated: false
+    help_prompts:
+      - research this event from the official event page and attached materials
+      - ingest these event notes and classify attendees
+  center_research:
+    enabled: true
+    affiliation_profile:
+      institution: ""
+      flag_field: affiliated
+      internal_label: Internal
+      external_label: External
+      internal_domain_keywords: []
+      internal_org_keywords: []
+      external_org_keywords: []
+      default_affiliated: false
+    help_prompts:
+      - research this center from its official site and local materials
+      - update this group profile and refresh its members list
+  extensions: {}

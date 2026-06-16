@@ -1,0 +1,8 @@
+runtime_data/vault/
+runtime_data/rendered/
+runtime_data/logs/
+runtime_data/tmp/
+sample_data/1_source/people_nobel/matches/*.json
+**/__pycache__/
+**/.pytest_cache/
+APP/kgx.egg-info/

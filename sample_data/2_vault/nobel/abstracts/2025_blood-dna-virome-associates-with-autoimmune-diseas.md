@@ -1,0 +1,290 @@
+---
+title: "Blood DNA virome associates with autoimmune diseases and COVID-19"
+doi: "10.1038/s41588-024-02022-z"
+year: 2025
+journal: "Nature genetics"
+pmid: "39753770"
+authors:
+  - "[[akira-suzuki]]"
+  - "[[sasa-n]]"
+  - "[[kojima-s]]"
+  - "[[koide-r]]"
+  - "[[hasegawa-t]]"
+  - "[[namkoong-h]]"
+  - "[[hirota-t]]"
+  - "[[watanabe-r]]"
+  - "[[nakamura-y]]"
+  - "[[oguroigashira-e]]"
+  - "[[ogawa-k]]"
+  - "[[yata-t]]"
+  - "[[sonehara-k]]"
+  - "[[yamamoto-k]]"
+  - "[[kishikawa-t]]"
+  - "[[sakaue-s]]"
+  - "[[edahiro-r]]"
+  - "[[shirai-y]]"
+  - "[[maeda-y]]"
+  - "[[nii-t]]"
+  - "[[chubachi-s]]"
+  - "[[tanaka-h]]"
+  - "[[yabukami-h]]"
+  - "[[nakajima-k]]"
+  - "[[arase-n]]"
+  - "[[okamoto-t]]"
+  - "[[nishikawa-r]]"
+  - "[[namba-s]]"
+  - "[[naito-t]]"
+  - "[[miyagawa-i]]"
+  - "[[ueno-m]]"
+  - "[[ishitsuka-y]]"
+  - "[[furuta-j]]"
+  - "[[kunimoto-k]]"
+  - "[[kajihara-i]]"
+  - "[[fukushima-s]]"
+  - "[[miyachi-h]]"
+  - "[[matsue-h]]"
+  - "[[kamata-m]]"
+  - "[[momose-m]]"
+  - "[[bito-t]]"
+  - "[[nagai-h]]"
+  - "[[ikeda-t]]"
+  - "[[horikawa-t]]"
+  - "[[adachi-a]]"
+  - "[[matsubara-t]]"
+  - "[[ikumi-k]]"
+  - "[[nishida-e]]"
+  - "[[nakagawa-i]]"
+  - "[[yagitasakamaki-m]]"
+  - "[[yoshimura-m]]"
+  - "[[ohshima-s]]"
+  - "[[kinoshita-m]]"
+  - "[[ito-s]]"
+  - "[[arai-t]]"
+  - "[[hirose-m]]"
+  - "[[tanino-y]]"
+  - "[[nikaido-t]]"
+  - "[[ichiwata-t]]"
+  - "[[ohkouchi-s]]"
+  - "[[hirano-t]]"
+  - "[[takada-t]]"
+  - "[[tazawa-r]]"
+  - "[[morimoto-k]]"
+  - "[[takaki-m]]"
+  - "[[konno-s]]"
+  - "[[suzuki-m]]"
+  - "[[tomii-k]]"
+  - "[[nakagawa-a]]"
+  - "[[handa-t]]"
+  - "[[tanizawa-k]]"
+  - "[[ishii-h]]"
+  - "[[ishida-m]]"
+  - "[[kato-t]]"
+  - "[[takeda-n]]"
+  - "[[yokomura-k]]"
+  - "[[matsui-t]]"
+  - "[[uchida-a]]"
+  - "[[inoue-h]]"
+  - "[[imaizumi-k]]"
+  - "[[goto-y]]"
+  - "[[kida-h]]"
+  - "[[fujisawa-t]]"
+  - "[[suda-t]]"
+  - "[[yamada-t]]"
+  - "[[satake-y]]"
+  - "[[ibata-h]]"
+  - "[[saigusa-m]]"
+  - "[[shirai-t]]"
+  - "[[hizawa-n]]"
+  - "[[nakata-k]]"
+  - "[[japan-covid19-task-force]]"
+  - "[[imafuku-s]]"
+  - "[[tada-y]]"
+  - "[[asano-y]]"
+  - "[[sato-s]]"
+  - "[[nishigori-c]]"
+  - "[[jinnin-m]]"
+  - "[[ihn-h]]"
+  - "[[asahina-a]]"
+  - "[[saeki-h]]"
+  - "[[kawamura-t]]"
+  - "[[shimada-s]]"
+  - "[[katayama-i]]"
+  - "[[poisner-hm]]"
+  - "[[mack-tm]]"
+  - "[[bick-ag]]"
+  - "[[higasa-k]]"
+  - "[[okuno-t]]"
+  - "[[mochizuki-h]]"
+  - "[[ishii-m]]"
+  - "[[koike-r]]"
+  - "[[kimura-a]]"
+  - "[[noguchi-e]]"
+  - "[[sano-s]]"
+  - "[[inohara-h]]"
+  - "[[fujimoto-m]]"
+  - "[[inoue-y]]"
+  - "[[yamaguchi-e]]"
+  - "[[ogawa-s]]"
+  - "[[kanai-t]]"
+  - "[[morita-a]]"
+  - "[[matsuda-f]]"
+  - "[[tamari-m]]"
+  - "[[kumanogoh-a]]"
+  - "[[tanaka-y]]"
+  - "[[ohmura-k]]"
+  - "[[fukunaga-k]]"
+  - "[[imoto-s]]"
+  - "[[miyano-s]]"
+  - "[[parrish-nf]]"
+  - "[[okada-y]]"
+  - "[[suzuki-a]]"
+tags: []
+_indexed: 2026-06-09
+---
+
+# Blood DNA virome associates with autoimmune diseases and COVID-19
+
+## Abstract
+
+Aberrant immune responses to viral pathogens contribute to pathogenesis, but our understanding of pathological immune responses caused by viruses within the human virome, especially at a population scale, remains limited. We analyzed whole-genome sequencing datasets of 6,321 Japanese individuals, including patients with autoimmune diseases (psoriasis vulgaris, rheumatoid arthritis (RA), systemic lupus erythematosus (SLE), pulmonary alveolar proteinosis (PAP) or multiple sclerosis) and coronavirus disease 2019 (COVID-19), or healthy controls. We systematically quantified two constituents of the blood DNA virome, endogenous HHV-6 (eHHV-6) and anellovirus. Participants with eHHV-6B had higher risks of SLE and PAP; the former was validated in All of Us. eHHV-6B-positivity and high SLE disease activity index scores had strong correlations. Genome-wide association study and long-read sequencing mapped the integration of the HHV-6B genome to a locus on chromosome 22q. Epitope mapping and single-cell RNA sequencing revealed distinctive immune induction by eHHV-6B in patients with SLE. In addition, high anellovirus load correlated strongly with SLE, RA and COVID-19 status. Our analyses unveil relationships between the human virome and autoimmune and infectious diseases.
+
+## Authors
+
+- [[akira-suzuki]]
+- [[sasa-n]]
+- [[kojima-s]]
+- [[koide-r]]
+- [[hasegawa-t]]
+- [[namkoong-h]]
+- [[hirota-t]]
+- [[watanabe-r]]
+- [[nakamura-y]]
+- [[oguroigashira-e]]
+- [[ogawa-k]]
+- [[yata-t]]
+- [[sonehara-k]]
+- [[yamamoto-k]]
+- [[kishikawa-t]]
+- [[sakaue-s]]
+- [[edahiro-r]]
+- [[shirai-y]]
+- [[maeda-y]]
+- [[nii-t]]
+- [[chubachi-s]]
+- [[tanaka-h]]
+- [[yabukami-h]]
+- [[nakajima-k]]
+- [[arase-n]]
+- [[okamoto-t]]
+- [[nishikawa-r]]
+- [[namba-s]]
+- [[naito-t]]
+- [[miyagawa-i]]
+- [[ueno-m]]
+- [[ishitsuka-y]]
+- [[furuta-j]]
+- [[kunimoto-k]]
+- [[kajihara-i]]
+- [[fukushima-s]]
+- [[miyachi-h]]
+- [[matsue-h]]
+- [[kamata-m]]
+- [[momose-m]]
+- [[bito-t]]
+- [[nagai-h]]
+- [[ikeda-t]]
+- [[horikawa-t]]
+- [[adachi-a]]
+- [[matsubara-t]]
+- [[ikumi-k]]
+- [[nishida-e]]
+- [[nakagawa-i]]
+- [[yagitasakamaki-m]]
+- [[yoshimura-m]]
+- [[ohshima-s]]
+- [[kinoshita-m]]
+- [[ito-s]]
+- [[arai-t]]
+- [[hirose-m]]
+- [[tanino-y]]
+- [[nikaido-t]]
+- [[ichiwata-t]]
+- [[ohkouchi-s]]
+- [[hirano-t]]
+- [[takada-t]]
+- [[tazawa-r]]
+- [[morimoto-k]]
+- [[takaki-m]]
+- [[konno-s]]
+- [[suzuki-m]]
+- [[tomii-k]]
+- [[nakagawa-a]]
+- [[handa-t]]
+- [[tanizawa-k]]
+- [[ishii-h]]
+- [[ishida-m]]
+- [[kato-t]]
+- [[takeda-n]]
+- [[yokomura-k]]
+- [[matsui-t]]
+- [[uchida-a]]
+- [[inoue-h]]
+- [[imaizumi-k]]
+- [[goto-y]]
+- [[kida-h]]
+- [[fujisawa-t]]
+- [[suda-t]]
+- [[yamada-t]]
+- [[satake-y]]
+- [[ibata-h]]
+- [[saigusa-m]]
+- [[shirai-t]]
+- [[hizawa-n]]
+- [[nakata-k]]
+- [[japan-covid19-task-force]]
+- [[imafuku-s]]
+- [[tada-y]]
+- [[asano-y]]
+- [[sato-s]]
+- [[nishigori-c]]
+- [[jinnin-m]]
+- [[ihn-h]]
+- [[asahina-a]]
+- [[saeki-h]]
+- [[kawamura-t]]
+- [[shimada-s]]
+- [[katayama-i]]
+- [[poisner-hm]]
+- [[mack-tm]]
+- [[bick-ag]]
+- [[higasa-k]]
+- [[okuno-t]]
+- [[mochizuki-h]]
+- [[ishii-m]]
+- [[koike-r]]
+- [[kimura-a]]
+- [[noguchi-e]]
+- [[sano-s]]
+- [[inohara-h]]
+- [[fujimoto-m]]
+- [[inoue-y]]
+- [[yamaguchi-e]]
+- [[ogawa-s]]
+- [[kanai-t]]
+- [[morita-a]]
+- [[matsuda-f]]
+- [[tamari-m]]
+- [[kumanogoh-a]]
+- [[tanaka-y]]
+- [[ohmura-k]]
+- [[fukunaga-k]]
+- [[imoto-s]]
+- [[miyano-s]]
+- [[parrish-nf]]
+- [[okada-y]]
+- [[suzuki-a]]
+
+**DOI:** 10.1038/s41588-024-02022-z
+**PMID:** [39753770](https://pubmed.ncbi.nlm.nih.gov/39753770/)
+**Journal:** Nature genetics
+**Year:** 2025

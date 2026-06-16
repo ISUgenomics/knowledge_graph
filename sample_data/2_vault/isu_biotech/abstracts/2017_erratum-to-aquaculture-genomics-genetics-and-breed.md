@@ -1,0 +1,158 @@
+---
+title: "Erratum to: Aquaculture genomics, genetics and breeding in the United States: current status, challenges, and priorities for future research"
+doi: "https://doi.org/10.1186/s12864-017-3614-9"
+year: 2017
+journal: "BMC Genomics"
+pmid: "28302067"
+authors:
+  - "[[andrew-severin]]"
+  - "[[the-aquaculture-genomics-genetics-and-breeding-workshop]]"
+  - "[[hisham-abdelrahman]]"
+  - "[[mohamed-abd-el-hady]]"
+  - "[[acacia-alcivarwarren]]"
+  - "[[standish-allen]]"
+  - "[[rafet-al-tobasei]]"
+  - "[[lisui-bao]]"
+  - "[[benjamin-beck]]"
+  - "[[harvey-blackburn]]"
+  - "[[brian-bosworth]]"
+  - "[[john-buchanan]]"
+  - "[[jesse-chappell]]"
+  - "[[william-daniels]]"
+  - "[[sheng-dong]]"
+  - "[[rex-dunham]]"
+  - "[[evan-durland]]"
+  - "[[ahmed-elaswad]]"
+  - "[[marta-gomez-chiarri]]"
+  - "[[kamal-gosh]]"
+  - "[[ximing-guo]]"
+  - "[[perry-hackett]]"
+  - "[[terry-hanson]]"
+  - "[[dennis-hedgecock]]"
+  - "[[tiffany-howard]]"
+  - "[[leigh-holland]]"
+  - "[[molly-jackson]]"
+  - "[[yulin-jin]]"
+  - "[[karim-khalil]]"
+  - "[[thomas-kocher]]"
+  - "[[timothy-leeds]]"
+  - "[[ning-li]]"
+  - "[[lauren-lindsey]]"
+  - "[[shikai-liu]]"
+  - "[[zhanjiang-liu]]"
+  - "[[kyle-martin]]"
+  - "[[romi-novriadi]]"
+  - "[[ramjie-odin]]"
+  - "[[yniv-palti]]"
+  - "[[eric-peatman]]"
+  - "[[dina-proestou]]"
+  - "[[guyu-qin]]"
+  - "[[benjamin-reading]]"
+  - "[[caird-rexroad]]"
+  - "[[steven-roberts]]"
+  - "[[mohamed-salem]]"
+  - "[[huitong-shi]]"
+  - "[[craig-shoemaker]]"
+  - "[[sheila-stiles]]"
+  - "[[suxu-tan]]"
+  - "[[kathy-tang]]"
+  - "[[wilawan-thongda]]"
+  - "[[terrence-tiersch]]"
+  - "[[joseph-tomasso]]"
+  - "[[wendy-tri-prabowo]]"
+  - "[[roger-vallejo]]"
+  - "[[h-van-der-steen]]"
+  - "[[khoi-vo]]"
+  - "[[geoff-waldbieser]]"
+  - "[[hanping-wang]]"
+  - "[[xiaozhu-wang]]"
+  - "[[jianhai-xiang]]"
+  - "[[yujia-yang]]"
+  - "[[roger-yant]]"
+  - "[[zihao-yuan]]"
+  - "[[qifan-zeng]]"
+  - "[[tao-zhou]]"
+tags: []
+_indexed: 2026-06-15
+---
+
+# Erratum to: Aquaculture genomics, genetics and breeding in the United States: current status, challenges, and priorities for future research
+
+## Abstract
+
+In the version of this article that was originally published [1] there was an error with the author name "Karim Khalil" as it was incorrectly put as "Karim Kahlil". The original article was corrected.
+
+## Authors
+
+- [[andrew-severin]]
+- [[the-aquaculture-genomics-genetics-and-breeding-workshop]]
+- [[hisham-abdelrahman]]
+- [[mohamed-abd-el-hady]]
+- [[acacia-alcivarwarren]]
+- [[standish-allen]]
+- [[rafet-al-tobasei]]
+- [[lisui-bao]]
+- [[benjamin-beck]]
+- [[harvey-blackburn]]
+- [[brian-bosworth]]
+- [[john-buchanan]]
+- [[jesse-chappell]]
+- [[william-daniels]]
+- [[sheng-dong]]
+- [[rex-dunham]]
+- [[evan-durland]]
+- [[ahmed-elaswad]]
+- [[marta-gomez-chiarri]]
+- [[kamal-gosh]]
+- [[ximing-guo]]
+- [[perry-hackett]]
+- [[terry-hanson]]
+- [[dennis-hedgecock]]
+- [[tiffany-howard]]
+- [[leigh-holland]]
+- [[molly-jackson]]
+- [[yulin-jin]]
+- [[karim-khalil]]
+- [[thomas-kocher]]
+- [[timothy-leeds]]
+- [[ning-li]]
+- [[lauren-lindsey]]
+- [[shikai-liu]]
+- [[zhanjiang-liu]]
+- [[kyle-martin]]
+- [[romi-novriadi]]
+- [[ramjie-odin]]
+- [[yniv-palti]]
+- [[eric-peatman]]
+- [[dina-proestou]]
+- [[guyu-qin]]
+- [[benjamin-reading]]
+- [[caird-rexroad]]
+- [[steven-roberts]]
+- [[mohamed-salem]]
+- [[huitong-shi]]
+- [[craig-shoemaker]]
+- [[sheila-stiles]]
+- [[suxu-tan]]
+- [[kathy-tang]]
+- [[wilawan-thongda]]
+- [[terrence-tiersch]]
+- [[joseph-tomasso]]
+- [[wendy-tri-prabowo]]
+- [[roger-vallejo]]
+- [[h-van-der-steen]]
+- [[khoi-vo]]
+- [[geoff-waldbieser]]
+- [[hanping-wang]]
+- [[xiaozhu-wang]]
+- [[jianhai-xiang]]
+- [[yujia-yang]]
+- [[roger-yant]]
+- [[zihao-yuan]]
+- [[qifan-zeng]]
+- [[tao-zhou]]
+
+**DOI:** https://doi.org/10.1186/s12864-017-3614-9
+**PMID:** [28302067](https://pubmed.ncbi.nlm.nih.gov/28302067/)
+**Journal:** BMC Genomics
+**Year:** 2017

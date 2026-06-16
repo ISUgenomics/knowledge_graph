@@ -1,0 +1,210 @@
+{
+  "3d-printing": {
+    "category": "field",
+    "description": ""
+  },
+  "administration": {
+    "category": "field",
+    "description": "Administration"
+  },
+  "advanced-biosensing": {
+    "category": "topic",
+    "description": ""
+  },
+  "barrier-structure": {
+    "category": "topic",
+    "description": ""
+  },
+  "biology": {
+    "category": "domain",
+    "description": "Life sciences, organisms, and biological systems"
+  },
+  "biomedical": {
+    "category": "field",
+    "description": ""
+  },
+  "complement-system": {
+    "category": "topic",
+    "description": ""
+  },
+  "computing": {
+    "category": "domain",
+    "description": "Computer science, AI, data, and computational methods"
+  },
+  "cryo-em-facility": {
+    "category": "field",
+    "description": "Cryo-EM Facility"
+  },
+  "data-science": {
+    "category": "field",
+    "description": ""
+  },
+  "dna-facility": {
+    "category": "field",
+    "description": "DNA Facility"
+  },
+  "education": {
+    "category": "field",
+    "description": ""
+  },
+  "education-and-outreach": {
+    "category": "field",
+    "description": "Education and Outreach"
+  },
+  "engineering": {
+    "category": "domain",
+    "description": "Engineering, materials, and physical systems"
+  },
+  "enzyme-structure": {
+    "category": "topic",
+    "description": ""
+  },
+  "flow-cytometry-facility": {
+    "category": "field",
+    "description": "Flow Cytometry Facility"
+  },
+  "force-microscopy": {
+    "category": "topic",
+    "description": ""
+  },
+  "funding": {
+    "category": "domain",
+    "description": "Funding agencies and program umbrellas"
+  },
+  "genetic-mapping": {
+    "category": "topic",
+    "description": ""
+  },
+  "genetics-bioinformatics": {
+    "category": "topic",
+    "description": ""
+  },
+  "genome-informatics-facility": {
+    "category": "field",
+    "description": "Genome Informatics Facility"
+  },
+  "genomics": {
+    "category": "field",
+    "description": ""
+  },
+  "graphene": {
+    "category": "topic",
+    "description": ""
+  },
+  "gut-microbiota": {
+    "category": "topic",
+    "description": ""
+  },
+  "high-resolution-microscopy-facility": {
+    "category": "field",
+    "description": "High Resolution Microscopy Facility"
+  },
+  "iowa-state-university": {
+    "category": "core",
+    "description": "Top-level organization for the ISU biotech sample."
+  },
+  "legume-nitrogen-fixing-symbiosis": {
+    "category": "topic",
+    "description": ""
+  },
+  "macromolecular-x-ray-crystallography-facility": {
+    "category": "field",
+    "description": "Macromolecular X-ray Crystallography Facility"
+  },
+  "materials-analysis-and-research-laboratory": {
+    "category": "field",
+    "description": "Materials Analysis and Research Laboratory"
+  },
+  "materials-science": {
+    "category": "field",
+    "description": ""
+  },
+  "microbial-infections": {
+    "category": "topic",
+    "description": ""
+  },
+  "molecular-biology": {
+    "category": "field",
+    "description": ""
+  },
+  "nanoparticles-nucleation-surface": {
+    "category": "topic",
+    "description": ""
+  },
+  "nematode-management": {
+    "category": "topic",
+    "description": ""
+  },
+  "neuroscience": {
+    "category": "topic",
+    "description": ""
+  },
+  "office-of-biotechnology": {
+    "category": "domain",
+    "description": "Office of Biotechnology within Iowa State University."
+  },
+  "physics": {
+    "category": "field",
+    "description": ""
+  },
+  "plant-microbe-interactions": {
+    "category": "topic",
+    "description": ""
+  },
+  "plant-nutrient-uptake": {
+    "category": "topic",
+    "description": ""
+  },
+  "plant-pathogens": {
+    "category": "topic",
+    "description": ""
+  },
+  "plant-science": {
+    "category": "field",
+    "description": ""
+  },
+  "plant-tissue-culture": {
+    "category": "topic",
+    "description": ""
+  },
+  "plant-virus": {
+    "category": "topic",
+    "description": ""
+  },
+  "pneumonia": {
+    "category": "topic",
+    "description": ""
+  },
+  "protein-facility": {
+    "category": "field",
+    "description": "Protein Facility"
+  },
+  "protein-structure": {
+    "category": "topic",
+    "description": ""
+  },
+  "proteins-in-food-systems": {
+    "category": "topic",
+    "description": ""
+  },
+  "research-computing": {
+    "category": "field",
+    "description": ""
+  },
+  "science": {
+    "category": "domain",
+    "description": "Scientific disciplines and broad research areas"
+  },
+  "social-science": {
+    "category": "domain",
+    "description": "Education, outreach, policy, and related social domains"
+  },
+  "soybean-genetics": {
+    "category": "topic",
+    "description": ""
+  },
+  "w-m-keck-metabolomics-research-laboratory": {
+    "category": "field",
+    "description": "W.M. Keck Metabolomics Research Laboratory"
+  }
+}

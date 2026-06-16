@@ -1,0 +1,168 @@
+---
+title: "Index"
+doi: "https://doi.org/10.1017/s0025727300066011"
+year: 1999
+journal: "Medical History"
+authors:
+  - "[[alphonse-laveran]]"
+  - "[[jeanlouis-alibert]]"
+  - "[[k-kaempfer]]"
+  - "[[kanz-alfawaid-karassavatsilingiri]]"
+  - "[[steven-karch]]"
+  - "[[allan-kardec]]"
+  - "[[troels-kardel]]"
+  - "[[axel-karenberg]]"
+  - "[[anton-karsch]]"
+  - "[[amalie-kass]]"
+  - "[[john-keats]]"
+  - "[[john-harvey-kellogg]]"
+  - "[[ella-kenna]]"
+  - "[[hubert-kennedy]]"
+  - "[[george-kenney]]"
+  - "[[jean-kergaradec]]"
+  - "[[joannes-ketham]]"
+  - "[[irving-kirsch]]"
+  - "[[susan-klepp]]"
+  - "[[sebastian-kneipp]]"
+  - "[[robert-koch]]"
+  - "[[samuel-kottek]]"
+  - "[[r-von-krafftebing]]"
+  - "[[john-krige]]"
+  - "[[stephen-kunitz]]"
+  - "[[ruth-kunzbircher]]"
+  - "[[rene-laennec]]"
+  - "[[richard-laing]]"
+  - "[[ill-lamarck]]"
+  - "[[giovanni-lancisi]]"
+  - "[[jeanmarie-lanessan]]"
+  - "[[wilhelm-lange]]"
+  - "[[phillip-lapansky]]"
+  - "[[fran-laplantine]]"
+  - "[[francis-lappe]]"
+  - "[[pierreandre-latreille]]"
+  - "[[a-lavern]]"
+  - "[[von]]"
+  - "[[kretzenbacher]]"
+  - "[[leopold]]"
+  - "[[kruger]]"
+  - "[[lorenz]]"
+  - "[[kumar]]"
+  - "[[ruth-533-kunzbircher]]"
+  - "[[r-laing]]"
+  - "[[maria]]"
+  - "[[de]]"
+  - "[[lannoye]]"
+  - "[[paul]]"
+  - "[[moore]]"
+  - "[[mary-jane-67-saunders]]"
+  - "[[savage-smith]]"
+  - "[[savorgnan-de-brazza]]"
+  - "[[roy-pierre-5n-sawyer]]"
+  - "[[ernstgunther-schenck]]"
+  - "[[schiebinger]]"
+  - "[[anna-schmidt]]"
+  - "[[schnalke]]"
+  - "[[schrenck-notzing]]"
+  - "[[johannes-schroth]]"
+  - "[[schubert]]"
+  - "[[schwake]]"
+  - "[[schwarz]]"
+  - "[[james-scott]]"
+  - "[[jeremy-seabrook]]"
+  - "[[searle]]"
+  - "[[sergent]]"
+  - "[[nikolaj-serikof]]"
+  - "[[shapiro]]"
+  - "[[sharma]]"
+  - "[[sherrington]]"
+  - "[[richard-396-shryock]]"
+  - "[[shvarts]]"
+tags: []
+_indexed: 2026-06-09
+---
+
+# Index
+
+## Abstract
+
+An abstract is not available for this content so a preview has been provided. As you have access to this content, a full PDF is available via the ‘Save PDF’ action button.
+
+## Authors
+
+- [[alphonse-laveran]]
+- [[jeanlouis-alibert]]
+- [[k-kaempfer]]
+- [[kanz-alfawaid-karassavatsilingiri]]
+- [[steven-karch]]
+- [[allan-kardec]]
+- [[troels-kardel]]
+- [[axel-karenberg]]
+- [[anton-karsch]]
+- [[amalie-kass]]
+- [[john-keats]]
+- [[john-harvey-kellogg]]
+- [[ella-kenna]]
+- [[hubert-kennedy]]
+- [[george-kenney]]
+- [[jean-kergaradec]]
+- [[joannes-ketham]]
+- [[irving-kirsch]]
+- [[susan-klepp]]
+- [[sebastian-kneipp]]
+- [[robert-koch]]
+- [[samuel-kottek]]
+- [[r-von-krafftebing]]
+- [[john-krige]]
+- [[stephen-kunitz]]
+- [[ruth-kunzbircher]]
+- [[rene-laennec]]
+- [[richard-laing]]
+- [[ill-lamarck]]
+- [[giovanni-lancisi]]
+- [[jeanmarie-lanessan]]
+- [[wilhelm-lange]]
+- [[phillip-lapansky]]
+- [[fran-laplantine]]
+- [[francis-lappe]]
+- [[pierreandre-latreille]]
+- [[a-lavern]]
+- [[von]]
+- [[kretzenbacher]]
+- [[leopold]]
+- [[kruger]]
+- [[lorenz]]
+- [[kumar]]
+- [[ruth-533-kunzbircher]]
+- [[r-laing]]
+- [[maria]]
+- [[de]]
+- [[lannoye]]
+- [[paul]]
+- [[moore]]
+- [[mary-jane-67-saunders]]
+- [[savage-smith]]
+- [[savorgnan-de-brazza]]
+- [[roy-pierre-5n-sawyer]]
+- [[ernstgunther-schenck]]
+- [[schiebinger]]
+- [[anna-schmidt]]
+- [[schnalke]]
+- [[schrenck-notzing]]
+- [[johannes-schroth]]
+- [[schubert]]
+- [[schwake]]
+- [[schwarz]]
+- [[james-scott]]
+- [[jeremy-seabrook]]
+- [[searle]]
+- [[sergent]]
+- [[nikolaj-serikof]]
+- [[shapiro]]
+- [[sharma]]
+- [[sherrington]]
+- [[richard-396-shryock]]
+- [[shvarts]]
+
+**DOI:** https://doi.org/10.1017/s0025727300066011
+**Journal:** Medical History
+**Year:** 1999

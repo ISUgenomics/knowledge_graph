@@ -1,0 +1,474 @@
+{
+  "tags": [
+    {
+      "tag": "advanced-x-ray",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "algebraic",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "astronomy",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "atomic",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "auction-theory",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "autophagy-in-disease",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "awards",
+      "category": "domain",
+      "description": "Awards, laureates, and prize-related umbrella tags"
+    },
+    {
+      "tag": "bacterial-genetics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "bacteriophages",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "biology",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "biomedical",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "black-holes",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "cancer-related-molecular-pathways",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "cardiomyopathy",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "cellular-transport",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "chemical-synthesis",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "chemistry",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "computing",
+      "category": "domain",
+      "description": ""
+    },
+    {
+      "tag": "conducting-polymers",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "crystallization",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "data-science",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "data-visualization",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "dental-radiography",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "digital-radiography",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "diverse-scientific",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "economic-sciences",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "education",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "education-pedagogy",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "educational-robotics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "engineering",
+      "category": "domain",
+      "description": ""
+    },
+    {
+      "tag": "field-flow-fractionation",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "game-theory",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "gamma-ray-bursts",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "glaucoma",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "graphene",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "history",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "humanities",
+      "category": "domain",
+      "description": "Literature and related humanistic disciplines"
+    },
+    {
+      "tag": "income-poverty",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "inorganic",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "laser-matter-interactions",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "legal",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "linguistic-cultural",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "literature",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "liver-disease-diagnosis",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "liver-physiology",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "luminescence-properties-of",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "magnetic-properties-of-thin-films",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "materials-science",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "medical-imaging",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "merger",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "metabolism",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "microfinance",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "military-technology",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "molecular-biology",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "muscle-physiology",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "mycorrhizal-fungi",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "neural-dynamics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "neurobiology",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "neuroscience",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "nobel-prize",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "nutrition-genetics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "ophthalmology",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "organ-donation",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "organ-transplantation-techniques",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "organic-electronics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "peace",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "photoreceptor",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "physics",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "physiology-or-medicine",
+      "category": "field",
+      "description": ""
+    },
+    {
+      "tag": "pi3kaktmtor-signaling",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "planetary-science",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "poverty-education",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "protein-kinase-regulation",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "quantum-chromodynamics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "quantum-information",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "quantum-mechanics",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "radiation-therapy",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "receptor-mechanisms",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "relativity",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "renal",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "research-on-leishmaniasis",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "rna-and-protein-synthesis-mechanisms",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "rna-modifications",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "science",
+      "category": "domain",
+      "description": "Scientific disciplines and broad research areas"
+    },
+    {
+      "tag": "semiconductor-lasers",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "social-science",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "society",
+      "category": "domain",
+      "description": "Peace, civic impact, and public society topics"
+    },
+    {
+      "tag": "solid-state-laser-technologies",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "spectroscopy",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "stellar-planetary",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "topological",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "trypanosoma-species-research",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "ubiquitin",
+      "category": "topic",
+      "description": ""
+    },
+    {
+      "tag": "yersinia-bacterium-plague",
+      "category": "topic",
+      "description": ""
+    }
+  ]
+}

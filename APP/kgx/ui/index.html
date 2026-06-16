@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Explorer</title>
+    <link rel="stylesheet" href="/components/shared/theme.css">
+    <link rel="stylesheet" href="/components/graph/graph.css">
+    <link rel="stylesheet" href="/components/sidebar/sidebar.css">
+    <link rel="stylesheet" href="/components/detail/detail.css">
+    <link rel="stylesheet" href="/components/chat/chat.css">
+    <style>
+        /* Layout — four-panel shell */
+        #app {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr var(--detail-width);
+            grid-template-rows: var(--header-height) 1fr var(--chat-height);
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Header */
+        #header {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr var(--detail-width);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            z-index: 20;
+        }
+
+        .header-section {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+        }
+
+        .header-section + .header-section {
+            border-left: 1px solid var(--border);
+        }
+
+        .header-section-left {
+            justify-content: flex-start;
+        }
+
+        .header-section-center {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-section-right {
+            justify-content: flex-end;
+        }
+
+        #header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        #header-stats {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .header-actions-right {
+            justify-content: flex-end;
+        }
+
+        .header-btn {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .header-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        .header-dropdown {
+            position: relative;
+        }
+
+        .header-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 148px;
+            padding: 6px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            z-index: 50;
+        }
+
+        .header-dropdown.open .header-dropdown-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .header-dropdown-item {
+            width: 100%;
+            text-align: left;
+        }
+
+        #header-search-wrap {
+            position: relative;
+            justify-self: center;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            grid-row: 2 / 3;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        #sidebar-sql-panel {
+            grid-column: 1 / 2;
+            grid-row: 3 / 4;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            overflow: auto;
+        }
+
+        /* Graph (main area) */
+        #graph-container {
+            grid-row: 2 / 3;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Detail panel */
+        #detail-panel {
+            grid-row: 2 / 3;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        /* Chat panel — full width bottom */
+        #chat-panel {
+            grid-column: 2 / 3;
+            grid-row: 3 / 4;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Context menu (global overlay) */
+        #context-menu {
+            position: fixed;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 4px 0;
+            min-width: 180px;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            display: none;
+        }
+        #context-menu.visible { display: block; }
+        .ctx-label {
+            padding: 6px 16px 2px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+        .ctx-type {
+            padding: 0 16px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+        }
+        .ctx-item {
+            padding: 7px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+        .ctx-item:hover { background: var(--bg-hover); }
+        .ctx-item-skill { color: var(--accent); }
+        .ctx-item-muted { color: var(--text-muted); font-size: 11px; }
+        .ctx-separator {
+            border-top: 1px solid var(--border);
+            margin: 3px 0;
+        }
+
+        /* Mutation confirm dialog */
+        #confirm-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+        }
+        #confirm-overlay.visible { display: flex; }
+        #confirm-dialog {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 520px;
+            width: 90%;
+        }
+        #confirm-dialog h3 { font-size: 14px; margin-bottom: 12px; color: var(--warning); }
+        #confirm-sql {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            margin-bottom: 16px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-primary);
+        }
+        #confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        #tools-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 450;
+            align-items: center;
+            justify-content: center;
+        }
+        #tools-overlay.visible { display: flex; }
+        #tools-dialog {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            width: min(714px, 92vw);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #tools-dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        #tools-dialog-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        #tools-dialog-body {
+            padding: 14px 16px 16px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+            gap: 14px;
+        }
+        #tools-intro {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
+        #tools-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 0;
+        }
+        .tool-pick-btn {
+            width: 100%;
+            text-align: left;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+        .tool-pick-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+        .tool-pick-btn.active {
+            border-color: var(--accent);
+            background: rgba(127, 211, 160, 0.08);
+        }
+        .tool-pick-id {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--accent);
+        }
+        .tool-pick-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        #tools-detail {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-height: 320px;
+        }
+        #tools-detail h4 {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+        .tools-muted {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .tools-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .tools-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .tools-list-plain {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .tools-kv {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        #tools-args-input {
+            width: 100%;
+            min-height: 88px;
+            resize: vertical;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            padding: 8px 10px;
+            outline: none;
+            box-sizing: border-box;
+            line-height: 1.45;
+        }
+        #tools-args-input:focus {
+            border-color: var(--accent);
+        }
+        #tools-run-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: auto;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-cancel {
+            background: var(--bg-hover);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header id="header">
+        <div class="header-section header-section-left">
+            <h1>Knowledge Graph Explorer</h1>
+        </div>
+        <div class="header-section header-section-center">
+            <span id="header-stats"></span>
+            <div id="header-search-wrap">
+                <input id="header-search" placeholder="Search nodes…" autocomplete="off" title="Search the graph by entity name and jump to a matching node"
+                    style="background:var(--bg-primary);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+                    color:var(--text-primary);font-size:12px;padding:4px 10px;width:220px;outline:none;">
+                <div id="header-search-results"
+                    style="display:none;position:absolute;top:32px;left:0;width:280px;max-height:240px;overflow-y:auto;
+                    background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);
+                    box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:100;"></div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" id="btn-toggle-explore" title="Toggle explore/full graph mode">Explore</button>
+                <button class="header-btn" id="btn-toggle-community" title="Color the graph by detected clusters">Clusters</button>
+                <span id="community-resolution-wrap" style="display:none;align-items:center;gap:4px;margin-left:2px;">
+                <input type="range" id="community-resolution" min="0.1" max="3.0" step="0.1" value="1.0"
+                    style="width:80px;height:16px;accent-color:#4fc3f7;cursor:pointer;"
+                    title="Cluster resolution. Lower values merge nodes into fewer, broader clusters; higher values split them into smaller, more granular clusters. 1.0 is the default balance.">
+                <span id="community-resolution-label"
+                    title="Cluster resolution value. Lower means fewer, larger clusters; higher means more, smaller clusters."
+                    style="font-size:11px;color:#aaa;min-width:28px;">1.0</span>
+                </span>
+                <button class="header-btn" id="btn-toggle-labels" title="Pin labels for the selected detail node, or for the active highlighted set">Labels</button>
+            </div>
+        </div>
+        <div class="header-section header-section-right">
+            <div class="header-actions header-actions-right">
+                <select id="layout-select" class="header-btn" title="Choose how the current graph projection is arranged">
+                    <option value="force">Force</option>
+                    <option value="cluster">Cluster by Type</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="umap">UMAP</option>
+                    <option value="td">Hierarchical ↓</option>
+                </select>
+                <button class="header-btn" id="btn-force-settings" title="Graph and layout settings">Settings</button>
+                <div class="header-dropdown" id="export-dropdown">
+                    <button class="header-btn" id="btn-export-menu" title="Open export options for the current graph and data">Export</button>
+                    <div class="header-dropdown-menu" id="export-dropdown-menu">
+                        <button class="header-btn header-dropdown-item" id="btn-export-png" title="Download a PNG snapshot of the current graph view, including the current camera, highlights, and visible labels">PNG Snapshot</button>
+                        <button class="header-btn header-dropdown-item" id="btn-export-json" title="Download the current graph data as JSON">JSON</button>
+                        <button class="header-btn header-dropdown-item" id="btn-export-neo4j" title="Download CSV files for Neo4j import">Neo4j CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav id="sidebar"><!-- populated by sidebar.js --></nav>
+    <aside id="sidebar-sql-panel"><!-- populated by sidebar.js --></aside>
+
+    <main id="graph-container"><!-- populated by graph.js --></main>
+
+    <aside id="detail-panel">
+        <div class="detail-panel-title">
+            <span title="Inspect the selected node, review its relationships and rich content, and trigger related highlight actions">Inspect and Highlight</span>
+            <button id="btn-detail-close" class="detail-panel-close" title="Close the current detail preview">×</button>
+        </div>
+        <div id="detail-content">
+            <div id="detail-placeholder" style="padding:24px;color:var(--text-muted);font-size:13px;">
+                Click a node to view details.
+            </div>
+        </div>
+    </aside>
+
+    <section id="chat-panel"><!-- populated by chat.js --></section>
+
+    <aside id="sql-panel" style="grid-column:3;grid-row:3;background:var(--bg-secondary);border-top:1px solid var(--border);
+        border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);">Last SQL</span>
+            <button id="btn-copy-sql" title="Copy the last executed SQL query to the clipboard" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:3px;
+                color:var(--text-muted);font-size:10px;padding:2px 8px;cursor:pointer;">Copy</button>
+        </div>
+        <pre id="sql-display" style="flex:1;margin:0;padding:10px 12px;font-family:var(--font-mono);font-size:11px;
+            color:var(--text-secondary);overflow:auto;white-space:pre-wrap;word-break:break-word;"></pre>
+    </aside>
+</div>
+
+<!-- Context menu (shared) -->
+<div id="context-menu"></div>
+
+<!-- Mutation confirm dialog -->
+<div id="confirm-overlay">
+    <div id="confirm-dialog">
+        <h3>Confirm database mutation</h3>
+        <div id="confirm-sql"></div>
+        <div id="confirm-meta" style="font-size:12px;color:var(--text-muted);margin-bottom:16px;"></div>
+        <div id="confirm-actions">
+            <button class="btn-cancel" id="btn-confirm-cancel" title="Close this dialog without executing the mutation">Cancel</button>
+            <button class="btn-danger" id="btn-confirm-execute" title="Run the mutation against the current runtime database">Execute</button>
+        </div>
+    </div>
+</div>
+
+<div id="tools-overlay">
+    <div id="tools-dialog">
+        <div id="tools-dialog-header">
+            <h3>Tools</h3>
+            <button class="btn-cancel" id="btn-tools-close" title="Close the tools dialog">Close</button>
+        </div>
+        <div id="tools-dialog-body">
+            <div id="tools-intro">
+                Use tools to interactively add data to the graph, enrich existing records, or import information from source material. Note that these actions will modify the runtime database.
+            </div>
+            <div id="tools-list"></div>
+            <div id="tools-detail">
+                <h4>Select a tool</h4>
+                <div class="tools-muted">Choose a tool on the left to see what it does, how to use it, and what options it accepts.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings panel -->
+<div id="force-settings-panel" style="display:none;position:fixed;top:var(--header-height);right:0;z-index:400;
+    background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius);
+    padding:16px 20px;width:var(--detail-width);max-width:var(--detail-width);height:calc(100vh - var(--header-height) - var(--chat-height));overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    cursor:default;">
+        <div id="force-settings-drag-handle" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:grab;">
+            <h3 id="fs-panel-title" style="font-size:13px;color:var(--text-primary);margin:0;user-select:none;">Graph Settings</h3>
+            <button id="btn-force-close" class="btn-cancel" title="Close the settings panel" style="padding:2px 10px;font-size:11px;">Close</button>
+        </div>
+        <div id="force-settings-body" style="display:flex;flex-direction:column;gap:14px;font-size:12px;color:var(--text-secondary);">
+            <div id="fs-panel-summary" style="font-size:11px;color:var(--text-muted);margin-top:-4px;">
+                Force-specific controls and shared graph edge visuals are available for the active layout.
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Edges</div>
+                <div class="fs-group">
+                    <label>Edge Width <span id="fs-edge-width-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-edge-width" min="1" max="50" value="5" class="fs-slider" step="1" title="Adjust edge thickness">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Edge Opacity <span id="fs-edge-opacity-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-edge-opacity" min="0" max="100" value="40" class="fs-slider" step="1" title="Adjust edge transparency">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Edge Color <span id="fs-edge-color-val" class="fs-val"></span></label>
+                    <input type="color" id="fs-edge-color" title="Choose the default edge color" value="#555566" style="width:100%;height:24px;border:1px solid var(--border);border-radius:3px;background:var(--bg-primary);cursor:pointer;">
+                </div>
+                <div class="fs-group" style="margin-top:6px;">
+                    <label>Particles <span id="fs-particles-val" class="fs-val"></span></label>
+                    <input type="range" id="fs-particles" min="0" max="5" value="1" class="fs-slider" step="1" title="Adjust the number of animated particles per edge">
+                </div>
+            </div>
+            <div id="fs-arrangement-heading" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Arrangement · force</div>
+            <div id="fs-timeline-info" style="display:none;padding-top:6px;margin-top:0;">
+                <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+                    <div><strong>Profile:</strong> <span id="fs-timeline-profile-name">module defaults</span></div>
+                    <div style="display:flex;gap:10px;margin-top:2px;">
+                        <div class="fs-group" style="flex:1;">
+                            <label for="fs-timeline-anchor-type">Anchor Type</label>
+                            <select id="fs-timeline-anchor-type" title="Choose which detected node type anchors the timeline"
+                                style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                                color:var(--text-primary);font-size:11px;padding:6px 8px;outline:none;"></select>
+                        </div>
+                        <div class="fs-group" style="flex:1;">
+                            <label for="fs-timeline-order-field">Order Field</label>
+                            <select id="fs-timeline-order-field" title="Choose which compatible field orders the selected anchor type on the timeline"
+                                style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                                color:var(--text-primary);font-size:11px;padding:6px 8px;outline:none;"></select>
+                        </div>
+                    </div>
+                    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Timeline Labels</div>
+                        <div style="display:flex;align-items:end;gap:10px;">
+                            <label for="fs-timeline-anchor-labels" style="display:flex;align-items:center;justify-content:center;height:31px;min-width:24px;margin:0;">
+                                <input type="checkbox" id="fs-timeline-anchor-labels" title="Show timeline anchor value labels">
+                            </label>
+                            <div class="fs-group" style="width:90px;">
+                                <label for="fs-timeline-anchor-label-z">Z Pos</label>
+                                <input type="number" id="fs-timeline-anchor-label-z" value="-25" placeholder="-25" step="1" title="Set the z position for timeline anchor value labels"
+                                    style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                                    color:var(--text-primary);font-size:11px;padding:6px 8px;outline:none;">
+                            </div>
+                            <div class="fs-group" style="width:100px;">
+                                <label for="fs-timeline-anchor-label-rotate">Y Rotate</label>
+                                <input type="number" id="fs-timeline-anchor-label-rotate" value="0" min="0" max="360" step="1" placeholder="0" title="Rotate timeline anchor value labels around the Y axis"
+                                    style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                                    color:var(--text-primary);font-size:11px;padding:6px 8px;outline:none;">
+                            </div>
+                            <div class="fs-group" style="width:100px;">
+                                <label for="fs-timeline-anchor-label-z-rotate">Z Rotate</label>
+                                <input type="number" id="fs-timeline-anchor-label-z-rotate" value="0" min="0" max="360" step="1" placeholder="0" title="Rotate timeline anchor value labels around the Z axis"
+                                    style="width:100%;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                                    color:var(--text-primary);font-size:11px;padding:6px 8px;outline:none;">
+                            </div>
+                        </div>
+                    </div>
+                    <div><strong>Featured Top Tags:</strong> <span id="fs-timeline-top-tags">none</span></div>
+                    <div class="fs-group" style="margin-top:2px;">
+                        <label>Timeline X Bin Width <span id="fs-timeline-x-step-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-timeline-x-step" min="10" max="260" step="5" class="fs-slider" title="Adjust spacing between timeline anchor bins on the x axis">
+                    </div>
+                    <div class="fs-group">
+                        <label>Y (Depth) Spacing <span id="fs-timeline-y-step-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-timeline-y-step" min="1" max="180" step="1" class="fs-slider" title="Adjust spacing for same-order anchor stacks and timeline depth spread">
+                    </div>
+                    <div class="fs-group">
+                        <label>Z (Height) Spacing <span id="fs-timeline-band-step-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-timeline-band-step" min="50" max="280" step="5" class="fs-slider" title="Adjust spacing between timeline semantic bands">
+                    </div>
+                    <div class="fs-group" style="margin-top:6px;">
+                        <label>Inner Cluster Density <span id="fs-timeline-inner-density-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-timeline-inner-density" min="60" max="180" step="5" class="fs-slider" title="Adjust density of inner timeline sibling clusters">
+                    </div>
+                    <div class="fs-group">
+                        <label>Outer Cluster Density <span id="fs-timeline-outer-density-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-timeline-outer-density" min="60" max="180" step="5" class="fs-slider" title="Adjust density of outer timeline sibling clusters">
+                    </div>
+                    <div>Timeline currently follows module defaults and the active graph projection.</div>
+                    <div style="display:flex;gap:8px;margin-top:4px;">
+                        <button id="btn-timeline-reset" class="btn-cancel" title="Reapply the module-default timeline profile" style="font-size:12px;">Reapply Timeline Defaults</button>
+                    </div>
+                </div>
+            </div>
+            <div id="fs-hierarchy-info" style="display:none;padding-top:0;margin-top:0;">
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+                    <div class="fs-group">
+                        <label>Layer Spacing <span id="fs-hierarchy-level-spacing-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-hierarchy-level-spacing" min="100" max="320" step="5" class="fs-slider" title="Adjust spacing between semantic layers in the custom hierarchy">
+                    </div>
+                    <div class="fs-group">
+                        <label>Structure Shape</label>
+                        <div style="display:flex;gap:14px;align-items:center;color:var(--text-secondary);font-size:11px;">
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                                <input type="radio" name="fs-hierarchy-structure-mode" id="fs-hierarchy-structure-linear" value="linear" title="Use the default directed-graph layout, which places nodes by following arrow direction like a flow or dependency map">
+                                <span>Default (DAG)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                                <input type="radio" name="fs-hierarchy-structure-mode" id="fs-hierarchy-structure-linearized" value="linearized" title="Use the custom normalized hierarchy, which keeps the directed structure but aligns node families into clearer layers">
+                                <span>Custom (Normalized)</span>
+                            </label>
+                        </div>
+                    </div>
+                    <label id="fs-hierarchy-reverse-tags-row" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:11px;">
+                        <input type="checkbox" id="fs-hierarchy-reverse-tags" title="Flip the tag hierarchy order so broader tags and narrower tags swap sides">
+                        <span>Reverse tag order</span>
+                    </label>
+                    <label id="fs-hierarchy-strict-bands-row" style="display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:11px;">
+                        <input type="checkbox" id="fs-hierarchy-strict-bands" title="Keep different node types on clearer separate layers instead of letting them drift together">
+                        <span>Separate node type layers</span>
+                    </label>
+                    <div id="fs-hierarchy-core-offset-row" class="fs-group">
+                        <label>Core Entity Offset <span id="fs-hierarchy-core-offset-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-hierarchy-core-offset" min="-120" max="120" step="5" class="fs-slider" title="Move core non-stub entities up or down without shifting stub entities">
+                    </div>
+                    <div id="fs-hierarchy-shape-row" class="fs-group">
+                        <label>Compaction Force <span id="fs-hierarchy-shape-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-hierarchy-shape" min="0" max="100" step="1" class="fs-slider" title="Increase how strongly the custom normalized layout pulls layers inward on x">
+                    </div>
+                    <div id="fs-hierarchy-type-separation-row" class="fs-group" style="display:none;">
+                        <label>Cluster Separation <span id="fs-hierarchy-type-separation-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-hierarchy-type-separation" min="0" max="220" step="5" class="fs-slider" title="Adjust local spacing between nearby family clusters inside the same hierarchy area">
+                    </div>
+                </div>
+            </div>
+            <div id="fs-force-only-primary" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="fs-group">
+                <label>Link Distance <span id="fs-link-dist-val" class="fs-val"></span></label>
+                <input type="range" id="fs-link-dist" min="5" max="300" value="30" class="fs-slider" title="Adjust the preferred distance between connected nodes">
+            </div>
+            <div class="fs-group">
+                <label>Charge Strength <span id="fs-charge-val" class="fs-val"></span></label>
+                <input type="range" id="fs-charge" min="-500" max="0" value="-30" class="fs-slider" title="Adjust graph-wide node repulsion">
+            </div>
+            <div class="fs-group">
+                <label>Center Strength <span id="fs-center-val" class="fs-val"></span></label>
+                <input type="range" id="fs-center" min="0" max="100" value="10" class="fs-slider" step="1" title="Adjust how strongly nodes are pulled toward the center">
+            </div>
+            <div class="fs-group">
+                <label>Link Strength <span id="fs-link-str-val" class="fs-val"></span></label>
+                <input type="range" id="fs-link-str" min="0" max="100" value="100" class="fs-slider" step="1" title="Adjust how rigidly links hold connected nodes together">
+            </div>
+            <div class="fs-group">
+                <label>Collision Radius <span id="fs-collision-val" class="fs-val"></span></label>
+                <input type="range" id="fs-collision" min="0" max="50" value="0" class="fs-slider" step="1" title="Adjust how much nodes avoid overlapping each other">
+            </div>
+            <div class="fs-group">
+                <label>Simulation Alpha Decay <span id="fs-decay-val" class="fs-val"></span></label>
+                <input type="range" id="fs-decay" min="1" max="100" value="23" class="fs-slider" step="1" title="Adjust how quickly the simulation settles">
+            </div>
+            </div>
+            <div id="fs-force-only-secondary" style="display:flex;flex-direction:column;gap:14px;">
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Force Per-Type Charge</div>
+                <div id="fs-type-charges" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Force Presets</div>
+                <div id="fs-presets-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;"></div>
+                <div style="display:flex;gap:6px;">
+                    <input type="text" id="fs-preset-name" placeholder="Preset name…" title="Name a saved force preset"
+                        style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:3px;
+                        color:var(--text-primary);font-size:11px;padding:4px 8px;outline:none;">
+                    <button id="btn-preset-save" class="btn-cancel" title="Save the current force settings as a preset" style="font-size:11px;padding:4px 10px;">Save</button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button id="btn-force-reset" class="btn-cancel" title="Restore the default force settings" style="flex:1;font-size:12px;">Reset Force Defaults</button>
+                <button id="btn-force-reheat" class="btn-danger" title="Restart the simulation with the current force settings" style="flex:1;font-size:12px;background:var(--accent);">Reheat Force</button>
+            </div>
+            </div>
+        </div>
+</div>
+<style>
+    .fs-group { display:flex; flex-direction:column; gap:4px; }
+    .fs-group label { font-size:11px; font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+    .fs-val { font-family:var(--font-mono); color:var(--accent); font-weight:400; }
+    .fs-slider { width:100%; accent-color:var(--accent); cursor:pointer; }
+    .fs-type-row { display:flex; align-items:center; gap:8px; }
+    .fs-type-label { width:90px; font-size:11px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; }
+    .fs-type-slider { flex:1; accent-color:var(--accent); }
+    .fs-type-val { width:40px; font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-align:right; }
+    .fs-preset-row { display:flex; align-items:center; gap:6px; }
+    .fs-preset-name { flex:1; font-size:11px; color:var(--text-secondary); cursor:pointer; padding:4px 8px;
+        border-radius:3px; background:var(--bg-primary); border:1px solid var(--border); }
+    .fs-preset-name:hover { background:var(--bg-hover); color:var(--text-primary); }
+    .fs-preset-name.active { border-color:var(--accent); color:var(--accent); }
+    .fs-preset-del { font-size:10px; color:var(--text-muted); cursor:pointer; padding:2px 4px; }
+    .fs-preset-del:hover { color:var(--danger); }
+</style>
+
+<!-- Vendored libraries (no CDN) -->
+<script src="/lib/3d-force-graph.min.js"></script>
+
+<!-- App bootstrap -->
+<script type="module">
+    import { EventBus } from '/components/shared/event-bus.js';
+    import { ApiClient } from '/components/shared/api-client.js';
+    import { initGraph } from '/components/graph/graph.js';
+    import { initSidebar } from '/components/sidebar/sidebar.js';
+    import { initDetail } from '/components/detail/detail.js';
+    import { initChat } from '/components/chat/chat.js';
+    import { initContextMenu } from '/components/graph/context-menu.js';
+
+    const bus = new EventBus();
+    const api = new ApiClient();
+
+    // Init components — each gets bus + api, nothing else
+    initGraph(document.getElementById('graph-container'), bus, api);
+    initSidebar(document.getElementById('sidebar'), bus, api);
+    initDetail(document.getElementById('detail-content'), bus, api);
+    initChat(document.getElementById('chat-panel'), bus, api);
+    initContextMenu(document.getElementById('context-menu'), bus, api);
+
+    // Header stats
+    bus.on('graph:loaded', ({ nodeCount, edgeCount, visibleNodeCount, visibleEdgeCount, graphMode }) => {
+        currentGraphMode = graphMode || currentGraphMode;
+        const nodeText = visibleNodeCount != null && visibleNodeCount !== nodeCount
+            ? `${visibleNodeCount}/${nodeCount} nodes`
+            : `${nodeCount} nodes`;
+        const edgeText = visibleEdgeCount != null && visibleEdgeCount !== edgeCount
+            ? `${visibleEdgeCount}/${edgeCount} edges`
+            : `${edgeCount} edges`;
+        document.getElementById('header-stats').textContent =
+            `${graphMode || 'explore'} · ${nodeText} · ${edgeText}`;
+    });
+
+    bus.on('graph:projection', ({ graphMode, entityTypes }) => {
+        currentGraphMode = graphMode || currentGraphMode;
+        currentProjectedTypeCounts = new Map(
+            Array.isArray(entityTypes)
+                ? entityTypes.map(item => [item.type, item.count || 0])
+                : []
+        );
+        if (fsPanel.style.display === 'block') {
+            if (activeLayout === 'timeline') fsRenderTimelineInfo();
+            if (activeLayout === 'td') fsRenderHierarchyInfo();
+        }
+    });
+
+    // Header buttons
+    const layoutSelect = document.getElementById('layout-select');
+    let activeLayout = layoutSelect.value || 'force';
+    let currentGraphMode = 'explore';
+    let currentProjectedTypeCounts = new Map();
+    let timelineProfileLoaded = false;
+    let timelineOptions = null;
+    let timelineProfile = null;
+    let timelineSessionProfile = null;
+
+    function cloneJson(value) {
+        return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function getEffectiveTimelineProfile() {
+        return timelineSessionProfile || timelineProfile || null;
+    }
+
+    function isWeakTimelineOrderField(fieldName) {
+        const normalized = String(fieldName || '').trim().toLowerCase();
+        return normalized === 'created_at'
+            || normalized === 'updated_at'
+            || normalized === 'pmid';
+    }
+
+    function getUsableTimelineOrderFields(anchorType) {
+        const candidate = getTimelineCandidateByType(anchorType);
+        const orderFields = Array.isArray(candidate?.order_fields) ? candidate.order_fields : [];
+        return orderFields.filter(item => !isWeakTimelineOrderField(item?.field));
+    }
+
+    function getTimelineSelectedAnchorType(profile = getEffectiveTimelineProfile()) {
+        const timelineSettings = getTimelineSettings();
+        const override = timelineSettings.anchorTypeOverride;
+        const usableCandidates = getUsableTimelineCandidates();
+        if (override && usableCandidates.some(candidate => candidate.type === override)) return override;
+        if (profile?.anchor_type && usableCandidates.some(candidate => candidate.type === profile.anchor_type)) return profile.anchor_type;
+        return usableCandidates[0]?.type || '';
+    }
+
+    function getTimelineSelectedOrderField(profile = getEffectiveTimelineProfile(), anchorType = getTimelineSelectedAnchorType(profile)) {
+        const timelineSettings = getTimelineSettings();
+        const orderFields = getUsableTimelineOrderFields(anchorType);
+        const explicit = timelineSettings.orderFieldOverride;
+        if (explicit && orderFields.some(item => item?.field === explicit)) return explicit;
+        const preferredFields = (profile?.order?.field_candidates || []).filter(Boolean);
+        const preferred = preferredFields.find(field => orderFields.some(item => item?.field === field));
+        if (preferred) return preferred;
+        return orderFields[0]?.field || '';
+    }
+
+    function getTimelineAppliedSettings(profile = timelineSessionProfile || getEffectiveTimelineProfile()) {
+        const timelineSettings = getTimelineSettings();
+        const anchorType = getTimelineSelectedAnchorType(profile);
+        const orderField = getTimelineSelectedOrderField(profile, anchorType);
+        const showAnchorLabels = timelineSettings.showAnchorLabelsOverride !== false;
+        const anchorLabelZ = Number.isFinite(timelineSettings.anchorLabelZOverride) ? timelineSettings.anchorLabelZOverride : -25;
+        const anchorLabelRotate = Number.isFinite(timelineSettings.anchorLabelRotateOverride) ? timelineSettings.anchorLabelRotateOverride : 0;
+        const anchorLabelZRotate = Number.isFinite(timelineSettings.anchorLabelZRotateOverride) ? timelineSettings.anchorLabelZRotateOverride : 0;
+        return { anchorType, orderField, profile, showAnchorLabels, anchorLabelZ, anchorLabelRotate, anchorLabelZRotate };
+    }
+
+    async function ensureTimelineOptions() {
+        if (timelineProfileLoaded) return timelineOptions;
+        try {
+            const options = await api.get('/api/layout/timeline/options');
+            timelineOptions = options || {};
+            timelineProfile = timelineOptions.profile || null;
+        } catch (err) {
+            console.warn('Timeline profile load failed:', err.message);
+            timelineOptions = { candidates: [] };
+            timelineProfile = null;
+        }
+        timelineProfileLoaded = true;
+        return timelineOptions;
+    }
+
+    async function ensureTimelineProfile() {
+        await ensureTimelineOptions();
+        return timelineProfile;
+    }
+
+    function getTimelineCandidates() {
+        return Array.isArray(timelineOptions?.candidates) ? timelineOptions.candidates : [];
+    }
+
+    function getTimelineCandidateByType(anchorType) {
+        return getTimelineCandidates().find(candidate => candidate?.type === anchorType) || null;
+    }
+
+    function getUsableTimelineCandidates() {
+        const allCandidates = getTimelineCandidates().filter(candidate => getUsableTimelineOrderFields(candidate?.type).length > 0);
+        if (currentProjectedTypeCounts.size === 0) return allCandidates;
+        return allCandidates.filter(candidate => (currentProjectedTypeCounts.get(candidate?.type) || 0) > 0);
+    }
+
+    async function applyTimelineCommand({ anchorType = '', orderField = '', reset = false } = {}) {
+        const profile = await ensureTimelineProfile();
+        if (reset) {
+            settingsState.layoutSettings.timeline = {
+                ...getTimelineSettings(),
+                anchorTypeOverride: null,
+                orderFieldOverride: null,
+                showAnchorLabelsOverride: true,
+                anchorLabelZOverride: -25,
+                anchorLabelRotateOverride: 0,
+                anchorLabelZRotateOverride: 0,
+                xStepOverride: null,
+                yStepOverride: null,
+                bandStepOverride: null,
+                innerDensityOverride: null,
+                outerDensityOverride: null,
+            };
+            persistSettingsState();
+        } else if (anchorType || orderField) {
+            settingsState.layoutSettings.timeline = {
+                ...getTimelineSettings(),
+                anchorTypeOverride: anchorType || null,
+                orderFieldOverride: orderField || null,
+            };
+            persistSettingsState();
+        }
+        timelineSessionProfile = applyTimelineOverridesToProfile(profile);
+        const applied = getTimelineAppliedSettings(timelineSessionProfile);
+        layoutSelect.value = 'timeline';
+        activeLayout = 'timeline';
+        bus.emit('timeline:settings', applied);
+        bus.emit('layout:change', { layout: 'timeline' });
+        if (fsPanel.style.display === 'block') fsRefreshLayoutShell();
+        return {
+            ok: true,
+            message: reset || (!anchorType && !orderField)
+                ? 'Timeline applied with module defaults.'
+                : 'Timeline applied with updated arrangement settings.'
+        };
+    }
+
+    layoutSelect.addEventListener('change', async e => {
+        const layout = e.target.value;
+        activeLayout = layout;
+        if (layout === 'timeline') {
+            const profile = await ensureTimelineProfile();
+            if (!timelineSessionProfile) timelineSessionProfile = applyTimelineOverridesToProfile(profile);
+            bus.emit('timeline:settings', getTimelineAppliedSettings(timelineSessionProfile));
+        } else if (layout === 'td') {
+            bus.emit('hierarchy:settings', getAppliedHierarchySettings());
+        }
+        bus.emit('layout:change', { layout });
+        if (fsPanel.style.display === 'block') fsRefreshLayoutShell();
+    });
+    bus.on('timeline:command', async ({ anchorType, orderField, reset, callback }) => {
+        const result = await applyTimelineCommand({ anchorType, orderField, reset });
+        if (callback) callback(result);
+    });
+    let labelsOn = false;
+    document.getElementById('btn-toggle-labels').style.opacity = '0.5';
+    document.getElementById('btn-toggle-labels').addEventListener('click', () => {
+        labelsOn = !labelsOn;
+        document.getElementById('btn-toggle-labels').style.opacity = labelsOn ? '1' : '0.5';
+        bus.emit('labels:toggle', { visible: labelsOn });
+    });
+    let exploreOn = true;
+    document.getElementById('btn-toggle-explore').textContent = 'Explore';
+    document.getElementById('btn-toggle-explore').style.opacity = '1';
+    document.getElementById('btn-toggle-explore').addEventListener('click', () => {
+        exploreOn = !exploreOn;
+        document.getElementById('btn-toggle-explore').textContent = exploreOn ? 'Explore' : 'Display';
+        document.getElementById('btn-toggle-explore').style.opacity = exploreOn ? '1' : '0.5';
+        bus.emit('graph:mode', { mode: exploreOn ? 'explore' : 'display' });
+    });
+    let communityOn = false;
+    document.getElementById('btn-toggle-community').addEventListener('click', () => {
+        communityOn = !communityOn;
+        document.getElementById('btn-toggle-community').style.opacity = communityOn ? '1' : '0.5';
+        document.getElementById('community-resolution-wrap').style.display = communityOn ? 'inline-flex' : 'none';
+        bus.emit('community:toggle', { enabled: communityOn });
+    });
+    document.getElementById('btn-toggle-community').style.opacity = '0.5';
+    document.getElementById('community-resolution').addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        document.getElementById('community-resolution-label').textContent = value.toFixed(1);
+        bus.emit('community:resolution', { value });
+    });
+    const exportDropdown = document.getElementById('export-dropdown');
+    const exportMenuBtn = document.getElementById('btn-export-menu');
+    const closeExportMenu = () => exportDropdown.classList.remove('open');
+    exportMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportDropdown.classList.toggle('open');
+    });
+    document.getElementById('btn-export-png').addEventListener('click', () => {
+        closeExportMenu();
+        bus.emit('graph:export-png', {});
+    });
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+        closeExportMenu();
+        window.open('/api/export/json', '_blank');
+    });
+    document.getElementById('btn-export-neo4j').addEventListener('click', () => {
+        closeExportMenu();
+        window.open('/api/export/neo4j', '_blank');
+    });
+    document.addEventListener('click', (e) => {
+        if (!exportDropdown.contains(e.target)) closeExportMenu();
+    });
+    const toolsOverlay = document.getElementById('tools-overlay');
+    const toolsList = document.getElementById('tools-list');
+    const toolsDetail = document.getElementById('tools-detail');
+    let selectedTool = null;
+    document.getElementById('btn-tools-close').addEventListener('click', () => {
+        toolsOverlay.classList.remove('visible');
+    });
+    toolsOverlay.addEventListener('click', (e) => {
+        if (e.target === toolsOverlay) toolsOverlay.classList.remove('visible');
+    });
+    function setToolsPlaceholder() {
+        selectedTool = null;
+        toolsDetail.innerHTML = `
+            <h4>Select a tool</h4>
+            <div class="tools-muted">Choose a tool on the left to see what it does, how to use it, and what options it accepts.</div>
+        `;
+    }
+
+    function renderToolDetails(skillHelp) {
+        const { skill, help_prompts = [], source_policy = {}, settings = {} } = skillHelp;
+        const args = skill.args || [];
+        const practicalUseMap = {
+            person_research: [
+                'Add a missing person to the graph.',
+                'Enrich an existing person record, e.g. with publications, contact details, and affiliations.',
+                'Refresh a person profile after new papers or role changes appear in source systems.',
+            ],
+            signal_capture: [
+                'Add a new article, announcement, or pasted text as a signal.',
+                'Import source material that should create or enrich linked graph records.',
+                'Capture a source before manually curating relationships in the graph.',
+            ],
+            event_research: [
+                'Create a missing event record from source materials.',
+                'Enrich an existing event record, e.g. with attendees, dates, and linked people.',
+                'Import event materials so attendee and topic relationships can be added automatically.',
+            ],
+            center_research: [
+                'Add a missing organization, center, or group to the graph.',
+                'Enrich an existing center record, e.g. with members and aliases.',
+                'Rebuild a center roster when the group website or local materials have changed.',
+            ],
+        };
+        const taskExampleMap = {
+            person_research: {
+                args: `"Record Name" --update`,
+                explanation: `This will augment or refresh the selected record, re-gather source-backed identity and related data, and update the stored graph entries in the runtime database.`,
+            },
+            signal_capture: {
+                args: `--url "https://example.org/source" --topic "keyword"`,
+                explanation: `This will ingest the source as a signal, extract relevant snippets around the requested topic, and add or update linked signal and graph relationships in the runtime database.`,
+            },
+            event_research: {
+                args: `--name "Event Name" --url "https://example.org/event" --date "2026-01-15"`,
+                explanation: `This will create or update the event record, derive event metadata from the source page, and write related event and participant data into the runtime database.`,
+            },
+            center_research: {
+                args: `--name "Organization Name" --alias "Short Name" --url "https://example.org/"`,
+                explanation: `This will create or expand the organization record, add aliases, pull source-backed organization details from the website, and write updated organization and membership data into the runtime database.`,
+            },
+        };
+        const taskExample = taskExampleMap[skill.id] || null;
+        const argsPlaceholder = taskExample?.args || `Leave blank if this run does not need extra parameters.`;
+        const argItems = args.length
+            ? `<ul class="tools-list-plain">${args.map(arg => `<li><code>${escH(arg.flag || arg.name || '')}</code>${arg.description ? ` — ${escH(arg.description)}` : ''}</li>`).join('')}</ul>`
+            : `<div class="tools-muted">This tool does not declare named CLI options in its manifest.</div>`;
+        const practicalUses = practicalUseMap[skill.id] || [];
+        const practicalUsesHtml = practicalUses.length
+            ? `<ul class="tools-list-plain">${practicalUses.map(p => `<li>${escH(p)}</li>`).join('')}</ul>`
+            : help_prompts.length
+            ? `<ul class="tools-list-plain">${help_prompts.slice(0, 3).map(p => `<li>${escH(p)}</li>`).join('')}</ul>`
+            : `<div class="tools-muted">Select this tool when you want to run its data-building workflow.</div>`;
+        const policyBits = [];
+        if (source_policy.allowed_domains?.length) policyBits.push(`<div><strong>Allowed domains:</strong> ${escH(source_policy.allowed_domains.join(', '))}</div>`);
+        if (settings.institution) policyBits.push(`<div><strong>Institution:</strong> ${escH(settings.institution)}</div>`);
+        if (typeof settings.require_kerberos === 'boolean') policyBits.push(`<div><strong>Kerberos required:</strong> ${settings.require_kerberos ? 'yes' : 'no'}</div>`);
+        const policySection = policyBits.length
+            ? `
+            <div class="tools-section">
+                <div class="tools-section-title">Runtime Context</div>
+                <div class="tools-kv">${policyBits.join('')}</div>
+            </div>`
+            : '';
+
+        toolsDetail.innerHTML = `
+            <h4>${escH(skill.name)}</h4>
+            <div class="tools-kv">${escH(skill.description || 'No description available.')}</div>
+            <div class="tools-section">
+                <div class="tools-section-title">Practical Uses</div>
+                ${practicalUsesHtml}
+            </div>
+            <div class="tools-section">
+                <div class="tools-section-title">Options</div>
+                ${argItems}
+            </div>
+            ${policySection}
+            <div class="tools-section">
+                <div class="tools-section-title">Example Input</div>
+                <textarea id="tools-args-input" title="Enter the tool arguments for this run" placeholder="${escH(argsPlaceholder)}"></textarea>
+                <div class="tools-muted">${escH(taskExample?.explanation || `Use this field to tell the tool what record or source it should work on for this run.`)}</div>
+            </div>
+            <div id="tools-run-row">
+                <button class="btn-cancel" id="btn-tools-back" title="Close the tool details">Close</button>
+                <button class="btn-danger" id="btn-tools-run" title="Run this tool with the provided arguments" style="background:var(--accent);">Run Tool</button>
+            </div>
+        `;
+
+        document.getElementById('btn-tools-back').addEventListener('click', () => {
+            toolsOverlay.classList.remove('visible');
+        });
+        document.getElementById('btn-tools-run').addEventListener('click', async () => {
+            const rawArgs = document.getElementById('tools-args-input').value.trim();
+            toolsOverlay.classList.remove('visible');
+            await launchSkill(skill.id, null, false, rawArgs ? splitCliArgs(rawArgs) : []);
+        });
+    }
+
+    async function openToolsLauncher() {
+        try {
+            const data = await api.get('/api/skill/list');
+            const skills = data.skills || [];
+            if (!skills.length) {
+                window.alert('No skills are available.');
+                return;
+            }
+            toolsList.innerHTML = '';
+            setToolsPlaceholder();
+            skills.forEach((skill) => {
+                const btn = document.createElement('button');
+                btn.className = 'tool-pick-btn';
+                btn.title = skill.description || `Open ${skill.name}`;
+                btn.innerHTML = `
+                    <div class="tool-pick-name">${escH(skill.name)}</div>
+                    <div class="tools-muted">${escH(skill.description || '')}</div>
+                `;
+                btn.addEventListener('click', async () => {
+                    selectedTool = skill.id;
+                    Array.from(toolsList.querySelectorAll('.tool-pick-btn')).forEach(el => el.classList.remove('active'));
+                    btn.classList.add('active');
+                    const skillHelp = await api.get(`/api/skill/help/${encodeURIComponent(skill.id)}`);
+                    renderToolDetails(skillHelp);
+                });
+                toolsList.appendChild(btn);
+            });
+            toolsOverlay.classList.add('visible');
+        } catch (err) {
+            console.error('Skill launcher failed:', err.message);
+        }
+    }
+    window.addEventListener('kgx:open-tools', openToolsLauncher);
+
+    // HTML escaping for dynamic content
+    function escH(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Global search
+    const searchInput = document.getElementById('header-search');
+    const searchResults = document.getElementById('header-search-results');
+    let searchDebounce = null;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        const q = searchInput.value.trim();
+        if (q.length < 2) { searchResults.style.display = 'none'; return; }
+        searchDebounce = setTimeout(async () => {
+            try {
+                const data = await api.post('/api/query', {
+                    sql: "SELECT id, type, name FROM entities WHERE name LIKE ? LIMIT 20",
+                    params: ['%' + q + '%']
+                });
+                if (!data.results || data.results.length === 0) {
+                    searchResults.innerHTML = '<div style="padding:8px 12px;font-size:11px;color:var(--text-muted);">No results</div>';
+                } else {
+                    searchResults.innerHTML = data.results.map(r => `
+                        <div class="search-hit" data-id="${escH(r.id)}" data-type="${escH(r.type)}" data-name="${escH(r.name)}"
+                            style="padding:6px 12px;cursor:pointer;font-size:12px;color:var(--text-secondary);
+                            border-bottom:1px solid var(--border);">
+                            <span style="color:var(--text-primary);">${escH(r.name)}</span>
+                            <span style="font-size:10px;color:var(--text-muted);margin-left:6px;">${escH(r.type)}</span>
+                        </div>
+                    `).join('');
+                    searchResults.querySelectorAll('.search-hit').forEach(el => {
+                        el.addEventListener('click', () => {
+                            bus.emit('node:selected', { id: el.dataset.id, type: el.dataset.type, name: el.dataset.name });
+                            bus.emit('node:focus', { id: el.dataset.id });
+                            searchResults.style.display = 'none';
+                            searchInput.value = '';
+                        });
+                        el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover)');
+                        el.addEventListener('mouseleave', () => el.style.background = '');
+                    });
+                }
+                searchResults.style.display = 'block';
+            } catch (_) { searchResults.style.display = 'none'; }
+        }, 250);
+    });
+    searchInput.addEventListener('focus', () => {
+        if (searchInput.value.trim().length >= 2 && searchResults.innerHTML) searchResults.style.display = 'block';
+    });
+    document.addEventListener('click', e => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.style.display = 'none';
+    });
+
+    // SQL display panel (lower-right)
+    const sqlDisplay = document.getElementById('sql-display');
+    bus.on('chat:sql-executed', ({ sql }) => {
+        sqlDisplay.textContent = sql;
+    });
+    document.getElementById('btn-copy-sql').addEventListener('click', () => {
+        const sql = sqlDisplay.textContent;
+        if (!sql) return;
+        navigator.clipboard.writeText(sql).catch(() => {
+            const tmp = document.createElement('textarea');
+            tmp.value = sql;
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand('copy');
+            document.body.removeChild(tmp);
+        });
+        const btn = document.getElementById('btn-copy-sql');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+
+    // DB file watcher — auto-refresh when skills write to vault.db
+    const dbWatcher = new EventSource('/api/watch');
+    dbWatcher.addEventListener('changed', () => {
+        console.log('vault.db changed on disk — refreshing');
+        bus.emit('db:changed', {});
+    });
+    window.addEventListener('beforeunload', () => dbWatcher.close());
+
+    function splitCliArgs(text) {
+        const parts = [];
+        const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+        let match;
+        while ((match = re.exec(text)) !== null) {
+            parts.push(match[1] ?? match[2] ?? match[3]);
+        }
+        return parts;
+    }
+
+    async function launchSkill(skill, entityName = null, promptForArgs = false, presetArgs = null) {
+        const skillHelp = await api.get(`/api/skill/help/${encodeURIComponent(skill)}`);
+        const lines = [];
+        lines.push(entityName ? `Run ${skillHelp.skill.name} for ${entityName}?` : `Run ${skillHelp.skill.name}?`);
+        if (skillHelp.help_prompts?.length) {
+            lines.push('');
+            lines.push('Examples:');
+            skillHelp.help_prompts.slice(0, 3).forEach(p => lines.push(`- ${p}`));
+        }
+        const policy = skillHelp.source_policy || {};
+        if (policy.allowed_domains?.length) {
+            lines.push('');
+            lines.push(`Allowed domains: ${policy.allowed_domains.join(', ')}`);
+        }
+        const settings = skillHelp.settings || {};
+        if (settings.institution) {
+            lines.push(`Institution: ${settings.institution}`);
+        }
+        if (typeof settings.require_kerberos === 'boolean') {
+            lines.push(`Kerberos required: ${settings.require_kerberos ? 'yes' : 'no'}`);
+        }
+        if (!presetArgs && !window.confirm(lines.join('\n'))) return;
+
+        let args = [];
+        if (entityName && skill === 'person_research') {
+            args = [entityName];
+        }
+        if (presetArgs) {
+            args = presetArgs;
+        } else if (promptForArgs) {
+            const rawArgs = window.prompt(
+                `Enter CLI args for ${skillHelp.skill.entry_path}.\nExample: --url "https://example.org/page"`,
+                args.join(' ')
+            );
+            if (rawArgs === null) return;
+            args = splitCliArgs(rawArgs.trim());
+        }
+
+        const resp = await api.post('/api/skill/run', { skill_id: skill, args });
+        bus.emit('skill:started', { job_id: resp.job_id, skill, entity_name: entityName || skillHelp.skill.name });
+    }
+
+    // Skill dispatch — right-click → "Run research workflow…"
+    bus.on('skill:dispatch', async ({ skill, entity_id, entity_name, entity_type }) => {
+        try {
+            await launchSkill(skill, entity_name, false);
+        } catch (err) {
+            console.error('Skill dispatch failed:', err.message);
+        }
+    });
+
+    // Skill started — show notification in chat
+    bus.on('skill:started', ({ job_id, skill, entity_name }) => {
+        // Chat panel listens for this to show a progress message
+        console.log(`Skill ${skill} started for ${entity_name} — job ${job_id}`);
+    });
+
+    // Mutation confirm dialog
+    let _pendingMutation = null;
+    bus.on('chat:mutation', ({ sql, token, preview }) => {
+        _pendingMutation = { sql, token };
+        document.getElementById('confirm-sql').textContent = sql;
+        document.getElementById('confirm-meta').textContent =
+            preview ? `Estimated rows affected: ${preview}` : '';
+        document.getElementById('confirm-overlay').classList.add('visible');
+    });
+    document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+        document.getElementById('confirm-overlay').classList.remove('visible');
+        _pendingMutation = null;
+    });
+    document.getElementById('btn-confirm-execute').addEventListener('click', async () => {
+        if (!_pendingMutation) return;
+        try {
+            await api.post('/api/mutate/execute', { token: _pendingMutation.token });
+            bus.emit('db:changed', {});
+        } catch (err) {
+            alert('Mutation failed: ' + err.message);
+        } finally {
+            document.getElementById('confirm-overlay').classList.remove('visible');
+            _pendingMutation = null;
+        }
+    });
+
+    // ---- Force settings panel (draggable) ----
+    const fsPanel = document.getElementById('force-settings-panel');
+    const fsPanelTitle = document.getElementById('fs-panel-title');
+    const fsPanelSummary = document.getElementById('fs-panel-summary');
+    const fsArrangementHeading = document.getElementById('fs-arrangement-heading');
+    const fsForceOnlyPrimary = document.getElementById('fs-force-only-primary');
+    const fsForceOnlySecondary = document.getElementById('fs-force-only-secondary');
+    const fsTimelineInfo = document.getElementById('fs-timeline-info');
+    const fsHierarchyInfo = document.getElementById('fs-hierarchy-info');
+    const fsHierarchyLevelSpacing = document.getElementById('fs-hierarchy-level-spacing');
+    const fsHierarchyLevelSpacingVal = document.getElementById('fs-hierarchy-level-spacing-val');
+    const fsHierarchyShapeRow = document.getElementById('fs-hierarchy-shape-row');
+    const fsHierarchyShape = document.getElementById('fs-hierarchy-shape');
+    const fsHierarchyShapeVal = document.getElementById('fs-hierarchy-shape-val');
+    const fsHierarchyTypeSeparationRow = document.getElementById('fs-hierarchy-type-separation-row');
+    const fsHierarchyTypeSeparation = document.getElementById('fs-hierarchy-type-separation');
+    const fsHierarchyTypeSeparationVal = document.getElementById('fs-hierarchy-type-separation-val');
+    const fsHierarchyStructureLinear = document.getElementById('fs-hierarchy-structure-linear');
+    const fsHierarchyStructureLinearized = document.getElementById('fs-hierarchy-structure-linearized');
+    const fsHierarchyReverseTagsRow = document.getElementById('fs-hierarchy-reverse-tags-row');
+    const fsHierarchyStrictBandsRow = document.getElementById('fs-hierarchy-strict-bands-row');
+    const fsHierarchyReverseTags = document.getElementById('fs-hierarchy-reverse-tags');
+    const fsHierarchyStrictBands = document.getElementById('fs-hierarchy-strict-bands');
+    const fsHierarchyCoreOffsetRow = document.getElementById('fs-hierarchy-core-offset-row');
+    const fsHierarchyCoreOffset = document.getElementById('fs-hierarchy-core-offset');
+    const fsHierarchyCoreOffsetVal = document.getElementById('fs-hierarchy-core-offset-val');
+    const fsTimelineProfileName = document.getElementById('fs-timeline-profile-name');
+    const fsTimelineAnchorType = document.getElementById('fs-timeline-anchor-type');
+    const fsTimelineAnchorLabels = document.getElementById('fs-timeline-anchor-labels');
+    const fsTimelineAnchorLabelZ = document.getElementById('fs-timeline-anchor-label-z');
+    const fsTimelineAnchorLabelRotate = document.getElementById('fs-timeline-anchor-label-rotate');
+    const fsTimelineAnchorLabelZRotate = document.getElementById('fs-timeline-anchor-label-z-rotate');
+    const fsTimelineOrderField = document.getElementById('fs-timeline-order-field');
+    const fsTimelineTopTags = document.getElementById('fs-timeline-top-tags');
+    const fsTimelineXStep = document.getElementById('fs-timeline-x-step');
+    const fsTimelineXStepVal = document.getElementById('fs-timeline-x-step-val');
+    const fsTimelineYStep = document.getElementById('fs-timeline-y-step');
+    const fsTimelineYStepVal = document.getElementById('fs-timeline-y-step-val');
+    const fsTimelineBandStep = document.getElementById('fs-timeline-band-step');
+    const fsTimelineBandStepVal = document.getElementById('fs-timeline-band-step-val');
+    const fsTimelineInnerDensity = document.getElementById('fs-timeline-inner-density');
+    const fsTimelineInnerDensityVal = document.getElementById('fs-timeline-inner-density-val');
+    const fsTimelineOuterDensity = document.getElementById('fs-timeline-outer-density');
+    const fsTimelineOuterDensityVal = document.getElementById('fs-timeline-outer-density-val');
+    const GRAPH_DEFAULTS = {
+        edgeWidth: 5, edgeOpacity: 40, edgeColor: '#555566', particles: 1,
+    };
+    const HIERARCHY_LAYOUT_DEFAULTS = {
+        levelSpacing: 180,
+        typeSeparation: 90,
+        structureMode: 'linear',
+    };
+    const FORCE_LAYOUT_DEFAULTS = {
+        linkDist: 30, charge: -30, center: 10, linkStr: 100, collision: 0, decay: 23,
+    };
+    const FORCE_DEFAULTS = {
+        ...FORCE_LAYOUT_DEFAULTS,
+        ...GRAPH_DEFAULTS,
+    };
+    let activePresetName = '';
+    const FS_KEY = 'kgx:force-presets';
+    const SETTINGS_STATE_KEY = 'kgx:settings-state-v1';
+
+    function buildDefaultSettingsState() {
+        return {
+            graphSettings: { ...GRAPH_DEFAULTS },
+            layoutSettings: {
+                force: {
+                    ...FORCE_LAYOUT_DEFAULTS,
+                    typeCharges: {},
+                },
+                timeline: {
+                    anchorTypeOverride: null,
+                    orderFieldOverride: null,
+                    showAnchorLabelsOverride: true,
+                    anchorLabelZOverride: -25,
+                    anchorLabelRotateOverride: 0,
+                    anchorLabelZRotateOverride: 0,
+                    xStepOverride: null,
+                    yStepOverride: null,
+                    bandStepOverride: null,
+                    innerDensityOverride: null,
+                    outerDensityOverride: null,
+                },
+                hierarchical: {
+                    levelSpacingOverride: null,
+                    shapeBlendOverride: 0,
+                    coreOffsetOverride: 0,
+                    typeSeparationOverride: null,
+                    structureModeOverride: 'linear',
+                    reverseTagsOverride: false,
+                    strictBandsOverride: false,
+                },
+            },
+        };
+    }
+
+    function loadSettingsState() {
+        const defaults = buildDefaultSettingsState();
+        try {
+            const raw = JSON.parse(localStorage.getItem(SETTINGS_STATE_KEY)) || {};
+            return {
+                graphSettings: {
+                    ...defaults.graphSettings,
+                    ...(raw.graphSettings || {}),
+                },
+                layoutSettings: {
+                    force: {
+                        ...defaults.layoutSettings.force,
+                        ...((raw.layoutSettings || {}).force || {}),
+                        typeCharges: {
+                            ...defaults.layoutSettings.force.typeCharges,
+                            ...((((raw.layoutSettings || {}).force || {}).typeCharges) || {}),
+                        },
+                    },
+                    timeline: {
+                        ...defaults.layoutSettings.timeline,
+                        ...((raw.layoutSettings || {}).timeline || {}),
+                    },
+                    hierarchical: {
+                        ...defaults.layoutSettings.hierarchical,
+                        ...((raw.layoutSettings || {}).hierarchical || {}),
+                    },
+                },
+            };
+        } catch (_) {
+            return defaults;
+        }
+    }
+
+    let settingsState = loadSettingsState();
+
+    function syncSettingsLocalsFromState() {
+        const forceSettings = settingsState.layoutSettings.force || {};
+        window.forceState = {
+            ...FORCE_DEFAULTS,
+            ...settingsState.graphSettings,
+            ...forceSettings,
+        };
+        window.typeCharges = { ...(forceSettings.typeCharges || {}) };
+    }
+
+    function syncSettingsStateFromLocals() {
+        settingsState = {
+            graphSettings: {
+                edgeWidth: window.forceState.edgeWidth,
+                edgeOpacity: window.forceState.edgeOpacity,
+                edgeColor: window.forceState.edgeColor,
+                particles: window.forceState.particles,
+            },
+            layoutSettings: {
+                force: {
+                    linkDist: window.forceState.linkDist,
+                    charge: window.forceState.charge,
+                    center: window.forceState.center,
+                    linkStr: window.forceState.linkStr,
+                    collision: window.forceState.collision,
+                    decay: window.forceState.decay,
+                    typeCharges: { ...window.typeCharges },
+                },
+                timeline: {
+                    ...(settingsState.layoutSettings?.timeline || buildDefaultSettingsState().layoutSettings.timeline),
+                },
+                hierarchical: {
+                    ...(settingsState.layoutSettings?.hierarchical || buildDefaultSettingsState().layoutSettings.hierarchical),
+                },
+            },
+        };
+    }
+
+    function persistSettingsState() {
+        syncSettingsStateFromLocals();
+        localStorage.setItem(SETTINGS_STATE_KEY, JSON.stringify(settingsState));
+    }
+
+    function emitGraphSettingsUpdate() {
+        bus.emit('graph:settings:update', { ...settingsState.graphSettings });
+    }
+
+    syncSettingsLocalsFromState();
+    let forceState = window.forceState;
+    let typeCharges = window.typeCharges;
+
+    function refreshLocalRefs() {
+        forceState = window.forceState;
+        typeCharges = window.typeCharges;
+    }
+
+    function getTimelineSettings() {
+        return settingsState.layoutSettings?.timeline || buildDefaultSettingsState().layoutSettings.timeline;
+    }
+
+    function applyTimelineOverridesToProfile(baseProfile) {
+        const profile = cloneJson(baseProfile) || {};
+        const timelineSettings = getTimelineSettings();
+        profile.anchors = { ...(profile.anchors || {}) };
+        profile.clustering = { ...(profile.clustering || {}) };
+        if (Number.isFinite(timelineSettings.xStepOverride)) profile.anchors.x_step = timelineSettings.xStepOverride;
+        if (Number.isFinite(timelineSettings.yStepOverride)) profile.anchors.same_value_y_step = timelineSettings.yStepOverride;
+        if (Number.isFinite(timelineSettings.bandStepOverride)) profile.band_step = timelineSettings.bandStepOverride;
+        if (Number.isFinite(timelineSettings.innerDensityOverride)) profile.clustering.inner_density = timelineSettings.innerDensityOverride;
+        if (Number.isFinite(timelineSettings.outerDensityOverride)) profile.clustering.outer_density = timelineSettings.outerDensityOverride;
+        return profile;
+    }
+
+    function describeActiveLayout() {
+        if (activeLayout === 'cluster') return 'cluster by type';
+        if (activeLayout === 'timeline') return 'timeline';
+        if (activeLayout === 'umap') return 'umap';
+        if (activeLayout === 'td') return 'hierarchical';
+        return activeLayout || 'force';
+    }
+
+    function getHierarchySettings() {
+        return settingsState.layoutSettings?.hierarchical || buildDefaultSettingsState().layoutSettings.hierarchical;
+    }
+
+    function getAppliedHierarchySettings() {
+        const hierarchySettings = getHierarchySettings();
+        return {
+            levelSpacing: Number.isFinite(hierarchySettings.levelSpacingOverride) ? hierarchySettings.levelSpacingOverride : HIERARCHY_LAYOUT_DEFAULTS.levelSpacing,
+            shapeBlend: Number.isFinite(hierarchySettings.shapeBlendOverride)
+                ? hierarchySettings.shapeBlendOverride
+                : 0,
+            coreOffset: Number.isFinite(hierarchySettings.coreOffsetOverride)
+                ? hierarchySettings.coreOffsetOverride
+                : 0,
+            typeSeparation: Number.isFinite(hierarchySettings.typeSeparationOverride) ? hierarchySettings.typeSeparationOverride : HIERARCHY_LAYOUT_DEFAULTS.typeSeparation,
+            structureMode: hierarchySettings.structureModeOverride === 'linearized'
+                    ? 'linearized'
+                    : HIERARCHY_LAYOUT_DEFAULTS.structureMode,
+            reverseTags: hierarchySettings.reverseTagsOverride === true,
+            strictBands: hierarchySettings.strictBandsOverride === true,
+        };
+    }
+
+    function fsRenderHierarchyInfo() {
+        const applied = getAppliedHierarchySettings();
+        fsHierarchyLevelSpacing.value = String(applied.levelSpacing);
+        fsHierarchyLevelSpacingVal.textContent = String(applied.levelSpacing);
+        fsHierarchyShape.value = String(applied.shapeBlend);
+        fsHierarchyShapeVal.textContent = String(applied.shapeBlend);
+        fsHierarchyCoreOffset.value = String(applied.coreOffset);
+        fsHierarchyCoreOffsetVal.textContent = String(applied.coreOffset);
+        fsHierarchyTypeSeparation.value = String(applied.typeSeparation);
+        fsHierarchyTypeSeparationVal.textContent = String(applied.typeSeparation);
+        fsHierarchyStructureLinear.checked = applied.structureMode === 'linear';
+        fsHierarchyStructureLinearized.checked = applied.structureMode === 'linearized';
+        fsHierarchyReverseTags.checked = applied.reverseTags === true;
+        fsHierarchyStrictBands.checked = applied.strictBands === true;
+        const isSparse = applied.structureMode === 'linear';
+        fsHierarchyReverseTagsRow.style.display = isSparse ? 'none' : 'flex';
+        fsHierarchyStrictBandsRow.style.display = isSparse ? 'none' : 'flex';
+        fsHierarchyCoreOffsetRow.style.display = isSparse ? 'none' : 'flex';
+        fsHierarchyShapeRow.style.display = isSparse ? 'none' : 'flex';
+        fsHierarchyTypeSeparationRow.style.display = 'none';
+    }
+
+    function fsRenderTimelineInfo() {
+        const profile = getEffectiveTimelineProfile();
+        const profileName = profile?.profile_name || 'module defaults';
+        const anchorType = getTimelineSelectedAnchorType(profile);
+        const orderField = getTimelineSelectedOrderField(profile, anchorType);
+        const anchorCandidates = getUsableTimelineCandidates();
+        const orderCandidates = getUsableTimelineOrderFields(anchorType);
+        const featuredTopIds = (profile?.featured_top_ids || []).filter(Boolean);
+        const timelineSettings = getTimelineSettings();
+        const showAnchorLabels = timelineSettings.showAnchorLabelsOverride !== false;
+        const anchorLabelZ = Number.isFinite(timelineSettings.anchorLabelZOverride) ? timelineSettings.anchorLabelZOverride : -25;
+        const anchorLabelRotate = Number.isFinite(timelineSettings.anchorLabelRotateOverride) ? timelineSettings.anchorLabelRotateOverride : 0;
+        const anchorLabelZRotate = Number.isFinite(timelineSettings.anchorLabelZRotateOverride) ? timelineSettings.anchorLabelZRotateOverride : 0;
+        const xStep = Number.isFinite(profile?.anchors?.x_step) ? profile.anchors.x_step : 140;
+        const yStep = Number.isFinite(profile?.anchors?.same_value_y_step) ? profile.anchors.same_value_y_step : 90;
+        const bandStep = Number.isFinite(profile?.band_step) ? profile.band_step : 190;
+        const innerDensity = Number.isFinite(profile?.clustering?.inner_density) ? profile.clustering.inner_density : 100;
+        const outerDensity = Number.isFinite(profile?.clustering?.outer_density) ? profile.clustering.outer_density : 100;
+        fsTimelineProfileName.textContent = profileName;
+        fsTimelineAnchorType.innerHTML = '';
+        anchorCandidates.forEach(candidate => {
+            const option = document.createElement('option');
+            option.value = candidate.type;
+            option.textContent = candidate.label || candidate.type;
+            option.selected = candidate.type === anchorType;
+            fsTimelineAnchorType.appendChild(option);
+        });
+        if (!anchorCandidates.length) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No timeline anchors';
+            option.selected = true;
+            fsTimelineAnchorType.appendChild(option);
+        }
+        fsTimelineOrderField.innerHTML = '';
+        orderCandidates.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.field;
+            option.textContent = `${item.field}${Number.isFinite(item.non_null_count) ? ` (${item.non_null_count})` : ''}`;
+            option.selected = item.field === orderField;
+            fsTimelineOrderField.appendChild(option);
+        });
+        if (!orderCandidates.length) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No date/order fields';
+            option.selected = true;
+            fsTimelineOrderField.appendChild(option);
+        }
+        fsTimelineAnchorType.disabled = !anchorCandidates.length;
+        fsTimelineOrderField.disabled = !orderCandidates.length;
+        fsTimelineAnchorLabels.checked = showAnchorLabels;
+        fsTimelineAnchorLabels.disabled = false;
+        fsTimelineAnchorLabelZ.value = String(anchorLabelZ);
+        fsTimelineAnchorLabelZ.disabled = !showAnchorLabels;
+        fsTimelineAnchorLabelRotate.value = String(anchorLabelRotate);
+        fsTimelineAnchorLabelRotate.disabled = !showAnchorLabels;
+        fsTimelineAnchorLabelZRotate.value = String(anchorLabelZRotate);
+        fsTimelineAnchorLabelZRotate.disabled = !showAnchorLabels;
+        fsTimelineTopTags.textContent = featuredTopIds.length ? featuredTopIds.join(', ') : 'none';
+        fsTimelineXStep.value = xStep;
+        fsTimelineXStepVal.textContent = String(xStep);
+        fsTimelineYStep.value = yStep;
+        fsTimelineYStepVal.textContent = String(yStep);
+        fsTimelineBandStep.value = bandStep;
+        fsTimelineBandStepVal.textContent = String(bandStep);
+        fsTimelineInnerDensity.value = innerDensity;
+        fsTimelineInnerDensityVal.textContent = `${innerDensity}%`;
+        fsTimelineOuterDensity.value = outerDensity;
+        fsTimelineOuterDensityVal.textContent = `${outerDensity}%`;
+    }
+
+    function fsRefreshLayoutShell() {
+        const label = describeActiveLayout();
+        const isForceLayout = activeLayout === 'force';
+        const isTimelineLayout = activeLayout === 'timeline';
+        const isHierarchyLayout = activeLayout === 'td';
+        fsPanelTitle.textContent = isForceLayout ? 'Graph Settings · force' : `Graph Settings · ${label}`;
+        fsArrangementHeading.textContent = `Arrangement · ${label}`;
+        fsPanelSummary.textContent = isForceLayout
+            ? 'Force-specific controls and shared graph edge visuals are available for the active layout.'
+            : (isTimelineLayout
+                ? 'Timeline uses detected-compatible anchors plus shared graph edge visuals.'
+                : (isHierarchyLayout
+                    ? ''
+                    : `Only shared graph edge visuals are available for the ${label} layout right now.`));
+        fsForceOnlyPrimary.style.display = isForceLayout ? 'flex' : 'none';
+        fsForceOnlySecondary.style.display = isForceLayout ? 'flex' : 'none';
+        fsTimelineInfo.style.display = isTimelineLayout ? 'block' : 'none';
+        fsHierarchyInfo.style.display = isHierarchyLayout ? 'block' : 'none';
+        if (isTimelineLayout) fsRenderTimelineInfo();
+        if (isHierarchyLayout) fsRenderHierarchyInfo();
+    }
+
+    function fsOpen() {
+        fsRefreshLayoutShell();
+        fsPanel.style.display = 'block';
+        fsSync();
+        fsPopulateTypes();
+        fsRenderPresets();
+        if (activeLayout === 'timeline' && !timelineProfileLoaded) {
+            ensureTimelineProfile().then(() => {
+                if (fsPanel.style.display === 'block' && activeLayout === 'timeline') {
+                    fsRenderTimelineInfo();
+                }
+            }).catch(() => {});
+        }
+    }
+    function fsClose() { fsPanel.style.display = 'none'; }
+
+    // Drag support
+    {
+        const handle = document.getElementById('force-settings-drag-handle');
+        let dragging = false, dx = 0, dy = 0;
+        handle.addEventListener('mousedown', e => {
+            dragging = true;
+            dx = e.clientX - fsPanel.offsetLeft;
+            dy = e.clientY - fsPanel.offsetTop;
+            handle.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            fsPanel.style.left = (e.clientX - dx) + 'px';
+            fsPanel.style.top = (e.clientY - dy) + 'px';
+            fsPanel.style.right = 'auto';
+        });
+        document.addEventListener('mouseup', () => {
+            dragging = false;
+            handle.style.cursor = 'grab';
+        });
+    }
+
+    function fsSync() {
+        document.getElementById('fs-link-dist').value = forceState.linkDist;
+        document.getElementById('fs-link-dist-val').textContent = forceState.linkDist;
+        document.getElementById('fs-charge').value = forceState.charge;
+        document.getElementById('fs-charge-val').textContent = forceState.charge;
+        document.getElementById('fs-center').value = forceState.center;
+        document.getElementById('fs-center-val').textContent = (forceState.center / 100).toFixed(2);
+        document.getElementById('fs-link-str').value = forceState.linkStr;
+        document.getElementById('fs-link-str-val').textContent = (forceState.linkStr / 100).toFixed(2);
+        document.getElementById('fs-collision').value = forceState.collision;
+        document.getElementById('fs-collision-val').textContent = forceState.collision;
+        document.getElementById('fs-decay').value = forceState.decay;
+        document.getElementById('fs-decay-val').textContent = (forceState.decay / 1000).toFixed(3);
+        document.getElementById('fs-edge-width').value = forceState.edgeWidth;
+        document.getElementById('fs-edge-width-val').textContent = (forceState.edgeWidth / 10).toFixed(1);
+        document.getElementById('fs-edge-opacity').value = forceState.edgeOpacity;
+        document.getElementById('fs-edge-opacity-val').textContent = (forceState.edgeOpacity / 100).toFixed(2);
+        document.getElementById('fs-edge-color').value = forceState.edgeColor;
+        document.getElementById('fs-edge-color-val').textContent = forceState.edgeColor;
+        document.getElementById('fs-particles').value = forceState.particles;
+        document.getElementById('fs-particles-val').textContent = forceState.particles;
+    }
+
+    function fsPopulateTypes() {
+        const wrap = document.getElementById('fs-type-charges');
+        // Get types from graph instance
+        bus.emit('force:get-types', { callback: (types) => {
+            wrap.innerHTML = types.map(t => {
+                const val = typeCharges[t] ?? forceState.charge;
+                return `<div class="fs-type-row">
+                    <span class="fs-type-label">${escH(t)}</span>
+                    <input type="range" class="fs-type-slider" data-type="${escH(t)}"
+                           min="-500" max="0" value="${val}" title="Override the charge strength for ${escH(t)} nodes">
+                    <span class="fs-type-val">${val}</span>
+                </div>`;
+            }).join('');
+            wrap.querySelectorAll('.fs-type-slider').forEach(sl => {
+                sl.addEventListener('input', () => {
+                    const t = sl.dataset.type;
+                    const v = parseInt(sl.value);
+                    typeCharges[t] = v;
+                    sl.nextElementSibling.textContent = v;
+                    persistSettingsState();
+                    bus.emit('force:update', { ...forceState, typeCharges });
+                    emitGraphSettingsUpdate();
+                });
+            });
+        }});
+    }
+
+    function fsApply() { bus.emit('force:update', { ...forceState, typeCharges }); }
+
+    document.getElementById('btn-force-settings').addEventListener('click', () => {
+        fsPanel.style.display === 'none' || fsPanel.style.display === '' ? fsOpen() : fsClose();
+    });
+    document.getElementById('btn-force-close').addEventListener('click', fsClose);
+
+    ['link-dist', 'charge', 'center', 'link-str', 'collision', 'decay'].forEach(key => {
+        const el = document.getElementById(`fs-${key}`);
+        const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        el.addEventListener('input', () => {
+            forceState[camel] = parseInt(el.value);
+            persistSettingsState();
+            fsSync();
+            fsApply();
+        });
+    });
+
+    // Edge sliders
+    ['edge-width', 'edge-opacity', 'particles'].forEach(key => {
+        const el = document.getElementById(`fs-${key}`);
+        const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        el.addEventListener('input', () => {
+            forceState[camel] = parseInt(el.value);
+            persistSettingsState();
+            fsSync();
+            fsApply();
+            emitGraphSettingsUpdate();
+        });
+    });
+    document.getElementById('fs-edge-color').addEventListener('input', () => {
+        forceState.edgeColor = document.getElementById('fs-edge-color').value;
+        persistSettingsState();
+        fsSync();
+        fsApply();
+        emitGraphSettingsUpdate();
+    });
+
+    // ---- Presets ----
+    function fsLoadPresets() {
+        try { return JSON.parse(localStorage.getItem(FS_KEY)) || []; }
+        catch (_) { return []; }
+    }
+    function fsSavePresets(presets) {
+        localStorage.setItem(FS_KEY, JSON.stringify(presets));
+    }
+    function fsRenderPresets() {
+        const list = document.getElementById('fs-presets-list');
+        const presets = fsLoadPresets();
+        if (presets.length === 0) {
+            list.innerHTML = '<div style="font-size:11px;color:var(--text-muted);font-style:italic;">No saved presets</div>';
+            return;
+        }
+        list.innerHTML = presets.map((p, i) => `
+            <div class="fs-preset-row">
+                <span class="fs-preset-name ${p.name === activePresetName ? 'active' : ''}" data-idx="${i}" title="Load the preset &quot;${escH(p.name)}&quot;">${escH(p.name)}</span>
+                <span class="fs-preset-del" data-idx="${i}" title="Delete preset">&times;</span>
+            </div>
+        `).join('');
+        list.querySelectorAll('.fs-preset-name').forEach(el => {
+            el.addEventListener('click', () => {
+                const p = fsLoadPresets()[parseInt(el.dataset.idx)];
+                if (!p) return;
+                forceState = { ...FORCE_DEFAULTS, ...p.state };
+                typeCharges = p.typeCharges || {};
+                window.forceState = forceState;
+                window.typeCharges = typeCharges;
+                refreshLocalRefs();
+                persistSettingsState();
+                activePresetName = p.name;
+                fsSync();
+                fsPopulateTypes();
+                fsApply();
+                emitGraphSettingsUpdate();
+                fsRenderPresets();
+            });
+        });
+        list.querySelectorAll('.fs-preset-del').forEach(el => {
+            el.addEventListener('click', () => {
+                const presets = fsLoadPresets();
+                const removed = presets.splice(parseInt(el.dataset.idx), 1);
+                fsSavePresets(presets);
+                if (removed[0] && removed[0].name === activePresetName) activePresetName = '';
+                fsRenderPresets();
+            });
+        });
+    }
+    document.getElementById('btn-preset-save').addEventListener('click', () => {
+        const nameEl = document.getElementById('fs-preset-name');
+        const name = nameEl.value.trim();
+        if (!name) return;
+        const presets = fsLoadPresets();
+        const existing = presets.findIndex(p => p.name === name);
+        const entry = { name, state: { ...forceState }, typeCharges: { ...typeCharges } };
+        if (existing >= 0) presets[existing] = entry;
+        else presets.push(entry);
+        fsSavePresets(presets);
+        activePresetName = name;
+        nameEl.value = '';
+        fsRenderPresets();
+    });
+
+    document.getElementById('btn-force-reset').addEventListener('click', () => {
+        forceState = { ...FORCE_DEFAULTS };
+        typeCharges = {};
+        window.forceState = forceState;
+        window.typeCharges = typeCharges;
+        refreshLocalRefs();
+        persistSettingsState();
+        activePresetName = '';
+        fsSync();
+        fsPopulateTypes();
+        fsApply();
+        emitGraphSettingsUpdate();
+        fsRenderPresets();
+    });
+    document.getElementById('btn-force-reheat').addEventListener('click', () => {
+        bus.emit('force:reheat', {});
+    });
+
+    document.getElementById('btn-timeline-reset').addEventListener('click', async () => {
+        await applyTimelineCommand({ reset: true });
+        fsRenderTimelineInfo();
+    });
+
+    async function applyTimelineSettingsOverride(patch) {
+        settingsState.layoutSettings.timeline = {
+            ...getTimelineSettings(),
+            ...patch,
+        };
+        persistSettingsState();
+        const baseProfile = await ensureTimelineProfile();
+        timelineSessionProfile = applyTimelineOverridesToProfile(baseProfile);
+        layoutSelect.value = 'timeline';
+        activeLayout = 'timeline';
+        bus.emit('timeline:settings', getTimelineAppliedSettings(timelineSessionProfile));
+        bus.emit('layout:change', { layout: 'timeline' });
+        fsRenderTimelineInfo();
+    }
+
+    async function applyTimelinePresentationOverride(patch) {
+        settingsState.layoutSettings.timeline = {
+            ...getTimelineSettings(),
+            ...patch,
+        };
+        persistSettingsState();
+        const baseProfile = await ensureTimelineProfile();
+        timelineSessionProfile = applyTimelineOverridesToProfile(baseProfile);
+        bus.emit('timeline:settings', getTimelineAppliedSettings(timelineSessionProfile));
+        fsRenderTimelineInfo();
+    }
+
+    function applyHierarchySettingsOverride(patch) {
+        settingsState.layoutSettings.hierarchical = {
+            ...getHierarchySettings(),
+            ...patch,
+        };
+        persistSettingsState();
+        bus.emit('hierarchy:settings', getAppliedHierarchySettings());
+        fsRenderHierarchyInfo();
+    }
+
+    fsTimelineAnchorType.addEventListener('change', async () => {
+        const nextAnchorType = fsTimelineAnchorType.value || null;
+        const allowedFields = getUsableTimelineOrderFields(nextAnchorType)
+            .map(item => item?.field)
+            .filter(Boolean);
+        const currentSettings = getTimelineSettings();
+        const orderFieldOverride = allowedFields.includes(currentSettings.orderFieldOverride)
+            ? currentSettings.orderFieldOverride
+            : null;
+        await applyTimelineSettingsOverride({
+            anchorTypeOverride: nextAnchorType,
+            orderFieldOverride,
+        });
+    });
+    fsTimelineAnchorLabels.addEventListener('change', async () => {
+        await applyTimelinePresentationOverride({
+            showAnchorLabelsOverride: !!fsTimelineAnchorLabels.checked,
+        });
+    });
+    fsTimelineAnchorLabelZ.addEventListener('change', async () => {
+        const parsed = parseInt(fsTimelineAnchorLabelZ.value, 10);
+        await applyTimelinePresentationOverride({
+            anchorLabelZOverride: Number.isFinite(parsed) ? parsed : -25,
+        });
+    });
+    fsTimelineAnchorLabelRotate.addEventListener('change', async () => {
+        const parsed = parseInt(fsTimelineAnchorLabelRotate.value, 10);
+        const normalized = Number.isFinite(parsed)
+            ? Math.max(0, Math.min(360, parsed))
+            : 0;
+        fsTimelineAnchorLabelRotate.value = String(normalized);
+        await applyTimelinePresentationOverride({
+            anchorLabelRotateOverride: normalized,
+        });
+    });
+    fsTimelineAnchorLabelZRotate.addEventListener('change', async () => {
+        const parsed = parseInt(fsTimelineAnchorLabelZRotate.value, 10);
+        const normalized = Number.isFinite(parsed)
+            ? Math.max(0, Math.min(360, parsed))
+            : 0;
+        fsTimelineAnchorLabelZRotate.value = String(normalized);
+        await applyTimelinePresentationOverride({
+            anchorLabelZRotateOverride: normalized,
+        });
+    });
+    fsTimelineOrderField.addEventListener('change', async () => {
+        await applyTimelineSettingsOverride({
+            orderFieldOverride: fsTimelineOrderField.value || null,
+        });
+    });
+
+    fsTimelineXStep.addEventListener('input', async () => {
+        await applyTimelineSettingsOverride({ xStepOverride: parseInt(fsTimelineXStep.value, 10) });
+    });
+    fsTimelineYStep.addEventListener('input', async () => {
+        await applyTimelineSettingsOverride({ yStepOverride: parseInt(fsTimelineYStep.value, 10) });
+    });
+    fsTimelineBandStep.addEventListener('input', async () => {
+        await applyTimelineSettingsOverride({ bandStepOverride: parseInt(fsTimelineBandStep.value, 10) });
+    });
+    fsTimelineInnerDensity.addEventListener('input', async () => {
+        await applyTimelineSettingsOverride({ innerDensityOverride: parseInt(fsTimelineInnerDensity.value, 10) });
+    });
+    fsTimelineOuterDensity.addEventListener('input', async () => {
+        await applyTimelineSettingsOverride({ outerDensityOverride: parseInt(fsTimelineOuterDensity.value, 10) });
+    });
+    fsHierarchyLevelSpacing.addEventListener('input', () => {
+        applyHierarchySettingsOverride({ levelSpacingOverride: parseInt(fsHierarchyLevelSpacing.value, 10) });
+    });
+    fsHierarchyCoreOffset.addEventListener('input', () => {
+        applyHierarchySettingsOverride({ coreOffsetOverride: parseInt(fsHierarchyCoreOffset.value, 10) });
+    });
+    fsHierarchyShape.addEventListener('input', () => {
+        applyHierarchySettingsOverride({ shapeBlendOverride: parseInt(fsHierarchyShape.value, 10) });
+    });
+    fsHierarchyTypeSeparation.addEventListener('input', () => {
+        applyHierarchySettingsOverride({ typeSeparationOverride: parseInt(fsHierarchyTypeSeparation.value, 10) });
+    });
+    fsHierarchyStructureLinear.addEventListener('change', () => {
+        if (fsHierarchyStructureLinear.checked) applyHierarchySettingsOverride({ structureModeOverride: 'linear' });
+    });
+    fsHierarchyStructureLinearized.addEventListener('change', () => {
+        if (fsHierarchyStructureLinearized.checked) applyHierarchySettingsOverride({ structureModeOverride: 'linearized' });
+    });
+    fsHierarchyReverseTags.addEventListener('change', () => {
+        applyHierarchySettingsOverride({ reverseTagsOverride: !!fsHierarchyReverseTags.checked });
+    });
+    fsHierarchyStrictBands.addEventListener('change', () => {
+        applyHierarchySettingsOverride({ strictBandsOverride: !!fsHierarchyStrictBands.checked });
+    });
+
+    emitGraphSettingsUpdate();
+</script>
+</body>
+</html>

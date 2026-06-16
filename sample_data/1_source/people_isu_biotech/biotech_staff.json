@@ -1,0 +1,742 @@
+{
+  "source_url": "https://www.biotech.iastate.edu/staff/",
+  "fetched_at": "2026-06-15T18:38:01Z",
+  "page_modified_time": "2026-05-01T17:23:27+00:00",
+  "institution": "Iowa State University",
+  "office": "Office of Biotechnology",
+  "staff_groups": [
+    {
+      "section": "Administration",
+      "people": [
+        {
+          "name": "Christine Deal",
+          "slug": "christine-deal",
+          "section": "Administration",
+          "position": "Interim Director",
+          "department": "Office of Biotechnology",
+          "title": "Interim Director",
+          "role": "staff",
+          "phone": "515-294-7206",
+          "email": "cdeal@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "office-of-biotechnology"
+        },
+        {
+          "name": "Anne Byrne",
+          "slug": "anne-byrne",
+          "section": "Administration",
+          "position": "Accountant",
+          "department": "Office of Biotechnology",
+          "title": "Accountant",
+          "role": "staff",
+          "phone": "515-294-2178",
+          "email": "abyrne@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "office-of-biotechnology",
+          "curation": {
+            "scholarly_mode": "none"
+          }
+        },
+        {
+          "name": "Diana Oberender",
+          "slug": "diana-oberender",
+          "section": "Administration",
+          "position": "Business Administrator",
+          "department": "Office of Biotechnology",
+          "title": "Business Administrator",
+          "role": "staff",
+          "phone": "515-294-9818",
+          "email": "dianao@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "office-of-biotechnology"
+        }
+      ]
+    },
+    {
+      "section": "Education and Outreach",
+      "people": [
+        {
+          "name": "Eric Hall",
+          "slug": "eric-hall",
+          "section": "Education and Outreach",
+          "position": "Program Coordinator",
+          "department": "Office of Biotechnology",
+          "title": "Program Coordinator",
+          "role": "staff",
+          "phone": "515-294-5949",
+          "email": "ethall@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "office-of-biotechnology",
+          "curation": {
+            "scholarly_mode": "none"
+          }
+        }
+      ]
+    },
+    {
+      "section": "Core Facility Staff",
+      "people": [
+        {
+          "name": "Aleksandra Badaczewska-Dawid",
+          "slug": "aleksandra-badaczewska-dawid",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility",
+          "department": "Genome Informatics Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-6407",
+          "email": "gifhelp@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Mike Baker",
+          "slug": "mike-baker",
+          "section": "Core Facility Staff",
+          "position": "DNA Facility",
+          "department": "DNA Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-4705",
+          "email": "dnaseq@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "dna-facility",
+          "curation": {
+            "exclude_pmids": [
+              "39215164"
+            ]
+          }
+        },
+        {
+          "name": "Matthew Breitzman",
+          "slug": "matthew-breitzman",
+          "section": "Core Facility Staff",
+          "position": "W.M. Keck Metabolomics Research Laboratory",
+          "department": "W.M. Keck Metabolomics Research Laboratory",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-3019",
+          "email": "metabolomics@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "w-m-keck-metabolomics-research-laboratory"
+        },
+        {
+          "name": "Amanda Brockman",
+          "slug": "amanda-brockman",
+          "section": "Core Facility Staff",
+          "position": "Protein Facility",
+          "department": "Protein Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-9837",
+          "email": "hybrid@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "protein-facility"
+        },
+        {
+          "name": "Margie Carter",
+          "slug": "margie-carter",
+          "section": "Core Facility Staff",
+          "position": "High Resolution Microscopy Facility, Manager",
+          "department": "High Resolution Microscopy Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-1011",
+          "email": "hrmf@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "high-resolution-microscopy-facility"
+        },
+        {
+          "name": "Kevin Cavallin",
+          "slug": "kevin-cavallin",
+          "section": "Core Facility Staff",
+          "position": "DNA Facility",
+          "department": "DNA Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-9585",
+          "email": "dnaseq@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "dna-facility"
+        },
+        {
+          "name": "Siva Chudalayandi",
+          "slug": "siva-chudalayandi",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility",
+          "department": "Genome Informatics Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-6407",
+          "email": "gifhelp@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Jyoti Gupta",
+          "slug": "jyoti-gupta",
+          "section": "Core Facility Staff",
+          "position": "Cryo-EM Facility, Manager",
+          "department": "Cryo-EM Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-8752",
+          "email": "cryoem@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "cryo-em-facility",
+          "curation": {
+            "scholarly_mode": "none"
+          }
+        },
+        {
+          "name": "Dapeng Jing",
+          "slug": "dapeng-jing",
+          "section": "Core Facility Staff",
+          "position": "Materials Analysis and Research Laboratory",
+          "department": "Materials Analysis and Research Laboratory",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-8752",
+          "email": "marl@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "materials-analysis-and-research-laboratory"
+        },
+        {
+          "name": "Greg Kramer",
+          "slug": "greg-kramer",
+          "section": "Core Facility Staff",
+          "position": "DNA Facility",
+          "department": "DNA Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-9585",
+          "email": "dnaseq@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "dna-facility"
+        },
+        {
+          "name": "Rick Masonbrink",
+          "slug": "rick-masonbrink",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility",
+          "department": "Genome Informatics Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-6407",
+          "email": "gifhelp@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Curtis Mosher",
+          "slug": "curtis-mosher",
+          "section": "Core Facility Staff",
+          "position": "High Resolution Microscopy Facility, Manager",
+          "department": "High Resolution Microscopy Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-6513",
+          "email": "hrmf@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "high-resolution-microscopy-facility"
+        },
+        {
+          "name": "Joel Nott",
+          "slug": "joel-nott",
+          "section": "Core Facility Staff",
+          "position": "Protein Facility, Manager",
+          "department": "Protein Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-3267",
+          "email": "protein@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "protein-facility"
+        },
+        {
+          "name": "Shawn Rigby",
+          "slug": "shawn-rigby",
+          "section": "Core Facility Staff",
+          "position": "Flow Cytometry Facility, Manager",
+          "department": "Flow Cytometry Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-2472",
+          "email": "cytometry@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "flow-cytometry-facility"
+        },
+        {
+          "name": "Viswanathan Satheesh",
+          "slug": "viswanathan-satheesh",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility",
+          "department": "Genome Informatics Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-6407",
+          "email": "satheesh@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Andrew Severin",
+          "slug": "andrew-severin",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility, Manager",
+          "department": "Genome Informatics Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-1320",
+          "email": "gifhelp@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Sharu Paul Sharma",
+          "slug": "sharu-paul-sharma",
+          "section": "Core Facility Staff",
+          "position": "Genome Informatics Facility",
+          "department": "Genome Informatics Facility",
+          "title": "Staff",
+          "role": "staff",
+          "phone": "515-294-6407",
+          "email": "gifhelp@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "genome-informatics-facility"
+        },
+        {
+          "name": "Lucas Showman",
+          "slug": "lucas-showman",
+          "section": "Core Facility Staff",
+          "position": "W.M. Keck Metabolomics Research Laboratory, Manager",
+          "department": "W.M. Keck Metabolomics Research Laboratory",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-3019",
+          "email": "metabolomics@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "w-m-keck-metabolomics-research-laboratory"
+        },
+        {
+          "name": "Charles Stewart",
+          "slug": "charles-stewart",
+          "section": "Core Facility Staff",
+          "position": "Macromolecular X-ray Crystallography Facility, Manager",
+          "department": "Macromolecular X-ray Crystallography Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-2846",
+          "email": "xrayfacility@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "macromolecular-x-ray-crystallography-facility",
+          "curation": {
+            "scholarly_mode": "none"
+          }
+        },
+        {
+          "name": "Tracey P. Stewart",
+          "slug": "tracey-p-stewart",
+          "section": "Core Facility Staff",
+          "position": "High Resolution Microscopy Facility, Manager",
+          "department": "High Resolution Microscopy Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-3872",
+          "email": "hrmf@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "high-resolution-microscopy-facility"
+        },
+        {
+          "name": "Warren Straszheim",
+          "slug": "warren-straszheim",
+          "section": "Core Facility Staff",
+          "position": "Materials Analysis and Research Laboratory, Manager",
+          "department": "Materials Analysis and Research Laboratory",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-8187",
+          "email": "marl@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "materials-analysis-and-research-laboratory"
+        },
+        {
+          "name": "David Wright",
+          "slug": "david-wright",
+          "section": "Core Facility Staff",
+          "position": "DNA Facility, Manager",
+          "department": "DNA Facility",
+          "title": "Manager",
+          "role": "staff",
+          "phone": "515-294-5415",
+          "email": "dnaseq@iastate.edu",
+          "source_url": "https://www.biotech.iastate.edu/staff/",
+          "facility_slug": "dna-facility",
+          "curation": {
+            "scholarly_mode": "none"
+          }
+        }
+      ]
+    }
+  ],
+  "people": [
+    {
+      "name": "Christine Deal",
+      "slug": "christine-deal",
+      "section": "Administration",
+      "position": "Interim Director",
+      "department": "Office of Biotechnology",
+      "title": "Interim Director",
+      "role": "staff",
+      "phone": "515-294-7206",
+      "email": "cdeal@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "office-of-biotechnology"
+    },
+    {
+      "name": "Anne Byrne",
+      "slug": "anne-byrne",
+      "section": "Administration",
+      "position": "Accountant",
+      "department": "Office of Biotechnology",
+      "title": "Accountant",
+      "role": "staff",
+      "phone": "515-294-2178",
+      "email": "abyrne@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "office-of-biotechnology",
+      "curation": {
+        "scholarly_mode": "none"
+      }
+    },
+    {
+      "name": "Diana Oberender",
+      "slug": "diana-oberender",
+      "section": "Administration",
+      "position": "Business Administrator",
+      "department": "Office of Biotechnology",
+      "title": "Business Administrator",
+      "role": "staff",
+      "phone": "515-294-9818",
+      "email": "dianao@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "office-of-biotechnology"
+    },
+    {
+      "name": "Eric Hall",
+      "slug": "eric-hall",
+      "section": "Education and Outreach",
+      "position": "Program Coordinator",
+      "department": "Office of Biotechnology",
+      "title": "Program Coordinator",
+      "role": "staff",
+      "phone": "515-294-5949",
+      "email": "ethall@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "office-of-biotechnology",
+      "curation": {
+        "scholarly_mode": "none"
+      }
+    },
+    {
+      "name": "Aleksandra Badaczewska-Dawid",
+      "slug": "aleksandra-badaczewska-dawid",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility",
+      "department": "Genome Informatics Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-6407",
+      "email": "gifhelp@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Mike Baker",
+      "slug": "mike-baker",
+      "section": "Core Facility Staff",
+      "position": "DNA Facility",
+      "department": "DNA Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-4705",
+      "email": "dnaseq@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "dna-facility",
+      "curation": {
+        "exclude_pmids": [
+          "39215164"
+        ]
+      }
+    },
+    {
+      "name": "Matthew Breitzman",
+      "slug": "matthew-breitzman",
+      "section": "Core Facility Staff",
+      "position": "W.M. Keck Metabolomics Research Laboratory",
+      "department": "W.M. Keck Metabolomics Research Laboratory",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-3019",
+      "email": "metabolomics@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "w-m-keck-metabolomics-research-laboratory"
+    },
+    {
+      "name": "Amanda Brockman",
+      "slug": "amanda-brockman",
+      "section": "Core Facility Staff",
+      "position": "Protein Facility",
+      "department": "Protein Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-9837",
+      "email": "hybrid@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "protein-facility"
+    },
+    {
+      "name": "Margie Carter",
+      "slug": "margie-carter",
+      "section": "Core Facility Staff",
+      "position": "High Resolution Microscopy Facility, Manager",
+      "department": "High Resolution Microscopy Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-1011",
+      "email": "hrmf@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "high-resolution-microscopy-facility"
+    },
+    {
+      "name": "Kevin Cavallin",
+      "slug": "kevin-cavallin",
+      "section": "Core Facility Staff",
+      "position": "DNA Facility",
+      "department": "DNA Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-9585",
+      "email": "dnaseq@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "dna-facility"
+    },
+    {
+      "name": "Siva Chudalayandi",
+      "slug": "siva-chudalayandi",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility",
+      "department": "Genome Informatics Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-6407",
+      "email": "gifhelp@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Jyoti Gupta",
+      "slug": "jyoti-gupta",
+      "section": "Core Facility Staff",
+      "position": "Cryo-EM Facility, Manager",
+      "department": "Cryo-EM Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-8752",
+      "email": "cryoem@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "cryo-em-facility",
+      "curation": {
+        "scholarly_mode": "none"
+      }
+    },
+    {
+      "name": "Dapeng Jing",
+      "slug": "dapeng-jing",
+      "section": "Core Facility Staff",
+      "position": "Materials Analysis and Research Laboratory",
+      "department": "Materials Analysis and Research Laboratory",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-8752",
+      "email": "marl@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "materials-analysis-and-research-laboratory"
+    },
+    {
+      "name": "Greg Kramer",
+      "slug": "greg-kramer",
+      "section": "Core Facility Staff",
+      "position": "DNA Facility",
+      "department": "DNA Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-9585",
+      "email": "dnaseq@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "dna-facility"
+    },
+    {
+      "name": "Rick Masonbrink",
+      "slug": "rick-masonbrink",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility",
+      "department": "Genome Informatics Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-6407",
+      "email": "gifhelp@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Curtis Mosher",
+      "slug": "curtis-mosher",
+      "section": "Core Facility Staff",
+      "position": "High Resolution Microscopy Facility, Manager",
+      "department": "High Resolution Microscopy Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-6513",
+      "email": "hrmf@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "high-resolution-microscopy-facility"
+    },
+    {
+      "name": "Joel Nott",
+      "slug": "joel-nott",
+      "section": "Core Facility Staff",
+      "position": "Protein Facility, Manager",
+      "department": "Protein Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-3267",
+      "email": "protein@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "protein-facility"
+    },
+    {
+      "name": "Shawn Rigby",
+      "slug": "shawn-rigby",
+      "section": "Core Facility Staff",
+      "position": "Flow Cytometry Facility, Manager",
+      "department": "Flow Cytometry Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-2472",
+      "email": "cytometry@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "flow-cytometry-facility"
+    },
+    {
+      "name": "Viswanathan Satheesh",
+      "slug": "viswanathan-satheesh",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility",
+      "department": "Genome Informatics Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-6407",
+      "email": "satheesh@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Andrew Severin",
+      "slug": "andrew-severin",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility, Manager",
+      "department": "Genome Informatics Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-1320",
+      "email": "gifhelp@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Sharu Paul Sharma",
+      "slug": "sharu-paul-sharma",
+      "section": "Core Facility Staff",
+      "position": "Genome Informatics Facility",
+      "department": "Genome Informatics Facility",
+      "title": "Staff",
+      "role": "staff",
+      "phone": "515-294-6407",
+      "email": "gifhelp@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "genome-informatics-facility"
+    },
+    {
+      "name": "Lucas Showman",
+      "slug": "lucas-showman",
+      "section": "Core Facility Staff",
+      "position": "W.M. Keck Metabolomics Research Laboratory, Manager",
+      "department": "W.M. Keck Metabolomics Research Laboratory",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-3019",
+      "email": "metabolomics@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "w-m-keck-metabolomics-research-laboratory"
+    },
+    {
+      "name": "Charles Stewart",
+      "slug": "charles-stewart",
+      "section": "Core Facility Staff",
+      "position": "Macromolecular X-ray Crystallography Facility, Manager",
+      "department": "Macromolecular X-ray Crystallography Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-2846",
+      "email": "xrayfacility@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "macromolecular-x-ray-crystallography-facility",
+      "curation": {
+        "scholarly_mode": "none"
+      }
+    },
+    {
+      "name": "Tracey P. Stewart",
+      "slug": "tracey-p-stewart",
+      "section": "Core Facility Staff",
+      "position": "High Resolution Microscopy Facility, Manager",
+      "department": "High Resolution Microscopy Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-3872",
+      "email": "hrmf@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "high-resolution-microscopy-facility"
+    },
+    {
+      "name": "Warren Straszheim",
+      "slug": "warren-straszheim",
+      "section": "Core Facility Staff",
+      "position": "Materials Analysis and Research Laboratory, Manager",
+      "department": "Materials Analysis and Research Laboratory",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-8187",
+      "email": "marl@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "materials-analysis-and-research-laboratory"
+    },
+    {
+      "name": "David Wright",
+      "slug": "david-wright",
+      "section": "Core Facility Staff",
+      "position": "DNA Facility, Manager",
+      "department": "DNA Facility",
+      "title": "Manager",
+      "role": "staff",
+      "phone": "515-294-5415",
+      "email": "dnaseq@iastate.edu",
+      "source_url": "https://www.biotech.iastate.edu/staff/",
+      "facility_slug": "dna-facility",
+      "curation": {
+        "scholarly_mode": "none"
+      }
+    }
+  ]
+}

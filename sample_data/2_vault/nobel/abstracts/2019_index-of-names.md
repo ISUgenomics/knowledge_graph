@@ -1,0 +1,218 @@
+---
+title: "Index of Names"
+doi: "https://doi.org/10.1002/9781119528210.indspec"
+year: 2019
+journal: "N/A"
+authors:
+  - "[[alexis-carrel]]"
+  - "[[michel-adanson]]"
+  - "[[giorgio-agamben]]"
+  - "[[albert-the-great]]"
+  - "[[charles-andler]]"
+  - "[[w-arkell]]"
+  - "[[b-babbage]]"
+  - "[[roger-bacon]]"
+  - "[[nora-barlow]]"
+  - "[[simone-bateman]]"
+  - "[[cyrille-baudoin]]"
+  - "[[john-beatty]]"
+  - "[[alain-berthoz]]"
+  - "[[alain-blanchard]]"
+  - "[[johann-blumenbach]]"
+  - "[[catherine-bousquet]]"
+  - "[[samuel-bowles]]"
+  - "[[dan-brock]]"
+  - "[[john-hedley]]"
+  - "[[allen-buchanan]]"
+  - "[[georgeslouis-leclerc-de-buffon]]"
+  - "[[jean-gayon]]"
+  - "[[victor-fonction-indtermine-petit]]"
+  - "[[first-gayon]]"
+  - "[[christopher-cain]]"
+  - "[[alphonse-candolle]]"
+  - "[[anne-carol]]"
+  - "[[edgardo-carosella]]"
+  - "[[claudine-cohen]]"
+  - "[[jim-collins]]"
+  - "[[marie-condorcet]]"
+  - "[[antoine-jean]]"
+  - "[[marquis-nicolas-de-caritat]]"
+  - "[[yvette-conry]]"
+  - "[[e-cope]]"
+  - "[[john-cornell]]"
+  - "[[antoineaugustin-cournot]]"
+  - "[[jerry-coyne]]"
+  - "[[d-dachet]]"
+  - "[[luisa-damiano]]"
+  - "[[antoine-danchin]]"
+  - "[[david-deamer]]"
+  - "[[adrian-desmond]]"
+  - "[[claudeolivier-doron]]"
+  - "[[pierre-duhem]]"
+  - "[[john-dupr]]"
+  - "[[william-durham]]"
+  - "[[f-eldredge]]"
+  - "[[ghiselin-michael]]"
+  - "[[alan-gillen]]"
+  - "[[lucalain-giraldeau]]"
+  - "[[richard-goldschmidt]]"
+  - "[[john-edward-gray]]"
+  - "[[henri-grosjean]]"
+  - "[[colin-groves]]"
+  - "[[alexandra-grutter]]"
+  - "[[colette-guillaumin]]"
+  - "[[heather-haldane]]"
+  - "[[john-sanderson]]"
+  - "[[albrecht-von-haller]]"
+  - "[[jonathan-hodge]]"
+  - "[[jo-hooper]]"
+  - "[[thierry-hoquet]]"
+  - "[[quintus-flaccus]]"
+  - "[[philippe-huneman]]"
+  - "[[jeanren-huynh]]"
+  - "[[korula-mani-jacob]]"
+  - "[[immanuel-kant]]"
+  - "[[vincent-kavaloski]]"
+  - "[[l-lhritier]]"
+  - "[[la-beaumelle]]"
+  - "[[laurent-anglivielle]]"
+  - "[[jean-baptiste-pierre-antoine-de-monet-de-lamarck]]"
+  - "[[dominique-lecourt]]"
+  - "[[antoni-van-leeuwenhoek]]"
+  - "[[gottfried-wilhelm-leibniz]]"
+  - "[[philippe-lherminier]]"
+  - "[[sven-lindqvist]]"
+  - "[[karl-linnaeus]]"
+  - "[[giuseppe-longo]]"
+  - "[[lpez-beltrn]]"
+  - "[[alfred-lotka]]"
+  - "[[adeline-loyau]]"
+  - "[[m-malaterre]]"
+  - "[[karl-marx]]"
+  - "[[humberto-maturana]]"
+  - "[[pierre-maupertuis]]"
+  - "[[maynard-smith]]"
+  - "[[john-mccain]]"
+  - "[[john-mcculloch]]"
+  - "[[daniel-mcshea]]"
+  - "[[mendel-gregor]]"
+  - "[[john-mill]]"
+  - "[[erika-millam]]"
+  - "[[jon-miller]]"
+  - "[[milne-edwards]]"
+  - "[[lvaro-morenomartnez]]"
+  - "[[thomas-hunt]]"
+  - "[[hermann-mller]]"
+  - "[[n-nadeh]]"
+tags: [organ-transplantation-techniques]
+_indexed: 2026-06-09
+---
+
+# Index of Names
+
+## Authors
+
+- [[alexis-carrel]]
+- [[michel-adanson]]
+- [[giorgio-agamben]]
+- [[albert-the-great]]
+- [[charles-andler]]
+- [[w-arkell]]
+- [[b-babbage]]
+- [[roger-bacon]]
+- [[nora-barlow]]
+- [[simone-bateman]]
+- [[cyrille-baudoin]]
+- [[john-beatty]]
+- [[alain-berthoz]]
+- [[alain-blanchard]]
+- [[johann-blumenbach]]
+- [[catherine-bousquet]]
+- [[samuel-bowles]]
+- [[dan-brock]]
+- [[john-hedley]]
+- [[allen-buchanan]]
+- [[georgeslouis-leclerc-de-buffon]]
+- [[jean-gayon]]
+- [[victor-fonction-indtermine-petit]]
+- [[first-gayon]]
+- [[christopher-cain]]
+- [[alphonse-candolle]]
+- [[anne-carol]]
+- [[edgardo-carosella]]
+- [[claudine-cohen]]
+- [[jim-collins]]
+- [[marie-condorcet]]
+- [[antoine-jean]]
+- [[marquis-nicolas-de-caritat]]
+- [[yvette-conry]]
+- [[e-cope]]
+- [[john-cornell]]
+- [[antoineaugustin-cournot]]
+- [[jerry-coyne]]
+- [[d-dachet]]
+- [[luisa-damiano]]
+- [[antoine-danchin]]
+- [[david-deamer]]
+- [[adrian-desmond]]
+- [[claudeolivier-doron]]
+- [[pierre-duhem]]
+- [[john-dupr]]
+- [[william-durham]]
+- [[f-eldredge]]
+- [[ghiselin-michael]]
+- [[alan-gillen]]
+- [[lucalain-giraldeau]]
+- [[richard-goldschmidt]]
+- [[john-edward-gray]]
+- [[henri-grosjean]]
+- [[colin-groves]]
+- [[alexandra-grutter]]
+- [[colette-guillaumin]]
+- [[heather-haldane]]
+- [[john-sanderson]]
+- [[albrecht-von-haller]]
+- [[jonathan-hodge]]
+- [[jo-hooper]]
+- [[thierry-hoquet]]
+- [[quintus-flaccus]]
+- [[philippe-huneman]]
+- [[jeanren-huynh]]
+- [[korula-mani-jacob]]
+- [[immanuel-kant]]
+- [[vincent-kavaloski]]
+- [[l-lhritier]]
+- [[la-beaumelle]]
+- [[laurent-anglivielle]]
+- [[jean-baptiste-pierre-antoine-de-monet-de-lamarck]]
+- [[dominique-lecourt]]
+- [[antoni-van-leeuwenhoek]]
+- [[gottfried-wilhelm-leibniz]]
+- [[philippe-lherminier]]
+- [[sven-lindqvist]]
+- [[karl-linnaeus]]
+- [[giuseppe-longo]]
+- [[lpez-beltrn]]
+- [[alfred-lotka]]
+- [[adeline-loyau]]
+- [[m-malaterre]]
+- [[karl-marx]]
+- [[humberto-maturana]]
+- [[pierre-maupertuis]]
+- [[maynard-smith]]
+- [[john-mccain]]
+- [[john-mcculloch]]
+- [[daniel-mcshea]]
+- [[mendel-gregor]]
+- [[john-mill]]
+- [[erika-millam]]
+- [[jon-miller]]
+- [[milne-edwards]]
+- [[lvaro-morenomartnez]]
+- [[thomas-hunt]]
+- [[hermann-mller]]
+- [[n-nadeh]]
+
+**DOI:** https://doi.org/10.1002/9781119528210.indspec
+**Journal:** N/A
+**Year:** 2019

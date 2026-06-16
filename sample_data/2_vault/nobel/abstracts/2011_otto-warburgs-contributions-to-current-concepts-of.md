@@ -1,0 +1,23 @@
+---
+title: "Otto Warburg's contributions to current concepts of cancer metabolism"
+doi: "N/A"
+year: 2011
+journal: "N/A"
+authors:
+  - "[[adolf-butenandt]]"
+tags: []
+_indexed: 2026-06-09
+---
+
+# Otto Warburg's contributions to current concepts of cancer metabolism
+
+## Abstract
+
+Willem H. Koppenol*, Patricia L. Bounds* and Chi V. Dang ‡ Abstract | Otto Warburg pioneered quantitative investigations of cancer cell metabolism, as well as photosynthesis and respiration. Warburg and co-workers showed in the 1920s that, under aerobic conditions, tumour tissues metabolize approximately tenfold more glucose to lactate in a given time than normal tissues, a phenomenon known as the Warburg effect. However, this increase in aerobic glycolysis in cancer cells is often erroneously thought to occur instead of mitochondrial respiration and has been misinterpreted as evidence for damage to respiration instead of damage to the regulation of glycolysis. In fact, many cancers exhibit the Warburg effect while retaining mitochondrial respiration. We re-examine Warburg's observations in relation to the current concepts of cancer metabolism as being intimately linked to alterations of mitochondrial DNA, oncogenes and tumour suppressors, and thus readily exploitable for cancer therapy.
+
+## Authors
+
+- [[adolf-butenandt]]
+
+**Journal:** N/A
+**Year:** 2011

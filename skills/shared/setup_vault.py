@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+"""
+setup_vault.py — Configure an Obsidian vault with default settings.
+
+Sets up:
+  - Graph view color groups (people, signals, events, centers)
+  - CSS snippets for note-type visual styling
+  - Folder structure
+  - Tag registry scaffold
+
+Usage:
+  python setup_vault.py /path/to/vault
+  python setup_vault.py /path/to/vault --dry-run
+  python setup_vault.py /path/to/vault --colors-only
+"""
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Color definitions — distinct, accessible palette
+# ---------------------------------------------------------------------------
+# RGB decimal = (R * 65536) + (G * 256) + B
+
+ENTITY_COLORS = {
+    "abstracts": {
+        "hex": "#b79bf2",   # lavender
+        "rgb": 12031986,    # (183, 155, 242)
+        "label": "Abstracts",
+        "query": 'path:"abstracts/"',
+    },
+    "people": {
+        "hex": "#01619d",   # dark teal
+        "rgb": 90525,       # (1, 97, 157)
+        "label": "People",
+        "query": 'path:"people/"',
+    },
+    "signals": {
+        "hex": "#e8575a",   # coral red
+        "rgb": 15226714,    # (232, 87, 90)
+        "label": "Signals",
+        "query": 'path:"signals/"',
+    },
+    "events": {
+        "hex": "#8bc34a",   # lime green
+        "rgb": 9159498,     # (139, 195, 74)
+        "label": "Events",
+        "query": 'path:"events/"',
+    },
+    "centers": {
+        "hex": "#ffa726",   # amber orange
+        "rgb": 16754470,    # (255, 167, 38)
+        "label": "Centers",
+        "query": 'path:"centers/"',
+    },
+    "tags": {
+        "hex": "#ab47bc",   # purple
+        "rgb": 11224508,    # (171, 71, 188)
+        "label": "Tags",
+        "query": 'path:"tags/"',
+    },
+}
+
+
+# ---------------------------------------------------------------------------
+# Graph config
+# ---------------------------------------------------------------------------
+
+def build_graph_json(vault_path: Path) -> dict:
+    """Build graph.json with color groups, preserving existing non-color settings."""
+    graph_path = vault_path / ".obsidian" / "graph.json"
+
+    if graph_path.exists():
+        with open(graph_path) as f:
+            graph = json.load(f)
+    else:
+        graph = {}
+
+    # Build color groups
+    color_groups = []
+    for key, info in ENTITY_COLORS.items():
+        color_groups.append({
+            "query": info["query"],
+            "color": {
+                "a": 1,
+                "rgb": info["rgb"],
+            },
+        })
+
+    graph["colorGroups"] = color_groups
+
+    # Set sensible defaults if not already configured
+    graph.setdefault("collapse-filter", False)
+    graph.setdefault("showTags", True)
+    graph.setdefault("showAttachments", False)
+    graph.setdefault("hideUnresolved", True)
+    graph.setdefault("showOrphans", True)
+    graph.setdefault("collapse-color-groups", False)
+    graph.setdefault("showArrow", True)
+
+    return graph
+
+
+def inject_workspace_graph_colors(vault_path: Path) -> bool:
+    """Inject color groups into any open graph views in workspace.json.
+
+    Obsidian's open graph views use local state from workspace.json,
+    which overrides graph.json. This ensures the colors show up
+    without needing to close and reopen the graph.
+    """
+    ws_path = vault_path / ".obsidian" / "workspace.json"
+    if not ws_path.exists():
+        return False
+
+    with open(ws_path) as f:
+        ws = json.load(f)
+
+    color_groups = []
+    for key, info in ENTITY_COLORS.items():
+        color_groups.append({
+            "query": info["query"],
+            "color": {"a": 1, "rgb": info["rgb"]},
+        })
+
+    modified = False
+
+    def _patch_leaves(node):
+        nonlocal modified
+        if isinstance(node, dict):
+            # Check if this is a graph leaf
+            state = node.get("state", {})
+            if isinstance(state, dict) and state.get("type") == "graph":
+                inner = state.get("state", {})
+                if not isinstance(inner, dict):
+                    inner = {}
+                inner["colorGroups"] = color_groups
+                inner["collapse-color-groups"] = False
+                state["state"] = inner
+                modified = True
+            # Recurse into children
+            for v in node.values():
+                _patch_leaves(v)
+        elif isinstance(node, list):
+            for item in node:
+                _patch_leaves(item)
+
+    _patch_leaves(ws)
+
+    if modified:
+        with open(ws_path, "w") as f:
+            json.dump(ws, f, indent=2)
+
+    return modified
+
+
+# ---------------------------------------------------------------------------
+# CSS snippet
+# ---------------------------------------------------------------------------
+
+def build_css_snippet() -> str:
+    """Build CSS snippet for note-type color coding in the editor."""
+    lines = [
+        "/* Auto-generated by setup_vault.py */",
+        "/* Color coding for entity types in the vault */",
+        "",
+    ]
+
+    # File explorer: color folder names
+    for key, info in ENTITY_COLORS.items():
+        lines.append(f"/* {info['label']} — {info['hex']} */")
+        # Color the folder title in the file explorer
+        lines.append(
+            f'.nav-folder-title[data-path="{key}"] .nav-folder-title-content {{'
+        )
+        lines.append(f"  color: {info['hex']};")
+        lines.append(f"  font-weight: 600;")
+        lines.append("}")
+        # Color the folder collapse icon
+        lines.append(
+            f'.nav-folder-title[data-path="{key}"] .nav-folder-collapse-indicator {{'
+        )
+        lines.append(f"  color: {info['hex']};")
+        lines.append("}")
+        lines.append("")
+
+    # Tag pills in reading/edit mode
+    lines.extend([
+        "/* Tag registry folder */",
+        '.nav-folder-title[data-path="tags"] .nav-folder-title-content {',
+        f"  color: {ENTITY_COLORS['tags']['hex']};",
+        "  font-weight: 600;",
+        "}",
+        "",
+    ])
+
+    # Graph view legend hint (comment only — graph colors come from graph.json)
+    lines.extend([
+        "/* -------------------------------------------------------",
+        "   Graph view colors are set in .obsidian/graph.json",
+        f"   People:  {ENTITY_COLORS['people']['hex']}  (steel blue)",
+        f"   Signals: {ENTITY_COLORS['signals']['hex']}  (coral red)",
+        f"   Events:  {ENTITY_COLORS['events']['hex']}  (lime green)",
+        f"   Centers: {ENTITY_COLORS['centers']['hex']}  (amber orange)",
+        f"   Tags:    {ENTITY_COLORS['tags']['hex']}  (purple)",
+        "   ------------------------------------------------------- */",
+        "",
+    ])
+
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Appearance config
+# ---------------------------------------------------------------------------
+
+def build_appearance_json(vault_path: Path) -> dict:
+    """Update appearance.json to enable CSS snippets."""
+    app_path = vault_path / ".obsidian" / "appearance.json"
+
+    if app_path.exists():
+        with open(app_path) as f:
+            appearance = json.load(f)
+    else:
+        appearance = {}
+
+    # Enable the snippet
+    snippets = appearance.get("enabledCssSnippets", [])
+    if "entity-colors" not in snippets:
+        snippets.append("entity-colors")
+    appearance["enabledCssSnippets"] = snippets
+
+    return appearance
+
+
+# ---------------------------------------------------------------------------
+# Folder structure
+# ---------------------------------------------------------------------------
+
+def ensure_folders(vault_path: Path, dry_run: bool = False) -> list[str]:
+    """Ensure all entity folders exist."""
+    folders = ["people", "signals", "events", "centers", "tags"]
+    created = []
+    for folder in folders:
+        p = vault_path / folder
+        if not p.exists():
+            if not dry_run:
+                p.mkdir(parents=True, exist_ok=True)
+            created.append(folder)
+    return created
+
+
+# ---------------------------------------------------------------------------
+# Tag registry scaffold
+# ---------------------------------------------------------------------------
+
+TAG_REGISTRY_TEMPLATE = """\
+---
+type: registry
+description: Approved tags for the ISU knowledge vault
+updated: {today}
+---
+
+# Tag Registry
+
+| Tag | Category | Description |
+|-----|----------|-------------|
+| ai | topic | Artificial intelligence |
+| machine-learning | topic | Machine learning and deep learning |
+| research-computing | topic | HPC, clusters, research infrastructure |
+| nsf | funder | National Science Foundation |
+| doe | funder | Department of Energy |
+| usda | funder | US Department of Agriculture |
+| genomics | topic | Genomics and genome science |
+| cybersecurity | topic | Cybersecurity and information security |
+| precision-agriculture | topic | Precision and digital agriculture |
+| renewable-energy | topic | Wind, solar, and sustainable energy |
+"""
+
+
+def ensure_tag_registry(vault_path: Path, dry_run: bool = False) -> bool:
+    """Create tag registry if it doesn't exist. Returns True if created."""
+    registry_path = vault_path / "tags" / "tag-registry.md"
+    if registry_path.exists():
+        return False
+    if not dry_run:
+        from datetime import date
+        content = TAG_REGISTRY_TEMPLATE.format(today=date.today().isoformat())
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(content)
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Set up Obsidian vault with color coding and folder structure"
+    )
+    parser.add_argument("vault_path", help="Path to the Obsidian vault root")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Show what would change without writing files")
+    parser.add_argument("--colors-only", action="store_true",
+                        help="Only update graph colors and CSS, skip folder/registry setup")
+    args = parser.parse_args()
+
+    vault = Path(args.vault_path)
+    if not vault.is_dir():
+        print(f"ERROR: {vault} is not a directory", file=sys.stderr)
+        sys.exit(1)
+
+    obsidian_dir = vault / ".obsidian"
+    if not obsidian_dir.exists():
+        if not args.dry_run:
+            obsidian_dir.mkdir(parents=True, exist_ok=True)
+        print(f"  Created .obsidian/")
+
+    print(f"\n=== Vault Setup: {vault} ===\n")
+
+    # 1. Graph color groups
+    graph = build_graph_json(vault)
+    graph_path = obsidian_dir / "graph.json"
+    if not args.dry_run:
+        with open(graph_path, "w") as f:
+            json.dump(graph, f, indent=2)
+    print(f"  Graph colors: {len(graph['colorGroups'])} groups configured")
+    for cg in graph["colorGroups"]:
+        # Find the label
+        label = cg["query"]
+        for key, info in ENTITY_COLORS.items():
+            if info["query"] == cg["query"]:
+                label = f"{info['label']:8s} {info['hex']}  ({info['query']})"
+                break
+        print(f"    {label}")
+
+    # 2. CSS snippet
+    snippets_dir = obsidian_dir / "snippets"
+    css_content = build_css_snippet()
+    css_path = snippets_dir / "entity-colors.css"
+    if not args.dry_run:
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        css_path.write_text(css_content)
+    print(f"\n  CSS snippet: {css_path.name}")
+
+    # 3. Enable snippet in appearance.json
+    appearance = build_appearance_json(vault)
+    app_path = obsidian_dir / "appearance.json"
+    if not args.dry_run:
+        with open(app_path, "w") as f:
+            json.dump(appearance, f, indent=2)
+    print(f"  Appearance: snippet enabled")
+
+    # 3b. Inject colors into open graph views in workspace.json
+    if not args.dry_run:
+        patched = inject_workspace_graph_colors(vault)
+        if patched:
+            print(f"  Workspace: graph view colors injected")
+
+    if not args.colors_only:
+        # 4. Folder structure
+        created = ensure_folders(vault, dry_run=args.dry_run)
+        if created:
+            print(f"\n  Folders created: {', '.join(created)}")
+        else:
+            print(f"\n  Folders: all exist")
+
+        # 5. Tag registry
+        registry_created = ensure_tag_registry(vault, dry_run=args.dry_run)
+        if registry_created:
+            print(f"  Tag registry: created with starter tags")
+        else:
+            print(f"  Tag registry: already exists")
+
+    if args.dry_run:
+        print(f"\n  [DRY RUN] No files were modified.")
+    else:
+        print(f"\n  Done. Restart Obsidian or reload vault to see changes.")
+
+
+if __name__ == "__main__":
+    main()

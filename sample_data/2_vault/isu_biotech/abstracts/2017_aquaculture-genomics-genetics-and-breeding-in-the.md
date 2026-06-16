@@ -1,0 +1,158 @@
+---
+title: "Aquaculture genomics, genetics and breeding in the United States: current status, challenges, and priorities for future research"
+doi: "https://doi.org/10.1186/s12864-017-3557-1"
+year: 2017
+journal: "BMC Genomics"
+pmid: "28219347"
+authors:
+  - "[[andrew-severin]]"
+  - "[[the-aquaculture-genomics-genetics-and-breeding-workshop]]"
+  - "[[hisham-abdelrahman]]"
+  - "[[mohamed-abd-el-hady]]"
+  - "[[acacia-alcivarwarren]]"
+  - "[[standish-allen]]"
+  - "[[rafet-al-tobasei]]"
+  - "[[lisui-bao]]"
+  - "[[benjamin-beck]]"
+  - "[[harvey-blackburn]]"
+  - "[[brian-bosworth]]"
+  - "[[john-buchanan]]"
+  - "[[jesse-chappell]]"
+  - "[[william-daniels]]"
+  - "[[sheng-dong]]"
+  - "[[rex-dunham]]"
+  - "[[evan-durland]]"
+  - "[[ahmed-elaswad]]"
+  - "[[marta-gomez-chiarri]]"
+  - "[[kamal-gosh]]"
+  - "[[ximing-guo]]"
+  - "[[perry-hackett]]"
+  - "[[terry-hanson]]"
+  - "[[dennis-hedgecock]]"
+  - "[[tiffany-howard]]"
+  - "[[leigh-holland]]"
+  - "[[molly-jackson]]"
+  - "[[yulin-jin]]"
+  - "[[karim-khalil]]"
+  - "[[thomas-kocher]]"
+  - "[[timothy-leeds]]"
+  - "[[ning-li]]"
+  - "[[lauren-lindsey]]"
+  - "[[shikai-liu]]"
+  - "[[zhanjiang-liu]]"
+  - "[[kyle-martin]]"
+  - "[[romi-novriadi]]"
+  - "[[ramjie-odin]]"
+  - "[[yniv-palti]]"
+  - "[[eric-peatman]]"
+  - "[[dina-proestou]]"
+  - "[[guyu-qin]]"
+  - "[[benjamin-reading]]"
+  - "[[caird-rexroad]]"
+  - "[[steven-roberts]]"
+  - "[[mohamed-salem]]"
+  - "[[huitong-shi]]"
+  - "[[craig-shoemaker]]"
+  - "[[sheila-stiles]]"
+  - "[[suxu-tan]]"
+  - "[[kathy-tang]]"
+  - "[[wilawan-thongda]]"
+  - "[[terrence-tiersch]]"
+  - "[[joseph-tomasso]]"
+  - "[[wendy-tri-prabowo]]"
+  - "[[roger-vallejo]]"
+  - "[[h-van-der-steen]]"
+  - "[[khoi-vo]]"
+  - "[[geoff-waldbieser]]"
+  - "[[hanping-wang]]"
+  - "[[xiaozhu-wang]]"
+  - "[[jianhai-xiang]]"
+  - "[[yujia-yang]]"
+  - "[[roger-yant]]"
+  - "[[zihao-yuan]]"
+  - "[[qifan-zeng]]"
+  - "[[tao-zhou]]"
+tags: [genomics]
+_indexed: 2026-06-15
+---
+
+# Aquaculture genomics, genetics and breeding in the United States: current status, challenges, and priorities for future research
+
+## Abstract
+
+Advancing the production efficiency and profitability of aquaculture is dependent upon the ability to utilize a diverse array of genetic resources. The ultimate goals of aquaculture genomics, genetics and breeding research are to enhance aquaculture production efficiency, sustainability, product quality, and profitability in support of the commercial sector and for the benefit of consumers. In order to achieve these goals, it is important to understand the genomic structure and organization of aquaculture species, and their genomic and phenomic variations, as well as the genetic basis of traits and their interrelationships. In addition, it is also important to understand the mechanisms of regulation and evolutionary conservation at the levels of genome, transcriptome, proteome, epigenome, and systems biology. With genomic information and information between the genomes and phenomes, technologies for marker/causal mutation-assisted selection, genome selection, and genome editing can be developed for applications in aquaculture. A set of genomic tools and resources must be made available including reference genome sequences and their annotations (including coding and non-coding regulatory elements), genome-wide polymorphic markers, efficient genotyping platforms, high-density and high-resolution linkage maps, and transcriptome resources including non-coding transcripts. Genomic and genetic control of important performance and production traits, such as disease resistance, feed conversion efficiency, growth rate, processing yield, behaviour, reproductive characteristics, and tolerance to environmental stressors like low dissolved oxygen, high or low water temperature and salinity, must be understood. QTL need to be identified, validated across strains, lines and populations, and their mechanisms of control understood. Causal gene(s) need to be identified. Genetic and epigenetic regulation of important aquaculture traits need to be determined, and technologies for marke
+
+## Authors
+
+- [[andrew-severin]]
+- [[the-aquaculture-genomics-genetics-and-breeding-workshop]]
+- [[hisham-abdelrahman]]
+- [[mohamed-abd-el-hady]]
+- [[acacia-alcivarwarren]]
+- [[standish-allen]]
+- [[rafet-al-tobasei]]
+- [[lisui-bao]]
+- [[benjamin-beck]]
+- [[harvey-blackburn]]
+- [[brian-bosworth]]
+- [[john-buchanan]]
+- [[jesse-chappell]]
+- [[william-daniels]]
+- [[sheng-dong]]
+- [[rex-dunham]]
+- [[evan-durland]]
+- [[ahmed-elaswad]]
+- [[marta-gomez-chiarri]]
+- [[kamal-gosh]]
+- [[ximing-guo]]
+- [[perry-hackett]]
+- [[terry-hanson]]
+- [[dennis-hedgecock]]
+- [[tiffany-howard]]
+- [[leigh-holland]]
+- [[molly-jackson]]
+- [[yulin-jin]]
+- [[karim-khalil]]
+- [[thomas-kocher]]
+- [[timothy-leeds]]
+- [[ning-li]]
+- [[lauren-lindsey]]
+- [[shikai-liu]]
+- [[zhanjiang-liu]]
+- [[kyle-martin]]
+- [[romi-novriadi]]
+- [[ramjie-odin]]
+- [[yniv-palti]]
+- [[eric-peatman]]
+- [[dina-proestou]]
+- [[guyu-qin]]
+- [[benjamin-reading]]
+- [[caird-rexroad]]
+- [[steven-roberts]]
+- [[mohamed-salem]]
+- [[huitong-shi]]
+- [[craig-shoemaker]]
+- [[sheila-stiles]]
+- [[suxu-tan]]
+- [[kathy-tang]]
+- [[wilawan-thongda]]
+- [[terrence-tiersch]]
+- [[joseph-tomasso]]
+- [[wendy-tri-prabowo]]
+- [[roger-vallejo]]
+- [[h-van-der-steen]]
+- [[khoi-vo]]
+- [[geoff-waldbieser]]
+- [[hanping-wang]]
+- [[xiaozhu-wang]]
+- [[jianhai-xiang]]
+- [[yujia-yang]]
+- [[roger-yant]]
+- [[zihao-yuan]]
+- [[qifan-zeng]]
+- [[tao-zhou]]
+
+**DOI:** https://doi.org/10.1186/s12864-017-3557-1
+**PMID:** [28219347](https://pubmed.ncbi.nlm.nih.gov/28219347/)
+**Journal:** BMC Genomics
+**Year:** 2017

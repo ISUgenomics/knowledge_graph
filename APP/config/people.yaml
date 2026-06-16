@@ -1,0 +1,422 @@
+# Knowledge Graph Explorer configuration for the people/publications domain
+
+domain:
+  name: people
+
+db:
+  path: ../../runtime_data/vault/vault.db
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: true
+  directory: ../../skills
+  python: python3
+  model: qwen3-coder:30b
+
+server:
+  host: 127.0.0.1
+  port: 8010
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
+  layouts:
+    timeline:
+      enabled: true
+      profile_name: people
+      featured_top_ids: [nobel-prize]
+      order:
+        derive: []
+        numeric_range:
+          min: null
+          max: null
+        direction: asc
+      anchors:
+        x_step: 140
+        z: 0
+        same_value_spread: symmetric
+        same_value_y_step: 90
+      assignment:
+        primary_anchor_rule: strongest_then_earliest
+        edge_type_priority: []
+      layers: {}
+      unanchored:
+        mode: hide_or_dim
+      detection:
+        allow_anchor_type_override: true
+        allow_order_field_override: true
+        detected_type_min_count: 3
+    hierarchical:
+      enabled: true
+      profile_name: people
+
+explore:
+  stub_type: person
+  stub_flag: profiled
+  excluded_node_types: [publication]
+  mediator_type: publication
+  mediator_edge: AUTHORED
+  derived_edge_type: COLLABORATOR
+  hierarchy_edge: BROADER
+  annotation_edge: TAGGED
+  skipped_rel_types: [AUTHORED, COAUTHOR, BROADER]
+
+embedding:
+  type_fields:
+    person: [title, institution, department, summary]
+    publication: [title, year, journal, abstract]
+    award: [title, year, category, motivation]
+    organization: [title, summary, country]
+    signal: [title, topic, summary]
+  default_fields: [title, summary, description]
+  skip_stub_type: person
+  skip_stub_flag: profiled
+
+db_build:
+  source_policy:
+    allowed_domains: []
+    preferred_domains: []
+    blocked_domains: []
+    official_only: false
+  visualization:
+    timeline:
+      preferred_anchor_types: [award, publication]
+      anchor_order_fields:
+        award: [award_year]
+        publication: [year]
+      field_aliases:
+        award_year: [year]
+      weak_order_fields: [created_at, updated_at, pmid]
+      required_metadata_by_type:
+        award: [award_year]
+        publication: [year]
+    hierarchical:
+      relation_classes:
+        hierarchy: [BROADER, PARENT_OF, NARROWER, CHILD_OF]
+        structural: [AUTHORED, WON, CREATED, WROTE, PUBLISHED, PRODUCED, ACKNOWLEDGED]
+        affiliation: [MEMBER_OF, AFFILIATED_WITH, BELONGS_TO, WORKS_AT, PART_OF]
+        annotation: [TAGGED, HAS_TAG, ABOUT, TOPIC, KEYWORD, MENTIONS, CREDITED]
+        associative: [COAUTHOR, COLLABORATOR, RELATED, CITES, CITED]
+      type_families:
+        award: artifact
+        acknowledgement: artifact
+      bands:
+        organization_y: 0.6
+        person_y: 0.0
+        publication_y: -0.65
+        tag_core_y: -3.25
+        tag_domain_y: -2.6
+        tag_field_y: -1.95
+        tag_topic_y: -1.3
+      annotation_driver_default: true
+      mediator_one_side_default: false
+      strict_bands_default: false
+  tagging:
+    ontology:
+      registry_path: ../../sample_data/1_source/people_nobel/tags/tag-registry.json
+      aliases_path: ../../sample_data/1_source/people_nobel/tags/tag-aliases.json
+      hierarchy_path: ../../sample_data/1_source/people_nobel/tags/tag-ontology.json
+      apply_on_build: true
+    entity_policies:
+      person:
+        enabled: true
+        relationship_type: TAGGED
+        default_category: topic
+      publication:
+        enabled: true
+        relationship_type: TAGGED
+        default_category: topic
+    person_tag_promotion:
+      enabled: false
+      source_entity_type: publication
+      source_relation_type: AUTHORED
+      annotation_relation_type: TAGGED
+      hierarchy_relation_type: BROADER
+      min_support_count: 2
+      include_ancestor_tags: false
+      max_tags_per_person: 0
+  person_research:
+    enabled: true
+    extensions: []
+    role_profile:
+      allowed_roles: [person]
+      faculty_titles: []
+      staff_title_keywords: []
+      staff_department_keywords: []
+      student_title_keywords: []
+      default_role: staff
+      summary_target: "who they are and what they do"
+      role_instructions: {}
+    affiliation_verification:
+      not_found_action: skip
+      unavailable_action: fallback
+      fallback_require_any: [department, institutional_email, profile_page]
+    help_prompts:
+      - research this person and include publications
+      - update this person from official institutional or profile sources
+  signal_capture:
+    enabled: true
+    affiliation_profile:
+      institution: Iowa State University
+      flag_field: affiliated
+      internal_label: ISU
+      external_label: External
+      internal_domain_keywords: [iastate.edu]
+      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
+      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
+      default_affiliated: false
+    help_prompts:
+      - capture this article and classify mentioned people
+      - ingest this official announcement and produce a signal note
+  event_research:
+    enabled: true
+    affiliation_profile:
+      institution: Iowa State University
+      flag_field: affiliated
+      internal_label: ISU
+      external_label: External
+      internal_domain_keywords: [iastate.edu]
+      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
+      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
+      default_affiliated: true
+    help_prompts:
+      - research this event from the official event page and attached materials
+      - ingest these event notes and classify attendees
+  center_research:
+    enabled: true
+    affiliation_profile:
+      institution: Iowa State University
+      flag_field: affiliated
+      internal_label: ISU
+      external_label: External
+      internal_domain_keywords: [iastate.edu]
+      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
+      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
+      default_affiliated: true
+    help_prompts:
+      - research this center from its official site and local materials
+      - update this group profile and refresh its members list
+  extensions:
+    isu_profile:
+      institution: Iowa State University
+      institution_short: ISU
+      email_domain: iastate.edu
+      require_kerberos: true
+      kerberos_principal_hint: severin@IASTATE.EDU
+      ldap_server: ldap://windc1.iastate.edu
+      ldap_base: dc=iastate,dc=edu
+      directory_label: LDAP
+      profile_label: profile
+      employee_noun: employee
+      employee_type_label: Employee Type
+      directory_title_label: Directory Title
+      directory_department_label: Directory Department
+      directory_email_label: Directory Email
+      profile_url_templates:
+        - https://www.iastate.edu/directory/{slug}
+        - https://www.iastate.edu/people/{slug}
+        - https://www.bcb.iastate.edu/people/{slug}
+        - https://www.biology.iastate.edu/people/{slug}
+        - https://www.eeob.iastate.edu/people/{slug}
+        - https://www.genetics.iastate.edu/people/{slug}
+        - https://www.gdcb.iastate.edu/people/{slug}
+        - https://www.bbmb.iastate.edu/people/{slug}
+        - https://www.agron.iastate.edu/people/{slug}
+        - https://www.ppem.iastate.edu/people/{slug}
+        - https://www.micro.iastate.edu/people/{slug}
+        - https://www.ans.iastate.edu/people/{slug}
+        - https://www.fshn.iastate.edu/people/{slug}
+        - https://www.hort.iastate.edu/people/{slug}
+        - https://www.vdpam.iastate.edu/people/{slug}
+        - https://www.nrem.iastate.edu/people/{slug}
+        - https://www.cs.iastate.edu/people/{slug}
+        - https://www.ece.iastate.edu/people/{slug}
+        - https://www.me.iastate.edu/people/{slug}
+        - https://www.abe.iastate.edu/people/{slug}
+        - https://www.imse.iastate.edu/people/{slug}
+        - https://www.engineering.iastate.edu/people/{slug}
+        - https://www.aere.iastate.edu/directory/{slug}
+        - https://www.ccee.iastate.edu/directory/{slug}
+        - https://www.mse.iastate.edu/people/{slug}
+        - https://www.datascience.iastate.edu/people/{slug}
+        - https://www.aiira.iastate.edu/people/{slug}
+        - https://www.chem.iastate.edu/people/{slug}
+        - https://www.math.iastate.edu/people/{slug}
+        - https://www.physics.iastate.edu/people/{slug}
+        - https://www.stat.iastate.edu/people/{slug}
+        - https://www.las.iastate.edu/people/{slug}
+        - https://www.cals.iastate.edu/people/{slug}
+        - https://www.cvm.iastate.edu/people/{slug}
+        - https://www.extension.iastate.edu/people/{slug}
+        - https://www.engl.iastate.edu/people/{slug}
+        - https://www.soc.iastate.edu/people/{slug}
+        - https://www.history.iastate.edu/directory/{slug}
+        - https://www.ivybusiness.iastate.edu/directory/{slug}
+        - https://www.biorenew.iastate.edu/people/{slug}
+        - https://www.card.iastate.edu/people/{slug}
+        - https://www.intrans.iastate.edu/people/{slug}
+      staff_listing_urls:
+        - https://www.biotech.iastate.edu/staff/
+        - https://www.lib.iastate.edu/about-us/staff-directory
+        - https://trac-ai.iastate.edu/profiles/
+        - https://celt.iastate.edu/about/staff-directory/
+      acknowledgements:
+        enabled: false
+        relation_type: ACKNOWLEDGES
+        seed_from_staff_authored_only: true
+        expand_to_collaborators: false
+        fetch_remote_text: false
+        prefer_open_access_sources: true
+        use_landing_page_text: true
+        use_europe_pmc: true
+        derive_targets_from_office_structure: true
+        debug_dir: ""
+        min_match_confidence: high
+        section_headings:
+          - acknowledgements
+          - acknowledgments
+          - funding
+          - author contributions and acknowledgements
+        targets:
+          - entity_id: office-of-biotechnology
+            aliases:
+              - Iowa State Office of Biotechnology
+          - entity_id: high-resolution-microscopy-facility
+            aliases:
+              - Roy J. Carver High-Resolution Microscopy Facility
+              - Roy J. Carver High Resolution Microscopy Facility
+          - entity_id: cryo-em-facility
+            aliases: [Cryo-EM Facility, Cryo EM Facility]
+          - entity_id: w-m-keck-metabolomics-research-laboratory
+            aliases:
+              - W.M. Keck Metabolomics Research Laboratory
+              - Keck Metabolomics Research Laboratory
+          - entity_id: materials-analysis-and-research-laboratory
+            aliases: [MARL]
+      publication_harvest:
+        max_papers_per_person: 60
+        max_total_papers: 300
+        not_older_than: 2005
+      role_profile:
+        allowed_roles: [faculty, staff, student]
+        faculty_titles:
+          - Professor
+          - Associate Professor
+          - Assistant Professor
+          - Distinguished Professor
+          - University Professor
+          - Emeritus Professor
+        staff_title_keywords:
+          - Manager
+          - Coordinator
+          - Specialist
+          - Technician
+          - Director
+          - Scientist
+        staff_department_keywords:
+          - Facility
+          - Core
+          - Center
+          - Office of
+          - Institute
+        student_title_keywords:
+          - Graduate Student
+          - PhD Candidate
+          - Postdoc
+          - Undergraduate Researcher
+        default_role: staff
+        summary_target: "who they are and what they do at {institution_short}"
+        role_instructions: {}
+      affiliation_verification:
+        not_found_action: skip
+        unavailable_action: fallback
+        fallback_require_any: [department, institutional_email, profile_page]
+      help_prompts:
+        person_research:
+          - research this person and include publications
+          - update this person from official institutional or profile sources
+        signal_capture:
+          - capture this article and classify mentioned people
+          - ingest this official announcement and produce a signal note
+        event_research:
+          - research this event from the official event page and attached materials
+          - ingest these event notes and classify attendees
+        center_research:
+          - research this center from its official site and local materials
+          - update this group profile and refresh its members list
+    nobel_profile:
+      institution: Nobel Prize
+      institution_short: Nobel
+      email_domain: nobelprize.org
+      require_kerberos: false
+      kerberos_principal_hint: ""
+      ldap_server: ""
+      ldap_base: ""
+      directory_label: Nobel Prize Directory
+      profile_label: laureate profile
+      employee_noun: laureate
+      employee_type_label: Prize Category
+      directory_title_label: Laureate Title
+      directory_department_label: Affiliation
+      directory_email_label: Contact Email
+      api_base_url: https://api.nobelprize.org/2.1
+      laureates_dataset_url: https://api.nobelprize.org/2.1/laureates?limit=2000
+      source_snapshot_dir: ../../sample_data/1_source/people_nobel/api
+      filter_openalex_by_institution: false
+      filter_pubmed_by_institution: false
+      filter_orcid_by_institution: false
+      use_nobel_affiliation_for_scholarly_filters: true
+      profile_url_templates: []
+      staff_listing_urls: []
+      source_policy:
+        allowed_domains:
+          - api.nobelprize.org
+          - nobelprize.org
+          - api.openalex.org
+          - pub.orcid.org
+          - orcid.org
+          - eutils.ncbi.nlm.nih.gov
+          - pubmed.ncbi.nlm.nih.gov
+        preferred_domains:
+          - api.nobelprize.org
+          - nobelprize.org
+        blocked_domains: []
+        official_only: true
+      role_profile:
+        allowed_roles: [laureate, scientist, writer, economist, activist]
+        faculty_titles: []
+        staff_title_keywords: []
+        staff_department_keywords: []
+        student_title_keywords: []
+        default_role: laureate
+        summary_target: "who they are and why they were recognized by {institution_short}"
+        role_instructions:
+          laureate: Use when the person is directly identified as a Nobel laureate or prize recipient.
+          scientist: Use when the person is a scientific laureate and their active scholarly role matters more than the award label.
+          writer: Use for literature laureates whose primary identity is authorship or literary work.
+          economist: Use for economic sciences laureates when their economics identity is primary.
+          activist: Use for peace laureates whose public role is civic, diplomatic, or activist rather than academic.
+      affiliation_verification:
+        not_found_action: fallback
+        unavailable_action: fallback
+        fallback_require_any: [profile_page]
+      help_prompts:
+        person_research:
+          - research this Nobel laureate and include publications and prize history
+          - update this laureate from official Nobel Prize sources only
+        signal_capture:
+          - capture this official Nobel announcement and classify mentioned people
+        event_research:
+          - research this Nobel event from official event pages and attached materials
+        center_research:
+          - research this Nobel-related organization from its official site

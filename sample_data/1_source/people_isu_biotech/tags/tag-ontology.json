@@ -1,0 +1,86 @@
+{
+  "domains": {
+    "biology": [
+      "biomedical",
+      "genomics",
+      "molecular-biology",
+      "plant-science"
+    ],
+    "computing": [
+      "data-science",
+      "research-computing"
+    ],
+    "engineering": [
+      "3d-printing",
+      "materials-science"
+    ],
+    "office-of-biotechnology": [
+      "administration",
+      "cryo-em-facility",
+      "dna-facility",
+      "education-and-outreach",
+      "flow-cytometry-facility",
+      "genome-informatics-facility",
+      "high-resolution-microscopy-facility",
+      "macromolecular-x-ray-crystallography-facility",
+      "materials-analysis-and-research-laboratory",
+      "protein-facility",
+      "w-m-keck-metabolomics-research-laboratory"
+    ],
+    "science": [
+      "physics"
+    ],
+    "social-science": [
+      "education"
+    ]
+  },
+  "field_parents": {
+    "3d-printing": "engineering",
+    "administration": "office-of-biotechnology",
+    "biomedical": "biology",
+    "cryo-em-facility": "office-of-biotechnology",
+    "data-science": "computing",
+    "dna-facility": "office-of-biotechnology",
+    "education": "social-science",
+    "education-and-outreach": "office-of-biotechnology",
+    "flow-cytometry-facility": "office-of-biotechnology",
+    "genome-informatics-facility": "office-of-biotechnology",
+    "genomics": "biology",
+    "high-resolution-microscopy-facility": "office-of-biotechnology",
+    "macromolecular-x-ray-crystallography-facility": "office-of-biotechnology",
+    "materials-analysis-and-research-laboratory": "office-of-biotechnology",
+    "materials-science": "engineering",
+    "molecular-biology": "biology",
+    "physics": "science",
+    "plant-science": "biology",
+    "protein-facility": "office-of-biotechnology",
+    "research-computing": "computing",
+    "w-m-keck-metabolomics-research-laboratory": "office-of-biotechnology"
+  },
+  "leaf_parents": {
+    "advanced-biosensing": "biomedical",
+    "barrier-structure": "biomedical",
+    "complement-system": "biomedical",
+    "enzyme-structure": "molecular-biology",
+    "force-microscopy": "research-computing",
+    "genetic-mapping": "molecular-biology",
+    "genetics-bioinformatics": "data-science",
+    "graphene": "materials-science",
+    "gut-microbiota": "molecular-biology",
+    "legume-nitrogen-fixing-symbiosis": "plant-science",
+    "microbial-infections": "molecular-biology",
+    "nanoparticles-nucleation-surface": "materials-science",
+    "nematode-management": "molecular-biology",
+    "neuroscience": "biomedical",
+    "plant-microbe-interactions": "plant-science",
+    "plant-nutrient-uptake": "plant-science",
+    "plant-pathogens": "molecular-biology",
+    "plant-tissue-culture": "plant-science",
+    "plant-virus": "molecular-biology",
+    "pneumonia": "biomedical",
+    "protein-structure": "molecular-biology",
+    "proteins-in-food-systems": "molecular-biology",
+    "soybean-genetics": "molecular-biology"
+  },
+  "unassigned": []
+}

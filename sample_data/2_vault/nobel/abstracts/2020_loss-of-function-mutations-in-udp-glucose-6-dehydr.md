@@ -1,0 +1,198 @@
+---
+title: "Loss-of-function mutations in UDP-Glucose 6-Dehydrogenase cause recessive developmental epileptic encephalopathy"
+doi: "10.1038/s41467-020-14360-7"
+year: 2020
+journal: "Nature communications"
+pmid: "32001716"
+authors:
+  - "[[adam-g.-riess]]"
+  - "[[hengel-h]]"
+  - "[[bossolefvre-c]]"
+  - "[[grady-g]]"
+  - "[[szenkerravi-e]]"
+  - "[[li-h]]"
+  - "[[pierce-s]]"
+  - "[[lebigot]]"
+  - "[[tan-tt]]"
+  - "[[eio-my]]"
+  - "[[narayanan-g]]"
+  - "[[utami-kh]]"
+  - "[[yau-m]]"
+  - "[[handal-n]]"
+  - "[[deigendesch-w]]"
+  - "[[keimer-r]]"
+  - "[[marzouqa-hm]]"
+  - "[[gunayaygun-m]]"
+  - "[[muriello-mj]]"
+  - "[[verhelst-h]]"
+  - "[[weckhuysen-s]]"
+  - "[[mahida-s]]"
+  - "[[naidu-s]]"
+  - "[[thomas-tg]]"
+  - "[[lim-jy]]"
+  - "[[tan-es]]"
+  - "[[haye-d]]"
+  - "[[willemsen-maap]]"
+  - "[[oegema-r]]"
+  - "[[mitchell-wg]]"
+  - "[[pierson-tm]]"
+  - "[[andrews-mv]]"
+  - "[[willing-mc]]"
+  - "[[rodan-lh]]"
+  - "[[barakat-ts]]"
+  - "[[van-slegtenhorst-m]]"
+  - "[[gavrilova-rh]]"
+  - "[[martinelli-d]]"
+  - "[[gilboa-t]]"
+  - "[[tamim-am]]"
+  - "[[hashem-mo]]"
+  - "[[alsayed-md]]"
+  - "[[abdulrahim-mm]]"
+  - "[[alowain-m]]"
+  - "[[awaji-a]]"
+  - "[[mahmoud-aah]]"
+  - "[[faqeih-ea]]"
+  - "[[asmari-aa]]"
+  - "[[algain-sm]]"
+  - "[[jad-la]]"
+  - "[[aldhalaan-hm]]"
+  - "[[helbig-i]]"
+  - "[[koolen-da]]"
+  - "[[adam-g-riess]]"
+  - "[[kraegelohmann-i]]"
+  - "[[bauer-p]]"
+  - "[[gulsuner-s]]"
+  - "[[stamberger-h]]"
+  - "[[ng-ayj]]"
+  - "[[tang-s]]"
+  - "[[tohari-s]]"
+  - "[[keren-b]]"
+  - "[[schultzrogers-le]]"
+  - "[[klee-ew]]"
+  - "[[barresi-s]]"
+  - "[[tartaglia-m]]"
+  - "[[morshaked-h]]"
+  - "[[maddirevula-s]]"
+  - "[[begtrup-a]]"
+  - "[[telegrafi-a]]"
+  - "[[pfundt-r]]"
+  - "[[schle-r]]"
+  - "[[ciruna-b]]"
+  - "[[bonnard-c]]"
+  - "[[pouladi-ma]]"
+  - "[[stewart-jc]]"
+  - "[[claridgechang-a]]"
+  - "[[lefeber-dj]]"
+  - "[[alkuraya-fs]]"
+  - "[[mathuru-as]]"
+  - "[[venkatesh-b]]"
+  - "[[barycki-jj]]"
+  - "[[simpson-ma]]"
+  - "[[jamuar-ss]]"
+  - "[[schls-l]]"
+  - "[[reversade-b]]"
+  - "[[riess-a]]"
+tags: [metabolism]
+_indexed: 2026-06-09
+---
+
+# Loss-of-function mutations in UDP-Glucose 6-Dehydrogenase cause recessive developmental epileptic encephalopathy
+
+## Abstract
+
+Developmental epileptic encephalopathies are devastating disorders characterized by intractable epileptic seizures and developmental delay. Here, we report an allelic series of germline recessive mutations in UGDH in 36 cases from 25 families presenting with epileptic encephalopathy with developmental delay and hypotonia. UGDH encodes an oxidoreductase that converts UDP-glucose to UDP-glucuronic acid, a key component of specific proteoglycans and glycolipids. Consistent with being loss-of-function alleles, we show using patients' primary fibroblasts and biochemical assays, that these mutations either impair UGDH stability, oligomerization, or enzymatic activity. In vitro, patient-derived cerebral organoids are smaller with a reduced number of proliferating neuronal progenitors while mutant ugdh zebrafish do not phenocopy the human disease. Our study defines UGDH as a key player for the production of extracellular matrix components that are essential for human brain development. Based on the incidence of variants observed, UGDH mutations are likely to be a frequent cause of recessive epileptic encephalopathy.
+
+## Authors
+
+- [[adam-g.-riess]]
+- [[hengel-h]]
+- [[bossolefvre-c]]
+- [[grady-g]]
+- [[szenkerravi-e]]
+- [[li-h]]
+- [[pierce-s]]
+- [[lebigot]]
+- [[tan-tt]]
+- [[eio-my]]
+- [[narayanan-g]]
+- [[utami-kh]]
+- [[yau-m]]
+- [[handal-n]]
+- [[deigendesch-w]]
+- [[keimer-r]]
+- [[marzouqa-hm]]
+- [[gunayaygun-m]]
+- [[muriello-mj]]
+- [[verhelst-h]]
+- [[weckhuysen-s]]
+- [[mahida-s]]
+- [[naidu-s]]
+- [[thomas-tg]]
+- [[lim-jy]]
+- [[tan-es]]
+- [[haye-d]]
+- [[willemsen-maap]]
+- [[oegema-r]]
+- [[mitchell-wg]]
+- [[pierson-tm]]
+- [[andrews-mv]]
+- [[willing-mc]]
+- [[rodan-lh]]
+- [[barakat-ts]]
+- [[van-slegtenhorst-m]]
+- [[gavrilova-rh]]
+- [[martinelli-d]]
+- [[gilboa-t]]
+- [[tamim-am]]
+- [[hashem-mo]]
+- [[alsayed-md]]
+- [[abdulrahim-mm]]
+- [[alowain-m]]
+- [[awaji-a]]
+- [[mahmoud-aah]]
+- [[faqeih-ea]]
+- [[asmari-aa]]
+- [[algain-sm]]
+- [[jad-la]]
+- [[aldhalaan-hm]]
+- [[helbig-i]]
+- [[koolen-da]]
+- [[adam-g-riess]]
+- [[kraegelohmann-i]]
+- [[bauer-p]]
+- [[gulsuner-s]]
+- [[stamberger-h]]
+- [[ng-ayj]]
+- [[tang-s]]
+- [[tohari-s]]
+- [[keren-b]]
+- [[schultzrogers-le]]
+- [[klee-ew]]
+- [[barresi-s]]
+- [[tartaglia-m]]
+- [[morshaked-h]]
+- [[maddirevula-s]]
+- [[begtrup-a]]
+- [[telegrafi-a]]
+- [[pfundt-r]]
+- [[schle-r]]
+- [[ciruna-b]]
+- [[bonnard-c]]
+- [[pouladi-ma]]
+- [[stewart-jc]]
+- [[claridgechang-a]]
+- [[lefeber-dj]]
+- [[alkuraya-fs]]
+- [[mathuru-as]]
+- [[venkatesh-b]]
+- [[barycki-jj]]
+- [[simpson-ma]]
+- [[jamuar-ss]]
+- [[schls-l]]
+- [[reversade-b]]
+- [[riess-a]]
+
+**DOI:** 10.1038/s41467-020-14360-7
+**PMID:** [32001716](https://pubmed.ncbi.nlm.nih.gov/32001716/)
+**Journal:** Nature communications
+**Year:** 2020

@@ -1,0 +1,54 @@
+# Knowledge Graph Explorer — Protein Features database
+#
+# Usage: python -m kgx --config config/proteins.yaml
+
+domain:
+  name: proteins
+
+db:
+  path: ../../runtime_data/kgx_features.db  # replace with your protein KGX SQLite file
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: false
+
+server:
+  host: 127.0.0.1
+  port: 8000
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
+
+explore:
+  stub_type: ""
+  excluded_node_types: [lcr_type]
+  mediator_type: lcr_type
+  mediator_edge: HAS_LCR
+  derived_edge_type: SIMILAR_COMPOSITION
+  hierarchy_edge: ""
+  annotation_edge: ""
+  skipped_rel_types: [HAS_LCR]
+
+embedding:
+  type_fields:
+    protein: [structure_class, top_amino_acids, sequence_length, disorder_pct]
+    domain: [kind]
+  default_fields: [name, category]
+
+db_build:
+  source_policy:
+    allowed_domains: []
+    preferred_domains: []
+    blocked_domains: []
+    official_only: false
