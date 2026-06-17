@@ -25,15 +25,135 @@ export function initSidebar(container, eventBus, apiClient) {
     let defaultVisibleRelTypes = null;  // null = all visible by default
     let edgeDefaultsApplied = false;
     let graphVisibleNodesByType = {};
+    let graphAvailableTypes = [];
     let previousRelTypes = new Set();
+    let uncheckedNodeTypes = new Set();
+    let uncheckedNodeGroups = new Set();
+    let hierarchyTypeFamilies = {};
+    let currentProjectionMeta = {};
+
+    const GENOMICS_PRIMARY_TYPES = new Set(['gene', 'transcript', 'protein', 'orthogroup', 'bcn_gene']);
+    const GENOMICS_SECONDARY_TYPES = new Set(['annotation_term', 'localization_call', 'prediction_call', 'expression_measure', 'contrast_definition', 'tag']);
+    const SIDEBAR_HIDDEN_TYPES = new Set(['dataset']);
+    const AGGREGATED_ENTITY_TYPES = new Set(['localization_call', 'prediction_call']);
+    const GENOMICS_TYPE_ORDER = new Map([
+        ['organism', 0],
+        ['chromosome', 1],
+        ['gene', 2],
+        ['transcript', 3],
+        ['protein', 4],
+        ['orthogroup', 10],
+        ['bcn_gene', 11],
+        ['comparative_hit', 12],
+        ['expression_measure', 20],
+        ['contrast_definition', 21],
+        ['localization_call', 22],
+        ['prediction_call', 23],
+        ['annotation_term', 30],
+        ['tag', 31],
+        ['dataset', 40],
+    ]);
+    const FIXED_TYPE_COLORS = {
+        gene: '#4e9af1',
+        transcript: '#f1a34e',
+        protein: '#4ef17a',
+        orthogroup: '#f14e4e',
+        bcn_gene: '#ff7a7a',
+        comparative_hit: '#ffb347',
+        annotation_term: '#c34ef1',
+        localization_call: '#4ef1e8',
+        prediction_call: '#f1e24e',
+        expression_measure: '#f14eb5',
+        contrast_definition: '#7fe3a0',
+        tag: '#9aa4b2',
+    };
+    const TYPE_LABELS = {
+        gene: 'gene',
+        transcript: 'transcript',
+        protein: 'protein',
+        orthogroup: 'orthogroup',
+        bcn_gene: 'ortholog gene',
+        comparative_hit: 'homology hit',
+        annotation_term: 'annotation',
+        localization_call: 'localization',
+        prediction_call: 'prediction',
+        expression_measure: 'expression',
+        contrast_definition: 'dge contrast',
+        tag: 'tag',
+    };
+    const TYPE_TOOLTIPS = {
+        organism: 'Biological root organism for the current genomics graph.',
+        dataset: 'Dataset provenance container for imported gene records.',
+        chromosome: 'Chromosome or scaffold grouping genes by physical genomic locus.',
+        gene: 'Gene records with genomic identity and locus-level attributes.',
+        transcript: 'Transcript records with RNA sequence and transcript-level measurements.',
+        protein: 'Protein records with annotation, localization, structure, and composition features.',
+        orthogroup: 'Comparative gene-family groupings shared across related genes.',
+        bcn_gene: 'External ortholog genes from H. schachtii, the beet cyst nematode (BCN), used for family-level comparison.',
+        comparative_hit: 'Specific homology-hit records that capture matched proteins used as comparative evidence.',
+        annotation_term: 'Promoted annotation terms such as GO, InterPro, Pfam, SMART, FunFam, and PANTHER.',
+        localization_call: 'Promoted deterministic localization values derived from localization columns and tools.',
+        prediction_call: 'Promoted score- or binary-style prediction features derived from sequence-based tools.',
+        expression_measure: 'Shared expression-stage or condition concepts linked directly to transcripts with per-edge values.',
+        contrast_definition: 'Shared differential-expression contrast concepts linked directly to transcripts with per-edge values.',
+        tag: 'Broad ontology and category tags used for grouping and hierarchy.',
+    };
+    const EDGE_LABELS = {
+        HAS_TRANSCRIPT: 'transcribed',
+        TRANSLATED_TO: 'translated',
+        BELONGS_TO_ORTHOGROUP: 'orthogroup',
+        HAS_BCN_MEMBER: 'ortholog member',
+        HAS_BCN_HIT: 'BCN hit',
+        HAS_NEMATODE_HIT: 'nematode hit',
+        HAS_BROAD_HOMOLOGY_HIT: 'broad hit',
+        HAS_ANNOTATION: 'annotated',
+        HAS_LOCALIZATION: 'localized',
+        HAS_PREDICTION: 'predicted',
+        HAS_EXPRESSION_SUMMARY: 'expressed',
+        HAS_EXPRESSION_CONTRAST: 'dge contrast',
+        CONTRAST_SOURCE: 'contrast from',
+        CONTRAST_TARGET: 'contrast to',
+        MEASURED_AS: 'measure',
+        CONTRAST_TYPE: 'contrast',
+        IN_DATASET: 'in dataset',
+        BROADER: 'broader',
+        TAGGED: 'tagged',
+    };
+    const EDGE_TOOLTIPS = {
+        HAS_TRANSCRIPT: 'Links a gene to its transcript records.',
+        TRANSLATED_TO: 'Links a transcript to its translated protein record.',
+        BELONGS_TO_ORTHOGROUP: 'Links a gene to a comparative orthogroup.',
+        HAS_BCN_MEMBER: 'Links an orthogroup to an external ortholog gene from H. schachtii.',
+        HAS_BCN_HIT: 'Links a protein to a specific H. schachtii homology hit.',
+        HAS_NEMATODE_HIT: 'Links a protein to a broader nematode homology hit.',
+        HAS_BROAD_HOMOLOGY_HIT: 'Links a protein to broader parasite or database homology evidence.',
+        HAS_ANNOTATION: 'Links a biological record to a promoted annotation concept.',
+        HAS_LOCALIZATION: 'Links a biological record to a promoted deterministic localization concept.',
+        HAS_PREDICTION: 'Links a biological record to a promoted score- or binary-style prediction concept.',
+        HAS_EXPRESSION_SUMMARY: 'Links a transcript directly to a shared expression concept; the edge stores the transcript-specific value.',
+        HAS_EXPRESSION_CONTRAST: 'Links a transcript directly to a shared differential-expression contrast; the edge stores the transcript-specific value.',
+        CONTRAST_SOURCE: 'Links a contrast definition to the source-side expression summary in canonical left-to-right order.',
+        CONTRAST_TARGET: 'Links a contrast definition to the target-side expression summary in canonical left-to-right order.',
+        MEASURED_AS: 'Internal relation reserved for legacy or transitional expression modeling.',
+        CONTRAST_TYPE: 'Internal relation reserved for legacy or transitional contrast modeling.',
+        IN_DATASET: 'Links a record to the dataset it belongs to.',
+        BROADER: 'Ontology hierarchy link from a narrower concept to a broader one.',
+        TAGGED: 'Grouping link to a broad ontology or category tag.',
+    };
 
     // Receive the active graph projection and mirror it exactly in the sidebar.
-    eventBus.on('graph:projection', ({ typeColors, entityTypes, relTypeCounts, autoHiddenRelTypes, visibleNodesByType }) => {
+    eventBus.on('graph:projection', ({ typeColors, entityTypes, availableEntityTypes, relTypeCounts, autoHiddenRelTypes, visibleNodesByType, projectionMeta }) => {
         if (typeColors) {
             typeColorMap = { ...typeColors };
         }
+        currentProjectionMeta = { ...(projectionMeta || {}) };
         if (entityTypes) {
             typeData = [...entityTypes];
+        }
+        if (availableEntityTypes) {
+            graphAvailableTypes = [...availableEntityTypes];
+        } else if (entityTypes) {
+            graphAvailableTypes = [...entityTypes];
         }
         if (visibleNodesByType) {
             graphVisibleNodesByType = { ...visibleNodesByType };
@@ -70,6 +190,10 @@ export function initSidebar(container, eventBus, apiClient) {
     ];
     let paletteIdx = 0;
     function typeColor(type) {
+        if (FIXED_TYPE_COLORS[type]) {
+            typeColorMap[type] = FIXED_TYPE_COLORS[type];
+            return FIXED_TYPE_COLORS[type];
+        }
         if (!typeColorMap[type]) {
             typeColorMap[type] = PALETTE[paletteIdx % PALETTE.length];
             paletteIdx++;
@@ -85,6 +209,10 @@ export function initSidebar(container, eventBus, apiClient) {
                 if (Array.isArray(vis) && vis.length) {
                     defaultVisibleRelTypes = new Set(vis.map(x => String(x)));
                 }
+                hierarchyTypeFamilies = Object.fromEntries(
+                    Object.entries(cfg?.ui?.layouts?.hierarchical?.type_families || {})
+                        .map(([key, value]) => [String(key).toLowerCase(), String(value).toLowerCase()])
+                );
             } catch (_) { /* optional */ }
             loadError = '';
             edgeDefaultsApplied = false;
@@ -100,11 +228,33 @@ export function initSidebar(container, eventBus, apiClient) {
         return graphVisibleNodesByType[type] || [];
     }
 
+    function shouldAggregateEntityType(type) {
+        return AGGREGATED_ENTITY_TYPES.has(type);
+    }
+
     function filteredList(type) {
         const list = entityList(type);
         if (!searchQuery) return list;
         const q = searchQuery.toLowerCase();
         return list.filter(e => e.name.toLowerCase().includes(q));
+    }
+
+    function groupedEntityList(type) {
+        const items = filteredList(type);
+        if (!shouldAggregateEntityType(type)) {
+            return items.map(item => ({ kind: 'single', ...item }));
+        }
+        const grouped = new Map();
+        for (const item of items) {
+            const key = String(item.name || '').trim();
+            if (!grouped.has(key)) {
+                grouped.set(key, { kind: 'group', name: key, ids: [], count: 0 });
+            }
+            const group = grouped.get(key);
+            group.ids.push(item.id);
+            group.count += 1;
+        }
+        return [...grouped.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
     }
 
     function render() {
@@ -167,73 +317,254 @@ export function initSidebar(container, eventBus, apiClient) {
         bindSqlFilterForm();
     }
 
+    function getVisibleCountForType(type) {
+        return (graphVisibleNodesByType[type] || []).length;
+    }
+
+    function displayTypeName(type) {
+        return TYPE_LABELS[type] || type;
+    }
+
+    function typeTooltip(type) {
+        return TYPE_TOOLTIPS[type] || `Toggle and browse the ${displayTypeName(type)} node layer.`;
+    }
+
+    function displayEdgeName(relType) {
+        return EDGE_LABELS[relType] || String(relType).toLowerCase();
+    }
+
+    function edgeTooltip(relType) {
+        return EDGE_TOOLTIPS[relType] || `Toggle visibility of ${displayEdgeName(relType)} relationships.`;
+    }
+
+    function isGenomicsLikeProjection() {
+        const types = new Set(graphAvailableTypes.map(t => t.type));
+        return ['gene', 'transcript', 'protein'].every(type => types.has(type));
+    }
+
+    function configuredTypeFamily(type) {
+        return hierarchyTypeFamilies[String(type || '').toLowerCase()] || '';
+    }
+
+    function visibleTagGroups() {
+        return Array.isArray(currentProjectionMeta?.visible_tag_groups)
+            ? currentProjectionMeta.visible_tag_groups
+            : [];
+    }
+
+    function tagGroupItems(tagIds) {
+        const tagNodes = graphVisibleNodesByType.tag || [];
+        const wanted = new Set((tagIds || []).map(String));
+        return tagNodes.filter(item => wanted.has(String(item.id)));
+    }
+
+    function displayGroupName(group) {
+        return String(group?.label || group?.id || 'tag group');
+    }
+
+    function groupTooltip(group) {
+        return `Toggle and browse the ${displayGroupName(group)} ontology branch.`;
+    }
+
+    function compareTypesForSidebar(a, b) {
+        const left = String(a?.type || '');
+        const right = String(b?.type || '');
+        const leftRank = GENOMICS_TYPE_ORDER.has(left) ? GENOMICS_TYPE_ORDER.get(left) : 999;
+        const rightRank = GENOMICS_TYPE_ORDER.has(right) ? GENOMICS_TYPE_ORDER.get(right) : 999;
+        if (leftRank !== rightRank) return leftRank - rightRank;
+        return left.localeCompare(right);
+    }
+
     function renderSections(sectionsEl) {
         if (!sectionsEl) return;
         sectionsEl.innerHTML = '';
-        for (const t of typeData) {
-            const section = document.createElement('div');
-            section.className = 'sidebar-section';
-            const isExpanded = expandedTypes.has(t.type);
-            const color = typeColor(t.type);
-            const displayCount = graphVisibleNodesByType[t.type]?.length ?? t.count;
+        const available = graphAvailableTypes.filter(item => {
+            if (SIDEBAR_HIDDEN_TYPES.has(item.type)) return false;
+            if (configuredTypeFamily(item.type) === 'provenance') return false;
+            return true;
+        });
+        if (!available.length) return;
 
-            section.innerHTML = `
-                <div class="sidebar-section-header" data-type="${t.type}">
-                    <span class="sidebar-dot" style="background:${color}"></span>
-                    <span class="sidebar-section-title">${t.type}</span>
-                    <span class="sidebar-count">${displayCount}</span>
-                    <span class="sidebar-chevron">${isExpanded ? '▾' : '▸'}</span>
+        const genomicsFamiliesPresent = available.some(item =>
+            ['backbone', 'comparative', 'measurement', 'ontology', 'provenance'].includes(configuredTypeFamily(item.type))
+        );
+        const ontologyTagGroups = visibleTagGroups().filter(group => Array.isArray(group.node_ids) && group.node_ids.length > 0);
+        const groupedTagIds = new Set(ontologyTagGroups.flatMap(group => group.node_ids.map(String)));
+        const ontologyTypeItems = available
+            .filter(item => configuredTypeFamily(item.type) === 'ontology')
+            .filter(item => item.type !== 'tag');
+        const leftoverTagItem = available.find(item => item.type === 'tag');
+        const leftoverTagCount = tagGroupItems((graphVisibleNodesByType.tag || []).map(item => item.id).filter(id => !groupedTagIds.has(String(id)))).length;
+        const ontologyItems = [
+            ...ontologyTypeItems.sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })),
+            ...ontologyTagGroups.map(group => ({
+                kind: 'tag_group',
+                id: String(group.id),
+                label: displayGroupName(group),
+                count: tagGroupItems(group.node_ids).length,
+                node_ids: [...group.node_ids],
+            })),
+        ];
+        if (leftoverTagItem && leftoverTagCount > 0) {
+            ontologyItems.push({ kind: 'type', ...leftoverTagItem, count: leftoverTagCount });
+        }
+        const groups = genomicsFamiliesPresent
+            ? [
+                { title: 'Structure', items: available.filter(item => configuredTypeFamily(item.type) === 'backbone').sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                { title: 'Comparative', items: available.filter(item => configuredTypeFamily(item.type) === 'comparative').sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                { title: 'Measurements', items: available.filter(item => configuredTypeFamily(item.type) === 'measurement').sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                { title: 'Ontology', items: ontologyItems },
+                { title: 'Other Types', items: available.filter(item => !configuredTypeFamily(item.type) || configuredTypeFamily(item.type) === 'other').sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+            ]
+            : isGenomicsLikeProjection()
+                ? [
+                    { title: 'Node Types', items: available.filter(item => GENOMICS_PRIMARY_TYPES.has(item.type)).sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                    { title: 'Scientific Layers', items: available.filter(item => GENOMICS_SECONDARY_TYPES.has(item.type)).sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                    { title: 'Other Types', items: available.filter(item => !GENOMICS_PRIMARY_TYPES.has(item.type) && !GENOMICS_SECONDARY_TYPES.has(item.type)).sort(compareTypesForSidebar).map(item => ({ kind: 'type', ...item })) },
+                ]
+                : [
+                    { title: 'Node Types', items: available.map(item => ({ kind: 'type', ...item })) },
+                ];
+
+        for (const group of groups) {
+            if (!group.items.length) continue;
+            const groupWrap = document.createElement('div');
+            groupWrap.className = 'sidebar-section';
+            groupWrap.innerHTML = `
+                <div class="sidebar-section-header edge-filters-header">
+                    <span class="sidebar-section-title">${escHtml(group.title)}</span>
                 </div>
-                <div class="sidebar-entity-list ${isExpanded ? 'expanded' : ''}" data-list-type="${t.type}"></div>
+                <div class="sidebar-type-group"></div>
             `;
+            const groupEl = groupWrap.querySelector('.sidebar-type-group');
 
-            const header = section.querySelector('.sidebar-section-header');
-            header.setAttribute('role', 'button');
-            header.setAttribute('tabindex', '0');
-            const openSection = () => toggleSection(t.type, section);
-            header.addEventListener('click', (ev) => { ev.preventDefault(); openSection(); });
-            header.addEventListener('keydown', (ev) => {
-                if (ev.key === 'Enter' || ev.key === ' ') {
-                    ev.preventDefault(); openSection();
+            for (const t of group.items) {
+                const section = document.createElement('div');
+                section.className = 'sidebar-subsection';
+                const itemKey = t.kind === 'tag_group' ? `tag-root:${t.id}` : t.type;
+                const isExpanded = expandedTypes.has(itemKey);
+                const color = t.kind === 'tag_group' ? typeColor('tag') : typeColor(t.type);
+                const visibleCount = t.kind === 'tag_group' ? tagGroupItems(t.node_ids).length : getVisibleCountForType(t.type);
+                const availableCount = t.count || 0;
+                const countLabel = visibleCount === availableCount ? `${visibleCount}` : `${visibleCount}/${availableCount}`;
+                const isChecked = t.kind === 'tag_group'
+                    ? !uncheckedNodeGroups.has(t.id)
+                    : !uncheckedNodeTypes.has(t.type);
+                const title = t.kind === 'tag_group' ? groupTooltip(t) : typeTooltip(t.type);
+                const displayName = t.kind === 'tag_group' ? displayGroupName(t) : displayTypeName(t.type);
+
+                section.innerHTML = `
+                    <div class="sidebar-section-header sidebar-type-header" data-type="${escHtml(itemKey)}" title="${escHtml(title)}">
+                        <span class="sidebar-checkbox-control" title="${escHtml(title)}">
+                            <input type="checkbox" class="sidebar-row-toggle-input sidebar-type-toggle" data-type="${escHtml(itemKey)}" ${isChecked ? 'checked' : ''} aria-label="Toggle ${escHtml(displayName)} visibility" title="${escHtml(title)}">
+                            <span class="sidebar-checkbox-box" aria-hidden="true"></span>
+                        </span>
+                        <span class="sidebar-dot" style="background:${color}"></span>
+                        <span class="sidebar-section-title">${escHtml(displayName)}</span>
+                        <span class="sidebar-count">${escHtml(countLabel)}</span>
+                    </div>
+                    <div class="sidebar-entity-list ${isExpanded ? 'expanded' : ''}" data-list-type="${escHtml(itemKey)}"></div>
+                `;
+
+                const header = section.querySelector('.sidebar-type-header');
+                const checkbox = section.querySelector('.sidebar-type-toggle');
+                const checkboxControl = section.querySelector('.sidebar-checkbox-control');
+                header.setAttribute('role', 'button');
+                header.setAttribute('tabindex', '0');
+                const openSection = () => toggleSection(itemKey, section, t);
+                header.addEventListener('click', (ev) => {
+                    if (ev.target === checkbox || ev.target.closest('.sidebar-checkbox-control')) return;
+                    ev.preventDefault();
+                    openSection();
+                });
+                header.addEventListener('keydown', (ev) => {
+                    if (ev.target === checkbox || ev.target.closest('.sidebar-checkbox-control')) return;
+                    if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        openSection();
+                    }
+                });
+                checkboxControl?.addEventListener('click', ev => ev.stopPropagation());
+                checkbox.addEventListener('click', ev => ev.stopPropagation());
+                checkbox.addEventListener('change', () => {
+                    if (t.kind === 'tag_group') {
+                        if (checkbox.checked) {
+                            uncheckedNodeGroups.delete(t.id);
+                        } else {
+                            uncheckedNodeGroups.add(t.id);
+                        }
+                        eventBus.emit('node:group-filter', {
+                            group_id: t.id,
+                            node_ids: t.node_ids,
+                            visible: checkbox.checked,
+                        });
+                    } else {
+                        if (checkbox.checked) {
+                            uncheckedNodeTypes.delete(t.type);
+                        } else {
+                            uncheckedNodeTypes.add(t.type);
+                        }
+                        eventBus.emit('node:type-filter', {
+                            node_type: t.type,
+                            visible: checkbox.checked,
+                        });
+                    }
+                });
+
+                groupEl.appendChild(section);
+                if (isExpanded) {
+                    renderEntityList(section.querySelector(`[data-list-type="${CSS.escape(itemKey)}"]`), t);
                 }
-            });
-
-            sectionsEl.appendChild(section);
-
-            if (isExpanded) {
-                renderEntityList(section.querySelector(`[data-list-type="${t.type}"]`), t.type);
             }
+
+            sectionsEl.appendChild(groupWrap);
         }
     }
 
-    function toggleSection(type, sectionEl) {
-        const listEl = sectionEl.querySelector(`[data-list-type="${type}"]`);
+    function toggleSection(typeKey, sectionEl, item) {
+        const listEl = sectionEl.querySelector(`[data-list-type="${CSS.escape(typeKey)}"]`);
         const chevron = sectionEl.querySelector('.sidebar-chevron');
 
-        if (expandedTypes.has(type)) {
-            expandedTypes.delete(type);
+        if (expandedTypes.has(typeKey)) {
+            expandedTypes.delete(typeKey);
             listEl.classList.remove('expanded');
             if (chevron) chevron.textContent = '▸';
         } else {
-            expandedTypes.add(type);
+            expandedTypes.add(typeKey);
             listEl.classList.add('expanded');
             if (chevron) chevron.textContent = '▾';
-            renderEntityList(listEl, type);
+            renderEntityList(listEl, item);
         }
     }
 
-    function renderEntityList(listEl, type) {
+    function renderEntityList(listEl, item) {
         if (!listEl) return;
-        const items = filteredList(type);
+        const type = item.kind === 'tag_group' ? 'tag' : item.type;
+        const items = item.kind === 'tag_group'
+            ? tagGroupItems(item.node_ids).map(node => ({ kind: 'single', ...node }))
+            : groupedEntityList(type);
         if (items.length === 0) {
             listEl.innerHTML = `<div class="sidebar-empty">${searchQuery ? 'No matches' : 'Empty'}</div>`;
             return;
         }
-        listEl.innerHTML = items.slice(0, 500).map(e => `
-            <div class="sidebar-entity-item" data-id="${e.id}" data-type="${type}" data-name="${escHtml(e.name)}">
-                <span class="sidebar-entity-name truncate">${escHtml(e.name)}</span>
-            </div>
-        `).join('');
+        listEl.innerHTML = items.slice(0, 500).map(e => {
+            if (e.kind === 'group') {
+                const ids = e.ids.join(',');
+                const countBadge = e.count > 1 ? `<span class="sidebar-entity-count">${e.count}</span>` : '';
+                const title = `Highlight ${e.count} ${displayTypeName(type)} node${e.count === 1 ? '' : 's'} named "${e.name}" and focus the first match.`;
+                return `
+                    <div class="sidebar-entity-item sidebar-entity-item-grouped" data-ids="${escHtml(ids)}" data-id="${escHtml(e.ids[0])}" data-type="${type}" data-name="${escHtml(e.name)}" title="${escHtml(title)}">
+                        <span class="sidebar-entity-name truncate">${escHtml(e.name)}</span>
+                        ${countBadge}
+                    </div>
+                `;
+            }
+            return `
+                <div class="sidebar-entity-item" data-id="${e.id}" data-type="${type}" data-name="${escHtml(e.name)}" title="${escHtml(e.name)}">
+                    <span class="sidebar-entity-name truncate">${escHtml(e.name)}</span>
+                </div>
+            `;
+        }).join('');
 
         if (items.length > 500) {
             listEl.innerHTML += `<div class="sidebar-empty">…and ${items.length - 500} more. Use search to filter.</div>`;
@@ -244,10 +575,16 @@ export function initSidebar(container, eventBus, apiClient) {
                 const id   = el.dataset.id;
                 const name = el.dataset.name;
                 const t    = el.dataset.type;
+                const ids  = (el.dataset.ids || '').split(',').filter(Boolean);
                 // Deselect previous
                 container.querySelectorAll('.sidebar-entity-item.active')
                     .forEach(x => x.classList.remove('active'));
                 el.classList.add('active');
+                if (ids.length > 1) {
+                    eventBus.emit('node:highlight', { ids });
+                } else {
+                    eventBus.emit('node:highlight-clear', {});
+                }
                 eventBus.emit('sidebar:select', { id, type: t, name });
                 eventBus.emit('node:selected', { id, type: t, name });
             });
@@ -262,9 +599,12 @@ export function initSidebar(container, eventBus, apiClient) {
         filtersEl.innerHTML = relData.map(r => {
             const isChecked = (!defaultVisibleRelTypes || defaultVisibleRelTypes.has(r.rel_type)) && !uncheckedRelTypes.has(r.rel_type);
             return `
-            <label class="edge-filter-row">
-                <input type="checkbox" class="edge-filter-cb" data-rel="${r.rel_type}" ${isChecked ? 'checked' : ''}>
-                <span class="edge-filter-name">${r.rel_type}</span>
+            <label class="edge-filter-row" title="${escHtml(edgeTooltip(r.rel_type))}">
+                <span class="sidebar-checkbox-control">
+                    <input type="checkbox" class="sidebar-row-toggle-input edge-filter-cb" data-rel="${r.rel_type}" ${isChecked ? 'checked' : ''} aria-label="Toggle ${escHtml(displayEdgeName(r.rel_type))} relationships" title="${escHtml(edgeTooltip(r.rel_type))}">
+                    <span class="sidebar-checkbox-box" aria-hidden="true"></span>
+                </span>
+                <span class="edge-filter-name">${escHtml(displayEdgeName(r.rel_type))}</span>
                 <span class="sidebar-count">${r.count}</span>
             </label>`;
         }).join('');
@@ -299,6 +639,18 @@ export function initSidebar(container, eventBus, apiClient) {
         uncheckedRelTypes.clear();
         const filtersEl = container.querySelector('#edge-filters');
         if (filtersEl) renderEdgeFilters(filtersEl);
+    });
+
+    eventBus.on('node:type-filter-reset', () => {
+        uncheckedNodeTypes.clear();
+        const sectionsEl = container.querySelector('#sidebar-sections');
+        if (sectionsEl) renderSections(sectionsEl);
+    });
+
+    eventBus.on('node:group-filter-reset', () => {
+        uncheckedNodeGroups.clear();
+        const sectionsEl = container.querySelector('#sidebar-sections');
+        if (sectionsEl) renderSections(sectionsEl);
     });
 
     // Timeline and Hierarchical depend on AUTHORED as structural context.

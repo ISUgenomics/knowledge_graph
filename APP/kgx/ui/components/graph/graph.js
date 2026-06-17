@@ -34,6 +34,21 @@ const TYPE_COLORS = [
     '#f14eb5', // pink
 ];
 
+const FIXED_TYPE_COLORS = {
+    gene: '#4e9af1',
+    transcript: '#f1a34e',
+    protein: '#4ef17a',
+    orthogroup: '#f14e4e',
+    bcn_gene: '#ff7a7a',
+    comparative_hit: '#ffb347',
+    annotation_term: '#c34ef1',
+    localization_call: '#4ef1e8',
+    prediction_call: '#f1e24e',
+    expression_measure: '#ff8fc7',
+    contrast_definition: '#6fd3a0',
+    tag: '#9aa4b2',
+};
+
 const REL_COLORS = {
     default: '#555566',
 };
@@ -78,7 +93,11 @@ export function initGraph(container, eventBus, apiClient) {
     let allNodes = [];
     let allEdges = [];
     let hiddenNodeIds = new Set();
+    const DEFAULT_HIDDEN_NODE_TYPES = new Set(['dataset']);
+    let hiddenNodeTypes = new Set(DEFAULT_HIDDEN_NODE_TYPES);
+    let hiddenNodeGroups = new Map();
     let hiddenRelTypes = new Set();
+    let presetDefaultHiddenRelTypes = new Set();
     let highlightedIds = new Set();
     let selectedNodeId = null;
     // SQL filter sets: filter_id → Set<node_id>
@@ -91,6 +110,7 @@ export function initGraph(container, eventBus, apiClient) {
     let communityColorMap = {}; // node_id -> color
     let communityResolution = 1.0; // <1 = fewer/larger communities, >1 = more/smaller
     let graphMode = 'explore';  // keep current alex default behavior
+    let graphPreset = '';
     let currentLayout = 'force';
     let pinLabelsOn = false;
     let exportDbBaseName = null;
@@ -156,14 +176,46 @@ export function initGraph(container, eventBus, apiClient) {
     }
 
     // Community detection color palette (distinct from type palette)
-    const COMMUNITY_COLORS = [
+const COMMUNITY_COLORS = [
         '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231',
         '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4',
         '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000',
         '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9',
     ];
 
+    const TYPE_SIZE_MULTIPLIERS = {
+        organism: 1.1,
+        chromosome: 0.9,
+        gene: 1.45,
+        transcript: 1.15,
+        protein: 1.2,
+        orthogroup: 1.05,
+        bcn_gene: 0.95,
+        comparative_hit: 0.9,
+        annotation_term: 0.85,
+        localization_call: 0.88,
+        prediction_call: 0.9,
+        expression_measure: 0.98,
+        contrast_definition: 0.98,
+        tag: 0.78,
+    };
+
+    const PRESET_TYPE_SIZE_MULTIPLIERS = {
+        comparative: {
+            organism: 1.18,
+            chromosome: 0.82,
+            gene: 1.35,
+            orthogroup: 1.55,
+            bcn_gene: 0.82,
+            comparative_hit: 0.8,
+        },
+    };
+
     function getTypeColor(type) {
+        if (FIXED_TYPE_COLORS[type]) {
+            typeColorMap[type] = FIXED_TYPE_COLORS[type];
+            return FIXED_TYPE_COLORS[type];
+        }
         if (!typeColorMap[type]) {
             typeColorMap[type] = TYPE_COLORS[colorIndex % TYPE_COLORS.length];
             colorIndex++;
@@ -294,11 +346,85 @@ export function initGraph(container, eventBus, apiClient) {
         return communityMode ? (communityColorMap[n.id] || n._color) : n._color;
     }
 
+    function getNodeSize(n) {
+        const degree = Math.max(1, Math.sqrt(n._filteredDegree || n._degree || 1)) * 2;
+        const presetScale = PRESET_TYPE_SIZE_MULTIPLIERS[graphPreset]?.[n.type];
+        return degree * (presetScale || TYPE_SIZE_MULTIPLIERS[n.type] || 1);
+    }
+
+    function getNodeLabel(n) {
+        const base = `${getNodeDisplayName(n)} (${n._group || n.type})`;
+        const meta = n?.metadata || {};
+        if (graphPreset === 'comparative' && n.type === 'orthogroup') {
+            const extras = [
+                meta.local_gene_count != null ? `local genes: ${meta.local_gene_count}` : '',
+                meta.schachtii_gene_count != null ? `H. schachtii: ${meta.schachtii_gene_count}` : '',
+            ].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (graphPreset === 'comparative' && n.type === 'bcn_gene') {
+            const extras = [
+                meta.organism,
+                Array.isArray(meta.relationship_types) ? meta.relationship_types.join(', ') : '',
+            ].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (graphPreset === 'comparative' && n.type === 'comparative_hit') {
+            const extras = [
+                meta.organism,
+                Array.isArray(meta.scope_tag_ids) ? meta.scope_tag_ids.join(', ') : '',
+                Array.isArray(meta.relationship_types) ? meta.relationship_types.join(', ') : '',
+            ].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (n.type === 'annotation_term') {
+            const extras = [meta.namespace, meta.category].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (n.type === 'prediction_call') {
+            const extras = [meta.category, meta.source_column].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (n.type === 'localization_call') {
+            const extras = [meta.category, meta.source_column].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (n.type === 'expression_measure') {
+            const extras = [meta.category, meta.source_column].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (n.type === 'contrast_definition') {
+            const extras = [meta.category, meta.source_column].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        return base;
+    }
+
+    function applyPresetForceTuning() {
+        if (!graphInstance) return;
+        const linkForce = graphInstance.d3Force('link');
+        const chargeForce = graphInstance.d3Force('charge');
+        const centerForce = graphInstance.d3Force('center');
+        graphInstance.d3Force('comparativeBands', null);
+        if (linkForce) {
+            linkForce.distance(30);
+            linkForce.strength(0.1);
+        }
+        if (chargeForce) {
+            chargeForce.strength(-120);
+        }
+        if (centerForce) {
+            centerForce.strength(0.1);
+        }
+        graphInstance.d3AlphaDecay(0.0228);
+    }
+
     function refreshNodeAppearance() {
         if (!graphInstance) return;
         graphInstance
             .nodeColor(n => getNodeColor(n))
-            .nodeVal(n => Math.max(1, Math.sqrt(n._filteredDegree || n._degree || 1)) * 2);
+            .nodeVal(n => getNodeSize(n))
+            .nodeLabel(n => getNodeLabel(n));
     }
 
     function getPinnedLabelIds() {
@@ -872,10 +998,14 @@ export function initGraph(container, eventBus, apiClient) {
 
     function getTimelineLayerZ(node, profile, anchorType) {
         const typeName = String(node.type || '').toLowerCase();
+        if (node.type === anchorType) return profile?.anchors?.z ?? DEFAULT_TIMELINE_ANCHOR_Z;
         const profileLayer = profile?.layers?.[node.type] || profile?.layers?.[typeName];
         const bandStep = getTimelineBandStep(profile);
-        if (profileLayer && Number.isFinite(profileLayer.z)) return profileLayer.z;
-        if (node.type === anchorType) return profile?.anchors?.z ?? DEFAULT_TIMELINE_ANCHOR_Z;
+        if (profileLayer && Number.isFinite(profileLayer.z)) {
+            const layerZ = Number(profileLayer.z);
+            const scaleWithBandStep = profileLayer.scale_with_band_step !== false;
+            return scaleWithBandStep ? layerZ * (bandStep / TIMELINE_Z_BAND_STEP) : layerZ;
+        }
         const family = getHierarchyTypeFamily(node, getTimelineTagCategory(node));
         if (family === 'person') return TIMELINE_PERSON_Z;
         if (family === 'organization') return TIMELINE_ORGANIZATION_Z;
@@ -911,42 +1041,58 @@ export function initGraph(container, eventBus, apiClient) {
 
     function getHierarchyTypeFamily(node, tagCategory = '') {
         const typeName = String(node?.type || '').toLowerCase();
+        const explicitAliases = hierarchySettings.profile?.type_aliases || {};
+        const aliasTypeName = String(
+            explicitAliases[node?.type]
+            || explicitAliases[typeName]
+            || typeName
+        ).toLowerCase();
         const explicitFamilies = hierarchySettings.profile?.type_families || {};
-        const explicitFamily = explicitFamilies[node?.type] || explicitFamilies[typeName];
+        const explicitFamily = explicitFamilies[node?.type] || explicitFamilies[typeName] || explicitFamilies[aliasTypeName];
         if (explicitFamily) return String(explicitFamily).toLowerCase();
-        if (isTimelineTagLike(typeName)) {
+        if (isTimelineTagLike(aliasTypeName)) {
             if (tagCategory === 'domain') return 'tag-domain';
             if (tagCategory === 'field') return 'tag-field';
             if (tagCategory === 'core') return 'tag-domain';
             return 'tag-topic';
         }
-        if (/(organization|institution|center|department|lab|laboratory|company|group)/.test(typeName)) return 'organization';
-        if (/(person|author|researcher|scientist|scholar|inventor)/.test(typeName)) return 'person';
-        if (/(publication|paper|article|book|journal|report)/.test(typeName)) return 'publication';
-        if (/(award|prize|event|grant|patent|project|dataset|tool|software|acknowledg|credit)/.test(typeName)) return 'artifact';
+        if (/(organization|institution|center|department|lab|laboratory|company|group)/.test(aliasTypeName)) return 'organization';
+        if (/(person|author|researcher|scientist|scholar|inventor)/.test(aliasTypeName)) return 'person';
+        if (/(publication|paper|article|book|journal|report)/.test(aliasTypeName)) return 'publication';
+        if (/(award|prize|event|grant|patent|project|dataset|tool|software|acknowledg|credit)/.test(aliasTypeName)) return 'artifact';
         return 'other';
     }
 
     function getHierarchyBandIndex(node, tagCategory = '') {
         const family = getHierarchyTypeFamily(node, tagCategory);
         if (family === 'organization') return 0;
+        if (family === 'provenance') return 0;
         if (family === 'person') return 1;
+        if (family === 'backbone' || family === 'core') return 1;
         if (family === 'publication' || family === 'artifact' || family === 'other') return 2;
+        if (family === 'comparative') return 2;
+        if (family === 'measurement') return 3;
         if (family === 'tag-domain') return 3;
+        if (family === 'ontology') return 4;
         if (family === 'tag-field') return 4;
         return 5;
     }
 
     function getHierarchyFamilySortKey(family) {
         if (family === 'organization') return 0;
+        if (family === 'provenance') return 0;
         if (family === 'person') return 1;
+        if (family === 'backbone' || family === 'core') return 1;
         if (family === 'publication') return 2;
         if (family === 'artifact') return 3;
-        if (family === 'other') return 4;
-        if (family === 'tag-domain') return 5;
-        if (family === 'tag-field') return 6;
-        if (family === 'tag-topic') return 7;
-        return 8;
+        if (family === 'comparative') return 4;
+        if (family === 'measurement') return 5;
+        if (family === 'ontology') return 6;
+        if (family === 'other') return 7;
+        if (family === 'tag-domain') return 8;
+        if (family === 'tag-field') return 9;
+        if (family === 'tag-topic') return 10;
+        return 11;
     }
 
     function buildHierarchyRelationClassSets(profile = hierarchySettings.profile) {
@@ -971,6 +1117,18 @@ export function initGraph(container, eventBus, apiClient) {
             type_families: {
                 ...((contract || {}).type_families || {}),
                 ...((profile || {}).type_families || {}),
+            },
+            type_aliases: {
+                ...((contract || {}).type_aliases || {}),
+                ...((profile || {}).type_aliases || {}),
+            },
+            type_levels: {
+                ...((contract || {}).type_levels || {}),
+                ...((profile || {}).type_levels || {}),
+            },
+            driver_direction_overrides: {
+                ...((contract || {}).driver_direction_overrides || {}),
+                ...((profile || {}).driver_direction_overrides || {}),
             },
             bands: {
                 ...((contract || {}).bands || {}),
@@ -1031,6 +1189,7 @@ export function initGraph(container, eventBus, apiClient) {
         const { anchorTarget, layerZ, ids } = bucket;
         const {
             xStep,
+            localXStep,
             yStep,
             targetById,
             visibleNeighborIds,
@@ -1054,21 +1213,9 @@ export function initGraph(container, eventBus, apiClient) {
         const zSpan = bandStep * 0.5;
         const zMin = layerZ - (zSpan * 0.5);
         const zMax = layerZ + (zSpan * 0.5);
-        const xRadius = Math.max(Math.min(xStep * 0.14, 22), 10);
+        const xRadius = Math.max(Math.min(localXStep * 0.14, 22), 10);
         const yRadiusBase = Math.max(yStep * (0.75 + Math.min(count, 12) * 0.06), yStep * 0.85);
         const yRadius = isFirstSecondaryBand ? (yRadiusBase * 0.72) : yRadiusBase;
-
-        if (count <= lineThreshold) {
-            for (let index = 0; index < count; index++) {
-                const centeredIndex = index - (count - 1) / 2;
-                offsets.push({
-                    x: count === 1 ? 0 : (centeredIndex * Math.min(xRadius * 0.85, 16)),
-                    y: centeredIndex * (yStep * 0.85),
-                    z: 0,
-                });
-            }
-            return offsets;
-        }
 
         const bucketSet = new Set(ids);
         const positions = new Map();
@@ -1077,7 +1224,7 @@ export function initGraph(container, eventBus, apiClient) {
         const coreMinDistanceY = Math.max(Math.min(yStep * 0.52, 48), 28);
         const coreMinDistanceZ = Math.max(Math.min(bandStep * 0.16, 26), 14);
         const outerZSpan = bandStep * 0.4;
-        const maxOuterX = Math.max(Math.min(xStep * 0.26, 34), 16);
+        const maxOuterX = Math.max(Math.min(localXStep * 0.26, 34), 16);
         const innerShellRadius = (bandStep * 0.25) * innerSpreadScale;
         const outerShellMinRadius = (bandStep * 0.025) * outerSpreadScale;
         const outerShellMaxRadius = (bandStep * 0.04) * outerSpreadScale;
@@ -1105,6 +1252,56 @@ export function initGraph(container, eventBus, apiClient) {
             id,
             visibleNeighborIdsByNode.get(id).filter(neighborId => !bucketSet.has(neighborId)),
         ]));
+        const hasExternalNeighbors = [...externalNeighborIdsByNode.values()].some(neighborIds => neighborIds.length > 0);
+        if (bucket.bucketRole === 'direct' && hasExternalNeighbors) {
+            const directOffsets = ids.map((id, index) => {
+                const neighborTargets = (externalNeighborIdsByNode.get(id) || [])
+                    .map(neighborId => getNeighborTarget(neighborId))
+                    .filter(Boolean);
+                if (neighborTargets.length === 0) {
+                    return {
+                        x: 0,
+                        y: (index - (ids.length - 1) / 2) * (yStep * 0.75),
+                        z: 0,
+                    };
+                }
+                const avgX = neighborTargets.reduce((sum, target) => sum + target.x, 0) / neighborTargets.length;
+                const avgY = neighborTargets.reduce((sum, target) => sum + target.y, 0) / neighborTargets.length;
+                return {
+                    x: avgX - anchorTarget.x,
+                    y: (avgY - anchorTarget.y) + ((index - (ids.length - 1) / 2) * Math.min(yStep * 0.35, 18)),
+                    z: 0,
+                };
+            });
+            return directOffsets;
+        }
+        if (count === 1 && hasExternalNeighbors) {
+            const id = ids[0];
+            const neighborTargets = (externalNeighborIdsByNode.get(id) || [])
+                .map(neighborId => getNeighborTarget(neighborId))
+                .filter(Boolean);
+            if (neighborTargets.length > 0) {
+                const avgX = neighborTargets.reduce((sum, target) => sum + target.x, 0) / neighborTargets.length;
+                const avgY = neighborTargets.reduce((sum, target) => sum + target.y, 0) / neighborTargets.length;
+                offsets.push({
+                    x: avgX - anchorTarget.x,
+                    y: avgY - anchorTarget.y,
+                    z: 0,
+                });
+                return offsets;
+            }
+        }
+        if (count <= lineThreshold && !hasExternalNeighbors) {
+            for (let index = 0; index < count; index++) {
+                const centeredIndex = index - (count - 1) / 2;
+                offsets.push({
+                    x: count === 1 ? 0 : (centeredIndex * Math.min(xRadius * 0.85, 16)),
+                    y: centeredIndex * (yStep * 0.85),
+                    z: 0,
+                });
+            }
+            return offsets;
+        }
         const directExternalNeighborCounts = new Map();
         ids.forEach((id) => {
             for (const neighborId of externalNeighborIdsByNode.get(id) || []) {
@@ -1141,6 +1338,18 @@ export function initGraph(container, eventBus, apiClient) {
         let coreTarget = { x: anchorTarget.x, y: anchorTarget.y, z: layerZ };
         let dominantCoreTargets = [];
         if (externalNeighborFrequency.size > 0) {
+            if (count === 1) {
+                dominantCoreTargets = [...externalNeighborFrequency.entries()]
+                    .map(([neighborId, countValue]) => ({ id: neighborId, count: countValue, target: getNeighborTarget(neighborId) }))
+                    .filter(item => item.target);
+                if (dominantCoreTargets.length > 0) {
+                    coreTarget = {
+                        x: dominantCoreTargets.reduce((sum, item) => sum + item.target.x, 0) / dominantCoreTargets.length,
+                        y: dominantCoreTargets.reduce((sum, item) => sum + item.target.y, 0) / dominantCoreTargets.length,
+                        z: dominantCoreTargets.reduce((sum, item) => sum + item.target.z, 0) / dominantCoreTargets.length,
+                    };
+                }
+            } else {
             const maxCount = Math.max(...externalNeighborFrequency.values());
             const dominantThreshold = Math.max(2, Math.ceil(maxCount * 0.6));
             dominantCoreTargets = [...externalNeighborFrequency.entries()]
@@ -1153,6 +1362,7 @@ export function initGraph(container, eventBus, apiClient) {
                     y: dominantCoreTargets.reduce((sum, item) => sum + item.target.y, 0) / dominantCoreTargets.length,
                     z: dominantCoreTargets.reduce((sum, item) => sum + item.target.z, 0) / dominantCoreTargets.length,
                 };
+            }
             }
         }
         const externalCenterYDamping = (isFirstSecondaryBand && !useExternalCenters) ? 0.24 : 1;
@@ -1258,6 +1468,13 @@ export function initGraph(container, eventBus, apiClient) {
                         y: anchorTarget.y,
                         z: layerZ,
                     },
+                };
+            }
+            if (count === 1 && dominantCoreTargets.length > 0) {
+                return {
+                    id: '__bucket_center__',
+                    count: dominantCoreTargets.length,
+                    target: coreTarget,
                 };
             }
             if (useExternalCenters) {
@@ -1766,6 +1983,17 @@ export function initGraph(container, eventBus, apiClient) {
         return text;
     }
 
+    function formatTimelineAnchorLabel(values, fallbackValue) {
+        const uniqueLabels = [...new Set(
+            (Array.isArray(values) ? values : [values])
+                .map(value => String(value || '').trim())
+                .filter(Boolean)
+        )];
+        if (uniqueLabels.length === 1) return uniqueLabels[0];
+        if (uniqueLabels.length > 1) return uniqueLabels.join(' / ');
+        return formatTimelineOrderLabel(fallbackValue);
+    }
+
     function chooseAnchorId(anchorIds, anchorInfoById, rule = 'strongest_then_earliest') {
         const entries = [...anchorIds.entries()];
         if (entries.length === 0) return null;
@@ -1827,7 +2055,7 @@ export function initGraph(container, eventBus, apiClient) {
             ? safeField
             : `json_extract(metadata, '$.${safeField}')`;
         const data = await apiClient.post('/api/query', {
-            sql: `SELECT id, ${valueExpr} AS order_value
+            sql: `SELECT id, name, ${valueExpr} AS order_value
                   FROM entities
                   WHERE type = ? AND ${valueExpr} IS NOT NULL`,
             params: [anchorType],
@@ -1944,6 +2172,7 @@ export function initGraph(container, eventBus, apiClient) {
             const parsedValue = parseTimelineOrderValue(row.order_value);
             if (!Number.isFinite(parsedValue)) continue;
             anchorInfoById.set(row.id, {
+                label: String(row.name || row.id || '').trim(),
                 rawValue: row.order_value,
                 orderValue: parsedValue,
             });
@@ -1968,16 +2197,21 @@ export function initGraph(container, eventBus, apiClient) {
         const direction = profile?.order?.direction === 'desc' ? 'desc' : 'asc';
         const anchorZ = Number.isFinite(profile?.anchors?.z) ? profile.anchors.z : DEFAULT_TIMELINE_ANCHOR_Z;
         const xStep = Number.isFinite(profile?.anchors?.x_step) ? profile.anchors.x_step : DEFAULT_TIMELINE_X_STEP;
+        const localXStep = Math.max(60, Math.min(getTimelineBandStep(profile) * 0.55, 110));
         const yStep = Number.isFinite(profile?.anchors?.same_value_y_step)
             ? profile.anchors.same_value_y_step
             : DEFAULT_TIMELINE_Y_STEP;
+        const sameValueStep = Number.isFinite(profile?.anchors?.same_value_x_step)
+            ? profile.anchors.same_value_x_step
+            : yStep;
         const anchorGroups = new Map();
         for (const [id, info] of anchorInfoById.entries()) {
             const key = String(info.orderValue);
             if (!anchorGroups.has(key)) {
-                anchorGroups.set(key, { orderValue: info.orderValue, rawValue: info.rawValue, ids: [] });
+                anchorGroups.set(key, { orderValue: info.orderValue, rawValue: info.rawValue, ids: [], labels: [] });
             }
             anchorGroups.get(key).ids.push(id);
+            if (info.label) anchorGroups.get(key).labels.push(info.label);
         }
 
         const orderedGroups = [...anchorGroups.values()].sort((a, b) =>
@@ -1995,14 +2229,14 @@ export function initGraph(container, eventBus, apiClient) {
             const normalized = ((group.orderValue - minOrder) / orderRange) * axisSpread - axisSpread / 2;
             group.ids.sort();
             group.ids.forEach((id, index) => {
-                const yOffset = (index - (group.ids.length - 1) / 2) * yStep;
-                targetById.set(id, { x: normalized, y: yOffset, z: anchorZ, strength: 0.95, pinX: true, pinY: true, pinZ: true });
-                timelineAnchorTargets.set(id, { x: normalized, y: yOffset, z: anchorZ });
-                anchorInfoById.get(id).target = { x: normalized, y: yOffset, z: anchorZ };
+                const xOffset = (index - (group.ids.length - 1) / 2) * sameValueStep;
+                targetById.set(id, { x: normalized + xOffset, y: 0, z: anchorZ, strength: 0.95, pinX: true, pinY: true, pinZ: true });
+                timelineAnchorTargets.set(id, { x: normalized + xOffset, y: 0, z: anchorZ });
+                anchorInfoById.get(id).target = { x: normalized + xOffset, y: 0, z: anchorZ };
             });
             const labelText = fallbackAnchorContext?.isLinearFallback
                 ? String(group.rawValue || '').trim()
-                : formatTimelineOrderLabel(group.rawValue ?? group.orderValue);
+                : formatTimelineAnchorLabel(group.labels, group.rawValue ?? group.orderValue);
             if (labelText) {
                 timelineAnchorLabelTargets.set(`${group.orderValue}:${groupIndex}`, {
                     x: normalized,
@@ -2242,12 +2476,12 @@ export function initGraph(container, eventBus, apiClient) {
         for (const [anchorId, buckets] of secondaryBucketsByAnchor.entries()) {
             const baseAnchorTarget = targetById.get(anchorId);
             if (!baseAnchorTarget) continue;
+            const bandStep = getTimelineBandStep(profile);
             buckets.sort((a, b) => a.layerZ - b.layerZ);
             const centerIndex = (buckets.length - 1) / 2;
             buckets.forEach((bucket, index) => {
-                const relativeIndex = index - centerIndex;
                 const phase = (stableHash(`${anchorId}:${bucket.layerZ}`) % 360) * (Math.PI / 180);
-                const isFirstSecondaryBand = (bucket.layerZ - baseAnchorTarget.z) <= (TIMELINE_Z_BAND_STEP * 1.05);
+                const isFirstSecondaryBand = (bucket.layerZ - baseAnchorTarget.z) <= (bandStep * 1.05);
                 if (isFirstSecondaryBand && bucket.bucketRole === 'direct') {
                     bucket.anchorTarget = {
                         x: baseAnchorTarget.x,
@@ -2256,12 +2490,11 @@ export function initGraph(container, eventBus, apiClient) {
                     };
                     return;
                 }
-                const xOffset = relativeIndex * Math.min(xStep * 0.08, 14);
                 const yOffset = isFirstSecondaryBand
                     ? 0
                     : Math.sin(phase) * Math.min(yStep * 0.2, 16);
                 bucket.anchorTarget = {
-                    x: baseAnchorTarget.x + xOffset,
+                    x: baseAnchorTarget.x,
                     y: baseAnchorTarget.y + yOffset,
                     z: baseAnchorTarget.z,
                 };
@@ -2286,7 +2519,7 @@ export function initGraph(container, eventBus, apiClient) {
         }
 
         const orderedSecondaryBuckets = [...secondaryBuckets.values()].sort((a, b) => {
-            if (a.layerZ !== b.layerZ) return b.layerZ - a.layerZ;
+            if (a.layerZ !== b.layerZ) return a.layerZ - b.layerZ;
             if (a.bucketRole !== b.bucketRole) return a.bucketRole === 'direct' ? -1 : 1;
             return String(a.anchorId).localeCompare(String(b.anchorId));
         });
@@ -2297,6 +2530,7 @@ export function initGraph(container, eventBus, apiClient) {
                 if (!anchorTarget) continue;
                 const offsets = getTimelineBucketOffsets(bucket, {
                     xStep,
+                    localXStep,
                     yStep,
                     targetById,
                     visibleNeighborIds,
@@ -2476,6 +2710,7 @@ export function initGraph(container, eventBus, apiClient) {
         const baseEntityZ = 0;
         const bandCfg = hierarchySettings.profile?.bands || {};
         const relationSets = buildHierarchyRelationClassSets(hierarchyProfile);
+        const driverDirectionOverrides = hierarchySettings.profile?.driver_direction_overrides || {};
 
         const visibleEdges = allEdges
             .filter(edge => !edge.__hidden)
@@ -2486,6 +2721,23 @@ export function initGraph(container, eventBus, apiClient) {
             })
             .filter(({ sourceId, targetId }) => visibleNodeIds.has(sourceId) && visibleNodeIds.has(targetId));
 
+        function getHierarchyDriverEndpoints(edge, sourceId, targetId) {
+            if (structureMode !== 'linearized') {
+                return { source: sourceId, target: targetId };
+            }
+            const relType = String(edge?.rel_type || '').toUpperCase();
+            const override = String(
+                driverDirectionOverrides[edge?.rel_type]
+                ?? driverDirectionOverrides[String(edge?.rel_type || '').toLowerCase()]
+                ?? driverDirectionOverrides[relType]
+                ?? ''
+            ).toLowerCase();
+            if (override === 'reverse') {
+                return { source: targetId, target: sourceId };
+            }
+            return { source: sourceId, target: targetId };
+        }
+
         const hierarchyDriverEdges = visibleEdges.filter(({ edge, sourceId, targetId }) => {
             const relation = classifyHierarchyRelation(edge.rel_type, relationSets);
             if (relation.kind === 'hierarchy' || relation.kind === 'structural' || relation.kind === 'affiliation') return true;
@@ -2495,13 +2747,15 @@ export function initGraph(container, eventBus, apiClient) {
                 return isTimelineTagLike(sourceNode?.type) || isTimelineTagLike(targetNode?.type);
             }
             return false;
-        }).map(({ edge, sourceId, targetId }) => ({
-            source: sourceId,
-            target: targetId,
+        }).map(({ edge, sourceId, targetId }) => {
+            const endpoints = getHierarchyDriverEndpoints(edge, sourceId, targetId);
+            return {
+            source: endpoints.source,
+            target: endpoints.target,
             rel_type: edge.rel_type,
             weight: edge.weight || 1,
             __hidden: false,
-        }));
+        }});
         const sparseDriverEdges = visibleEdges.filter(({ edge, sourceId, targetId }) => {
             const relation = classifyHierarchyRelation(edge.rel_type, relationSets);
             if (relation.kind !== 'weak') return true;
@@ -2510,23 +2764,47 @@ export function initGraph(container, eventBus, apiClient) {
             if (!sourceNode || !targetNode) return true;
             if (isStubLikeNode(sourceNode) || isStubLikeNode(targetNode)) return true;
             return String(sourceNode.type || '') !== String(targetNode.type || '');
-        }).map(({ edge, sourceId, targetId }) => ({
-            source: sourceId,
-            target: targetId,
+        }).map(({ edge, sourceId, targetId }) => {
+            const endpoints = getHierarchyDriverEndpoints(edge, sourceId, targetId);
+            return {
+            source: endpoints.source,
+            target: endpoints.target,
             rel_type: edge.rel_type,
             weight: edge.weight || 1,
             __hidden: false,
-        }));
-        function getHierarchyTargetYForFamily(family) {
+        }});
+    function getHierarchyTargetYForFamily(family) {
             if (family === 'organization') return levelSpacing * Number(bandCfg.organization_y ?? 0.6);
+            if (family === 'provenance') return levelSpacing * Number(bandCfg.organization_y ?? 0.6);
             if (family === 'person') return levelSpacing * Number(bandCfg.person_y ?? 0.0);
+            if (family === 'backbone' || family === 'core') return levelSpacing * Number(bandCfg.person_y ?? 0.0);
             if (family === 'publication' || family === 'artifact' || family === 'other') {
                 return levelSpacing * Number(bandCfg.publication_y ?? -0.65);
             }
+            if (family === 'comparative') {
+                return levelSpacing * Number(bandCfg.publication_y ?? -0.65);
+            }
+            if (family === 'measurement') return levelSpacing * Number(bandCfg.tag_field_y ?? -1.95);
+            if (family === 'ontology') return levelSpacing * Number(bandCfg.tag_domain_y ?? -2.6);
             if (family === 'tag-domain') return levelSpacing * Number(bandCfg.tag_domain_y ?? -2.6);
             if (family === 'tag-field') return levelSpacing * Number(bandCfg.tag_field_y ?? -1.95);
             if (family === 'tag-topic') return levelSpacing * Number(bandCfg.tag_topic_y ?? -1.3);
             return 0;
+        }
+
+        function getHierarchyExplicitTypeLevel(node) {
+            const typeAliases = hierarchySettings.profile?.type_aliases || {};
+            const typeLevels = hierarchySettings.profile?.type_levels || {};
+            const typeName = String(node?.type || '');
+            const normalizedTypeName = typeName.toLowerCase();
+            const aliasTypeName = String(
+                typeAliases[typeName]
+                ?? typeAliases[normalizedTypeName]
+                ?? normalizedTypeName
+            ).toLowerCase();
+            const explicitLevel = typeLevels[typeName] ?? typeLevels[normalizedTypeName] ?? typeLevels[aliasTypeName];
+            if (!Number.isFinite(Number(explicitLevel))) return null;
+            return levelSpacing * Number(explicitLevel);
         }
 
         function isPromotedHierarchyRootTag(node, tagCategory = '') {
@@ -2547,6 +2825,8 @@ export function initGraph(container, eventBus, apiClient) {
         }
 
         function getHierarchyTargetY(node, family, tagCategory = '') {
+            const explicitTypeLevel = getHierarchyExplicitTypeLevel(node);
+            if (explicitTypeLevel != null) return explicitTypeLevel;
             if (isPromotedHierarchyRootTag(node, tagCategory)) {
                 const domainBand = Number(bandCfg.tag_domain_y ?? -2.6);
                 const fieldBand = Number(bandCfg.tag_field_y ?? -1.95);
@@ -2582,8 +2862,13 @@ export function initGraph(container, eventBus, apiClient) {
             }
             const familyBase = (
                 family === 'organization' ? DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.8
+                : family === 'provenance' ? DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.8
                 : family === 'person' ? 0
+                : (family === 'backbone' || family === 'core') ? 0
                 : (family === 'publication' || family === 'artifact' || family === 'other') ? -DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.8
+                : family === 'comparative' ? -DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.6
+                : family === 'measurement' ? -DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.25
+                : family === 'ontology' ? DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.35
                 : 0
             );
             const localSpread = Math.max(4, Math.min(DEFAULT_HIERARCHY_TYPE_SEPARATION * 0.08, 18));
@@ -2622,7 +2907,13 @@ export function initGraph(container, eventBus, apiClient) {
             graphInstance.d3Force('hierarchySparseHold', null);
             graphInstance.graphData({
                 nodes: allNodes,
-                links: sparseDriverEdges.length ? sparseDriverEdges : allEdges,
+                links: visibleEdges.map(({ edge, sourceId, targetId }) => ({
+                    source: sourceId,
+                    target: targetId,
+                    rel_type: edge.rel_type,
+                    weight: edge.weight || 1,
+                    __hidden: false,
+                })),
             });
             graphInstance.dagMode('td');
             graphInstance.d3ReheatSimulation();
@@ -2659,9 +2950,10 @@ export function initGraph(container, eventBus, apiClient) {
             for (const node of visibleNodes) {
                 const tagCategory = tagCategoryById.get(node.id) || getTimelineTagCategory(node);
                 const family = getHierarchyTypeFamily(node, tagCategory);
+                const explicitTypeLevel = getHierarchyExplicitTypeLevel(node);
                 const baselineX = dagBaselineXById.get(node.id) ?? 0;
                 const baselineZ = dagBaselineZById.get(node.id) ?? 0;
-                let targetY = getHierarchyTargetY(node, family, tagCategory);
+                let targetY = explicitTypeLevel != null ? explicitTypeLevel : getHierarchyTargetY(node, family, tagCategory);
                 let targetZ = baselineZ;
                 const yStrength = graphMode === 'display' ? 0.85 : 0.72;
                 const zStrength = isTimelineTagLike(node.type)
@@ -2670,7 +2962,7 @@ export function initGraph(container, eventBus, apiClient) {
                 const reverseTags = hierarchySettings.reverseTags === true;
                 const strictBands = hierarchySettings.strictBands === true;
                 const xStrength = graphMode === 'display' ? 0.22 : 0.18;
-                const isCoreEntity = family === 'person' && !isStubLikeNode(node);
+                const isCoreEntity = (family === 'person' || family === 'backbone' || family === 'core') && !isStubLikeNode(node);
                 if (isCoreEntity) {
                     targetY += coreOffset;
                 }
@@ -2690,7 +2982,8 @@ export function initGraph(container, eventBus, apiClient) {
                     targetZ = linearZ;
                     node.vz = (node.vz || 0) + (targetZ - (node.z || 0)) * zStrength * alpha;
                 }
-                if (family === 'person') {
+                const forceSemanticLevel = structureMode === 'linearized' && explicitTypeLevel != null;
+                if (family === 'person' || forceSemanticLevel) {
                     node.fy = targetY;
                     node.y = targetY;
                     node.vy = 0;
@@ -2698,7 +2991,7 @@ export function initGraph(container, eventBus, apiClient) {
                     node.fy = targetY;
                     node.y = targetY;
                     node.vy = 0;
-                } else if (strictBands && (family === 'organization' || family === 'publication' || family === 'artifact' || family === 'other')) {
+                } else if (strictBands && (family === 'organization' || family === 'provenance' || family === 'publication' || family === 'artifact' || family === 'comparative' || family === 'measurement' || family === 'ontology' || family === 'other')) {
                     node.fy = targetY;
                     node.y = targetY;
                     node.vy = 0;
@@ -2706,7 +2999,7 @@ export function initGraph(container, eventBus, apiClient) {
                     delete node.fy;
                     node.vy = (node.vy || 0) + (targetY - (node.y || 0)) * yStrength * alpha;
                 }
-                if (family !== 'person' && !isTimelineTagLike(node.type) && !(strictBands && (family === 'organization' || family === 'publication' || family === 'artifact' || family === 'other'))) {
+                if (family !== 'person' && family !== 'backbone' && family !== 'core' && !isTimelineTagLike(node.type) && !(strictBands && (family === 'organization' || family === 'provenance' || family === 'publication' || family === 'artifact' || family === 'comparative' || family === 'measurement' || family === 'ontology' || family === 'other'))) {
                     node.y = (node.y || 0) + (targetY - (node.y || 0)) * 0.2;
                 }
             }
@@ -2881,8 +3174,24 @@ export function initGraph(container, eventBus, apiClient) {
             }, {});
     }
 
+    function availableNodesByType() {
+        return allNodes
+            .filter(node => !node.__baseHidden)
+            .reduce((acc, node) => {
+                if (!acc[node.type]) acc[node.type] = [];
+                acc[node.type].push({ id: node.id, name: node.name });
+                return acc;
+            }, {});
+    }
+
     function projectedEntityTypes() {
         return Object.entries(visibleNodesByType())
+            .map(([type, nodes]) => ({ type, count: nodes.length }))
+            .sort((a, b) => String(a.type).localeCompare(String(b.type)));
+    }
+
+    function availableEntityTypes() {
+        return Object.entries(availableNodesByType())
             .map(([type, nodes]) => ({ type, count: nodes.length }))
             .sort((a, b) => String(a.type).localeCompare(String(b.type)));
     }
@@ -2905,8 +3214,10 @@ export function initGraph(container, eventBus, apiClient) {
         eventBus.emit('graph:projection', {
             graphMode,
             projectionMode: projectionMeta?.mode || graphMode,
+            projectionMeta: { ...projectionMeta },
             typeColors: { ...typeColorMap },
             entityTypes: projectedEntityTypes(),
+            availableEntityTypes: availableEntityTypes(),
             relTypeCounts: projectedRelTypeCounts(),
             visibleNodesByType: nodesByType,
             ...extra,
@@ -2948,6 +3259,9 @@ export function initGraph(container, eventBus, apiClient) {
         const filteredIds = filterSets.size > 0
             ? new Set([...filterSets.values()].flatMap(s => [...s]))
             : null;
+        const hiddenGroupedIds = hiddenNodeGroups.size > 0
+            ? new Set([...hiddenNodeGroups.values()].flatMap(s => [...s]))
+            : null;
 
         // Mark nodes
         for (const n of allNodes) {
@@ -2955,12 +3269,16 @@ export function initGraph(container, eventBus, apiClient) {
                 n.__hidden = true;
                 continue;
             }
-            // Force-shown nodes (from Expand neighbors) override all filters
+            if (hiddenNodeTypes.has(n.type)) {
+                n.__hidden = true;
+                continue;
+            }
+            // Force-shown nodes (from Expand neighbors) override all filters except type filters
             if (forceShownIds.has(n.id)) {
                 n.__hidden = false;
                 continue;
             }
-            if (hiddenNodeIds.has(n.id) || (filteredIds && filteredIds.has(n.id))) {
+            if (hiddenNodeIds.has(n.id) || (filteredIds && filteredIds.has(n.id)) || (hiddenGroupedIds && hiddenGroupedIds.has(n.id))) {
                 n.__hidden = true;
                 continue;
             }
@@ -3021,7 +3339,8 @@ export function initGraph(container, eventBus, apiClient) {
     async function loadGraph() {
         try {
             hierarchyEdgesCache = null;
-            const data = await apiClient.get(`/api/graph?mode=${graphMode}`);
+            const presetParam = graphPreset ? `&preset=${encodeURIComponent(graphPreset)}` : '';
+            const data = await apiClient.get(`/api/graph?mode=${graphMode}${presetParam}`);
             projectionMeta = data.projection || { mode: graphMode };
             const rawEdges = data.edges.map(e => ({
                 source: e.source,
@@ -3048,8 +3367,22 @@ export function initGraph(container, eventBus, apiClient) {
                 __hidden: !!e.hidden,
             }));
 
-            // Do NOT clear hiddenRelTypes here — preserve the user's filter state.
-            // Recompute hidden flags so existing filters apply to the new data.
+            const nextPresetDefaultHiddenRelTypes = new Set(
+                Array.isArray(projectionMeta?.default_hidden_rel_types)
+                    ? projectionMeta.default_hidden_rel_types.map(item => String(item))
+                    : []
+            );
+            for (const relType of presetDefaultHiddenRelTypes) {
+                hiddenRelTypes.delete(relType);
+            }
+            for (const relType of nextPresetDefaultHiddenRelTypes) {
+                hiddenRelTypes.add(relType);
+            }
+            presetDefaultHiddenRelTypes = nextPresetDefaultHiddenRelTypes;
+            applyPresetForceTuning();
+
+            // Do NOT clear user-hidden rel types here — preserve the user's filter state.
+            // Recompute hidden flags so existing filters plus preset defaults apply to the new data.
             recomputeHiddenFlags();
             refreshVisibility();
 
@@ -3079,6 +3412,7 @@ export function initGraph(container, eventBus, apiClient) {
                 ...visibleCounts(),
                 graphMode,
                 projectionMode: projectionMeta?.mode || graphMode,
+                projectionMeta: { ...projectionMeta },
                 typeColors: { ...typeColorMap },
                 relTypeCounts,
                 autoHiddenRelTypes,
@@ -3122,10 +3456,10 @@ export function initGraph(container, eventBus, apiClient) {
             .backgroundColor('#0f0f1a')
             .onDagError(() => {}) // graph has cycles — suppress error, best-effort layout
             .nodeId('id')
-            .nodeLabel(n => `${getNodeDisplayName(n)} (${n._group || n.type})`)
+            .nodeLabel(n => getNodeLabel(n))
             .nodeColor(n => getNodeColor(n))
             .nodeOpacity(0.9)
-            .nodeVal(n => Math.max(1, Math.sqrt(n._filteredDegree || n._degree || 1)) * 2)
+            .nodeVal(n => getNodeSize(n))
             .nodeRelSize(4)
             .nodeResolution(LIVE_NODE_RESOLUTION)
             // Visibility — initial callbacks; refreshVisibility() re-sets them to trigger updates
@@ -3228,6 +3562,14 @@ export function initGraph(container, eventBus, apiClient) {
         loadGraph();
     });
 
+    eventBus.on('graph:preset', ({ preset }) => {
+        graphPreset = preset || '';
+        if (graphMode !== 'explore') return;
+        hiddenRelTypes.clear();
+        eventBus.emit('edge:reset', {});
+        loadGraph();
+    });
+
     eventBus.on('timeline:settings', (settings) => {
         timelineSettings = {
             anchorType: settings.anchorType || '',
@@ -3282,12 +3624,41 @@ export function initGraph(container, eventBus, apiClient) {
 
     eventBus.on('node:show-all', async () => {
         hiddenNodeIds.clear();
+        hiddenNodeTypes = new Set(DEFAULT_HIDDEN_NODE_TYPES);
+        hiddenNodeGroups.clear();
         hiddenRelTypes.clear();
+        for (const relType of presetDefaultHiddenRelTypes) {
+            hiddenRelTypes.add(relType);
+        }
         filterSets.clear();
         forceShownIds.clear();
         recomputeHiddenFlags();
         // Also tell sidebar to re-check all edge filters
         eventBus.emit('edge:reset', {});
+        eventBus.emit('node:type-filter-reset', {});
+        eventBus.emit('node:group-filter-reset', {});
+        await applyPostFilterUpdate();
+    });
+
+    eventBus.on('node:type-filter', async ({ node_type, visible }) => {
+        if (!node_type) return;
+        if (visible) {
+            hiddenNodeTypes.delete(node_type);
+        } else {
+            hiddenNodeTypes.add(node_type);
+        }
+        recomputeHiddenFlags();
+        await applyPostFilterUpdate();
+    });
+
+    eventBus.on('node:group-filter', async ({ group_id, node_ids, visible }) => {
+        if (!group_id) return;
+        if (visible) {
+            hiddenNodeGroups.delete(group_id);
+        } else {
+            hiddenNodeGroups.set(group_id, new Set((node_ids || []).map(String)));
+        }
+        recomputeHiddenFlags();
         await applyPostFilterUpdate();
     });
 
