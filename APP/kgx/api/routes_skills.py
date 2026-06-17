@@ -32,17 +32,25 @@ def make_skills_router(registry: SkillRegistry, runner: SkillRunner, db_build: d
         person_cfg = db_build.get("person_research", {}) or {}
         return list(person_cfg.get("extensions", []) or [])
 
-    def _resolved_source_policy() -> dict:
+    def _resolved_source_policy(skill_id: str) -> dict:
         source_policy = dict(db_build.get("source_policy", {}) or {})
+        skill_context = ((db_build.get("skill_contexts", {}) or {}).get(skill_id, {}) or {})
         for extension_name in _selected_person_extensions():
             extension_cfg = (db_build.get("extensions", {}) or {}).get(extension_name, {}) or {}
             extension_source_policy = extension_cfg.get("source_policy")
             if extension_source_policy:
                 source_policy.update(extension_source_policy)
+        context_source_policy = skill_context.get("source_policy")
+        if context_source_policy:
+            source_policy.update(context_source_policy)
         return source_policy
 
     def _resolved_help_prompts(skill_id: str, skill_cfg: dict) -> list[str]:
         help_prompts = list(skill_cfg.get("help_prompts", []) or [])
+        skill_context = ((db_build.get("skill_contexts", {}) or {}).get(skill_id, {}) or {})
+        context_prompts = list(skill_context.get("help_prompts", []) or [])
+        if context_prompts:
+            help_prompts.extend(context_prompts)
         for extension_name in _selected_person_extensions():
             extension_cfg = (db_build.get("extensions", {}) or {}).get(extension_name, {}) or {}
             extension_prompts = (extension_cfg.get("help_prompts", {}) or {}).get(skill_id, [])
@@ -65,6 +73,12 @@ def make_skills_router(registry: SkillRegistry, runner: SkillRunner, db_build: d
 
         skill_cfg = db_build.get(skill_id, {}) or {}
         settings = {k: v for k, v in skill_cfg.items() if k not in {"help_prompts"}}
+        skill_context = ((db_build.get("skill_contexts", {}) or {}).get(skill_id, {}) or {})
+        if skill_context.get("settings"):
+            settings = {
+                **dict(skill_context.get("settings", {}) or {}),
+                **settings,
+            }
         if skill_id == "person_research":
             resolved = {}
             for extension_name in settings.get("extensions", []) or []:
@@ -82,7 +96,7 @@ def make_skills_router(registry: SkillRegistry, runner: SkillRunner, db_build: d
         return {
             "skill": skill.to_dict(),
             "help_prompts": _resolved_help_prompts(skill_id, skill_cfg),
-            "source_policy": _resolved_source_policy(),
+            "source_policy": _resolved_source_policy(skill_id),
             "settings": settings,
         }
 

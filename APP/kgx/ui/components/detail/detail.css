@@ -215,6 +215,18 @@
     color: var(--accent-hover);
 }
 
+.detail-rel-meta {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
 /* Topic chips */
 .detail-topic-chips {
     display: flex;
@@ -258,6 +270,32 @@
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
+}
+
+.detail-sequence-block + .detail-sequence-block {
+    margin-top: 10px;
+}
+
+.detail-sequence-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.detail-sequence {
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
 }
 
 /* Snippets / blockquotes */
