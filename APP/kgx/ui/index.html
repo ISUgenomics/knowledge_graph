@@ -433,6 +433,9 @@
             </div>
             <div class="header-actions">
                 <button class="header-btn" id="btn-toggle-explore" title="Toggle explore/full graph mode">Explore</button>
+                <select id="explore-preset-select" class="header-btn" title="Change the current explore focus preset" style="display:none;max-width:180px;">
+                    <option value="">Explore preset</option>
+                </select>
                 <button class="header-btn" id="btn-toggle-community" title="Color the graph by detected clusters">Clusters</button>
                 <span id="community-resolution-wrap" style="display:none;align-items:center;gap:4px;margin-left:2px;">
                 <input type="range" id="community-resolution" min="0.1" max="3.0" step="0.1" value="1.0"
@@ -779,12 +782,17 @@
             `${graphMode || 'explore'} · ${nodeText} · ${edgeText}`;
     });
 
-    bus.on('graph:projection', ({ graphMode, entityTypes }) => {
+    bus.on('graph:projection', ({ graphMode, entityTypes, projectionMeta }) => {
         currentGraphMode = graphMode || currentGraphMode;
         currentProjectedTypeCounts = new Map(
             Array.isArray(entityTypes)
                 ? entityTypes.map(item => [item.type, item.count || 0])
                 : []
+        );
+        renderExplorePresetOptions(
+            projectionMeta?.available_presets || [],
+            projectionMeta?.active_preset || '',
+            graphMode || currentGraphMode
         );
         if (fsPanel.style.display === 'block') {
             if (activeLayout === 'timeline') fsRenderTimelineInfo();
@@ -954,6 +962,26 @@
         bus.emit('labels:toggle', { visible: labelsOn });
     });
     let exploreOn = true;
+    let currentExplorePreset = '';
+    let currentExplorePresets = [];
+    const explorePresetSelect = document.getElementById('explore-preset-select');
+    function renderExplorePresetOptions(presets, activePreset, graphMode) {
+        currentExplorePresets = Array.isArray(presets) ? presets : [];
+        currentExplorePreset = activePreset || '';
+        if (!currentExplorePresets.length) {
+            explorePresetSelect.style.display = 'none';
+            explorePresetSelect.innerHTML = '<option value="">Explore preset</option>';
+            return;
+        }
+        const options = currentExplorePresets.map(p => (
+            `<option value="${p.id}" ${p.id === currentExplorePreset ? 'selected' : ''}>${p.label || p.id}</option>`
+        )).join('');
+        explorePresetSelect.innerHTML = `<option value="">Module default</option>${options}`;
+        explorePresetSelect.value = currentExplorePreset || '';
+        explorePresetSelect.style.display = graphMode === 'explore' ? 'inline-block' : 'none';
+        const active = currentExplorePresets.find(p => p.id === currentExplorePreset);
+        explorePresetSelect.title = active?.description || 'Change the current explore focus preset';
+    }
     document.getElementById('btn-toggle-explore').textContent = 'Explore';
     document.getElementById('btn-toggle-explore').style.opacity = '1';
     document.getElementById('btn-toggle-explore').addEventListener('click', () => {
@@ -961,6 +989,11 @@
         document.getElementById('btn-toggle-explore').textContent = exploreOn ? 'Explore' : 'Display';
         document.getElementById('btn-toggle-explore').style.opacity = exploreOn ? '1' : '0.5';
         bus.emit('graph:mode', { mode: exploreOn ? 'explore' : 'display' });
+        renderExplorePresetOptions(currentExplorePresets, currentExplorePreset, exploreOn ? 'explore' : 'display');
+    });
+    explorePresetSelect.addEventListener('change', e => {
+        currentExplorePreset = e.target.value || '';
+        bus.emit('graph:preset', { preset: currentExplorePreset });
     });
     let communityOn = false;
     document.getElementById('btn-toggle-community').addEventListener('click', () => {
