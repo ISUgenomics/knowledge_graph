@@ -1,0 +1,325 @@
+contract:
+  name: functional_genomics
+  version: 1
+  module: genomics
+  description: Reusable functional genomics contract for local source packages that organize gene, transcript, and protein records plus optional comparative, annotation, prediction, and expression layers.
+  core_entities:
+  - organism
+  - dataset
+  - chromosome
+  - gene
+  - transcript
+  - protein
+  optional_entities:
+  - orthogroup
+  - bcn_gene
+  - comparative_hit
+  - annotation_term
+  - localization_call
+  - prediction_call
+  - expression_measure
+  - contrast_definition
+  required_relationships:
+  - source: dataset
+    type: ABOUT_ORGANISM
+    target: organism
+  - source: gene
+    type: FROM_ORGANISM
+    target: organism
+  - source: organism
+    type: HAS_CHROMOSOME
+    target: chromosome
+  - source: chromosome
+    type: HAS_GENE
+    target: gene
+  - source: gene
+    type: HAS_TRANSCRIPT
+    target: transcript
+  - source: transcript
+    type: TRANSLATED_TO
+    target: protein
+  - source: gene
+    type: IN_DATASET
+    target: dataset
+  entity_scopes:
+    organism:
+      description: Biological source organism that anchors datasets and genes.
+      required: true
+    chromosome:
+      description: Genomic scaffold or chromosome that groups genes by physical locus.
+      required: false
+    gene:
+      description: Genomic identity and locus-level attributes.
+      required: true
+    transcript:
+      description: Transcript- and expression-level attributes, including RNA sequence when present.
+      required: true
+    protein:
+      description: Protein-derived annotations, predictions, biophysics, composition, and sequence.
+      required: true
+    orthogroup:
+      description: Optional comparative gene family entity promoted from a source column.
+      required: false
+    bcn_gene:
+      description: Optional external BCN gene entity used for comparative orthogroup membership.
+      required: false
+    comparative_hit:
+      description: Optional comparative hit entity promoted from protein homology evidence columns.
+      required: false
+  annotation_bins:
+  - column: go_consensus
+    namespace: go
+    parser: go_plain
+    attach_to: protein
+    parent_tag: go-annotation
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: deepgoplus
+    namespace: go
+    parser: go_scored
+    attach_to: protein
+    parent_tag: go-annotation
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: interpro
+    namespace: interpro
+    parser: interpro_ids
+    attach_to: protein
+    parent_tag: interpro-domain
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: pfam
+    namespace: pfam
+    parser: pfam_ids
+    attach_to: protein
+    parent_tag: pfam-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: smart
+    namespace: smart
+    parser: smart_ids
+    attach_to: protein
+    parent_tag: smart-domain
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: funfam
+    namespace: funfam
+    parser: funfam_ids
+    attach_to: protein
+    parent_tag: funfam-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: panther
+    namespace: panther
+    parser: panther_ids
+    attach_to: protein
+    parent_tag: panther-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  tag_bins:
+  - column: dl_signals
+    parser: term_list
+    attach_to: protein
+    parent_tag: localization-signal
+    category: prediction_feature
+    promoted_entity_type: prediction_call
+    promoted_relation_type: HAS_PREDICTION
+    promoted_id_template: prediction:{category}:{id}
+  - column: dl_localizations
+    parser: term_list
+    attach_to: protein
+    parent_tag: subcellular-localization
+    category: localization
+    promoted_entity_type: localization_call
+    promoted_relation_type: HAS_LOCALIZATION
+    promoted_id_template: localization:{id}
+  - column: localizer
+    parser: term_list
+    attach_to: protein
+    parent_tag: subcellular-localization
+    category: localization
+    promoted_entity_type: localization_call
+    promoted_relation_type: HAS_LOCALIZATION
+    promoted_id_template: localization:{id}
+  - column: expression_bin_13
+    parser: single_term
+    attach_to: transcript
+    parent_tag: expression-bin
+    category: expression_summary
+  - column: expression_bin_38
+    parser: single_term
+    attach_to: transcript
+    parent_tag: expression-bin
+    category: expression_summary
+  - column: t_factor
+    parser: single_term
+    attach_to: protein
+    parent_tag: functional-prediction
+    category: prediction_feature
+    promoted_entity_type: prediction_call
+    promoted_relation_type: HAS_PREDICTION
+    promoted_id_template: prediction:{category}:{id}
+  boolean_tags:
+  - column: effector_islands
+    truthy:
+    - 'true'
+    - 'yes'
+    - '1'
+    tag_id: effector-island
+    label: Effector Island
+    attach_to: gene
+    parent_tag: effector-evidence
+    category: effector_evidence
+  value_presence_tags:
+  - column: schachtii_effectors_known
+    tag_id: bcn-known-effector-hit
+    label: BCN Known Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+    category: effector_evidence
+  - column: schachtii_effectors_putative
+    tag_id: bcn-putative-effector-hit
+    label: BCN Putative Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+    category: effector_evidence
+  - column: glycines_effectors_dna
+    tag_id: scn-dna-effector-hit
+    label: SCN DNA Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+    category: effector_evidence
+  - column: glycines_effectors_prot
+    tag_id: scn-protein-effector-hit
+    label: SCN Protein Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+    category: effector_evidence
+  promoted_entities:
+    orthogroup:
+      source_column: orthogroup
+      entity_type: orthogroup
+      id_template: orthogroup:{value}
+      name_template: '{value}'
+      attach_from: gene
+      relationship_type: BELONGS_TO_ORTHOGROUP
+  expression_entities:
+    summaries_defaults:
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    contrasts_defaults:
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+  tag_hierarchy:
+    genomics:
+      name: Genomics
+      category: domain
+      parent: ''
+    genes-and-transcripts:
+      name: Genes And Transcripts
+      category: field
+      parent: genomics
+    protein-features:
+      name: Protein Features
+      category: field
+      parent: genomics
+    functional-annotations:
+      name: Functional Annotations
+      category: field
+      parent: protein-features
+    subcellular-localization:
+      name: Subcellular Localization
+      category: field
+      parent: protein-features
+    localization-signal:
+      name: Localization Signals
+      category: topic
+      parent: subcellular-localization
+    functional-prediction:
+      name: Functional Predictions
+      category: topic
+      parent: functional-annotations
+    go-annotation:
+      name: GO Annotation
+      category: topic
+      parent: functional-annotations
+    interpro-domain:
+      name: InterPro Domain
+      category: topic
+      parent: functional-annotations
+    pfam-family:
+      name: Pfam Family
+      category: topic
+      parent: functional-annotations
+    smart-domain:
+      name: SMART Domain
+      category: topic
+      parent: functional-annotations
+    funfam-family:
+      name: FunFam Family
+      category: topic
+      parent: functional-annotations
+    panther-family:
+      name: PANTHER Family
+      category: topic
+      parent: functional-annotations
+    expression:
+      name: Expression
+      category: field
+      parent: genomics
+    expression-bin:
+      name: Expression Bin
+      category: topic
+      parent: expression
+    differential-expression:
+      name: Differential Expression
+      category: field
+      parent: expression
+    homology:
+      name: Homology
+      category: field
+      parent: genomics
+    homology-scope:
+      name: Homology Scope
+      category: topic
+      parent: homology
+    homology-scope-cyst-nematode:
+      name: Cyst Nematode
+      category: topic
+      parent: homology-scope
+    homology-scope-nematode:
+      name: Nematode
+      category: topic
+      parent: homology-scope
+    homology-scope-broad-parasitism:
+      name: Broad Parasitism
+      category: topic
+      parent: homology-scope
+    effectors:
+      name: Effectors
+      category: field
+      parent: genomics
+    effector-evidence:
+      name: Effector Evidence
+      category: topic
+      parent: effectors

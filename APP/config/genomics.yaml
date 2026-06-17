@@ -1,0 +1,280 @@
+# Knowledge Graph Explorer — Genomics sample database
+#
+# Usage: python -m kgx --config config/genomics.yaml
+
+domain:
+  name: genomics
+
+db:
+  path: ../../sample_data/3_db/genomics_scn.db
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: true
+  directory: ../../skills
+  python: python3
+  model: qwen3-coder:30b
+
+server:
+  host: 127.0.0.1
+  port: 8011
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
+  layouts:
+    hierarchical:
+      type_families:
+        organism: backbone
+        dataset: provenance
+        chromosome: backbone
+        gene: backbone
+        transcript: backbone
+        protein: backbone
+        orthogroup: comparative
+        bcn_gene: comparative
+        comparative_hit: comparative
+        annotation_term: ontology
+        localization_call: measurement
+        prediction_call: measurement
+        expression_measure: measurement
+        contrast_definition: measurement
+        tag: ontology
+      type_aliases:
+        bcn_gene: gene
+      type_levels:
+        organism: 0.9
+        chromosome: 0.3
+        gene: -0.4
+        transcript: -1.0
+        protein: -1.6
+        bcn_gene: -0.4
+        comparative_hit: -1.6
+        orthogroup: -1.2
+        expression_measure: -1.8
+        contrast_definition: -2.5
+        localization_call: -2.2
+        prediction_call: -2.2
+        annotation_term: -2.1
+        tag: -2.8
+      driver_direction_overrides:
+        FROM_ORGANISM: reverse
+    timeline:
+      enabled: true
+      profile_name: genomics
+      anchor_type: expression_measure
+      order:
+        field_candidates: [stage_order]
+        derive: []
+        numeric_range:
+          min: null
+          max: null
+        direction: asc
+      anchors:
+        x_step: 150
+        z: 0
+        same_value_spread: symmetric
+        same_value_y_step: 80
+      assignment:
+        primary_anchor_rule: strongest_then_earliest
+        edge_type_priority: [HAS_EXPRESSION_SUMMARY]
+      layers:
+        organism:
+          z: 220
+        chromosome:
+          z: 150
+        gene:
+          z: 80
+        transcript:
+          z: 40
+        protein:
+          z: 65
+        orthogroup:
+          z: 110
+        bcn_gene:
+          z: 180
+        comparative_hit:
+          z: 140
+        annotation_term:
+          z: 95
+        localization_call:
+          z: 100
+        prediction_call:
+          z: 100
+        expression_measure:
+          z: 0
+        contrast_definition:
+          z: 25
+        tag:
+          z: 120
+      unanchored:
+        mode: hide_or_dim
+      detection:
+        allow_anchor_type_override: true
+        allow_order_field_override: true
+        detected_type_min_count: 2
+
+explore:
+  stub_type: ""
+  include_node_types: [organism, chromosome, gene, transcript, protein]
+  include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO]
+  excluded_node_types: []
+  preserve_node_types: [organism]
+  included_tag_roots: []
+  mediator_type: ""
+  mediator_edge: ""
+  derived_edge_type: RELATED
+  derived_path_edges: []
+  hierarchy_edge: BROADER
+  annotation_edge: TAGGED
+  default_hidden_rel_types: []
+  skipped_rel_types: []
+  active_preset: backbone
+  presets:
+    backbone:
+      label: Backbone
+      description: Biological scaffold rooted in organism and flowing through gene, transcript, and protein.
+      include_node_types: [organism, chromosome, gene, transcript, protein]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO]
+      preserve_node_types: [organism]
+      skipped_rel_types: []
+    gene_centric:
+      label: Gene-Centric
+      description: Gene-anchored view that collapses transcript mediation into direct gene-to-protein focus while keeping family context.
+      include_node_types: [organism, chromosome, gene, protein, orthogroup]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP]
+      preserve_node_types: [organism]
+      mediator_type: orthogroup
+      mediator_edge: BELONGS_TO_ORTHOGROUP
+      derived_edge_type: SHARES_ORTHOGROUP
+      derived_path_edges:
+        - source_type: gene
+          via_type: transcript
+          target_type: protein
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: TRANSLATED_TO
+          edge_type: GENE_PRODUCT
+      skipped_rel_types: []
+    transcript_centric:
+      label: Transcript-Centric
+      description: Transcript and isoform view with direct expression summary and contrast semantics preserved.
+      include_node_types: [organism, chromosome, gene, transcript, protein, expression_measure, contrast_definition]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO, HAS_EXPRESSION_SUMMARY, HAS_EXPRESSION_CONTRAST, CONTRAST_SOURCE, CONTRAST_TARGET]
+      preserve_node_types: [organism]
+      skipped_rel_types: []
+    expression_centric:
+      label: Expression-Centric
+      description: Expression-focused view centered on genes, ordered summaries, and directed contrasts with transcript mediation collapsed.
+      include_node_types: [organism, gene, expression_measure, contrast_definition]
+      include_rel_types: [FROM_ORGANISM, CONTRAST_SOURCE, CONTRAST_TARGET]
+      preserve_node_types: [organism]
+      derived_path_edges:
+        - source_type: gene
+          via_type: transcript
+          target_type: expression_measure
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: HAS_EXPRESSION_SUMMARY
+          edge_type: GENE_EXPRESSION_MEASURE
+        - source_type: gene
+          via_type: transcript
+          target_type: contrast_definition
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: HAS_EXPRESSION_CONTRAST
+          edge_type: GENE_EXPRESSION_CONTRAST
+      skipped_rel_types: []
+    protein_centric:
+      label: Protein-Centric
+      description: Protein function view with transcript mediation collapsed and functional overlays preserved.
+      include_node_types: [organism, gene, protein, annotation_term, localization_call, prediction_call, tag]
+      include_rel_types: [FROM_ORGANISM, HAS_ANNOTATION, HAS_LOCALIZATION, HAS_PREDICTION, TAGGED, BROADER]
+      preserve_node_types: [organism]
+      included_tag_roots: [functional-annotations, effectors, subcellular-localization]
+      mediator_type: annotation_term
+      mediator_edge: HAS_ANNOTATION
+      annotation_edge: TAGGED
+      derived_edge_type: SHARES_PROTEIN_FUNCTION
+      derived_path_edges:
+        - source_type: gene
+          via_type: transcript
+          target_type: protein
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: TRANSLATED_TO
+          edge_type: GENE_PRODUCT
+      skipped_rel_types: []
+    comparative:
+      label: Comparative
+      description: Comparative scaffold combining orthogroup ortholog genes with protein homology hits and homology-scope ontology.
+      include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, tag]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, TAGGED, BROADER]
+      include_rel_patterns:
+        - rel_type: FROM_ORGANISM
+          source_type: bcn_gene
+          target_type: organism
+      preserve_node_types: [organism]
+      included_tag_roots: [homology-scope]
+      mediator_type: orthogroup
+      mediator_edge: BELONGS_TO_ORTHOGROUP
+      derived_edge_type: SHARES_ORTHOGROUP
+      derived_path_edges:
+        - source_type: gene
+          via_type: transcript
+          target_type: protein
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: TRANSLATED_TO
+          edge_type: GENE_PRODUCT
+      default_hidden_rel_types: []
+      skipped_rel_types: []
+    provenance:
+      label: Provenance
+      description: Sample and organism lineage view for tracing what records belong to a dataset without scientific overlays.
+      include_node_types: [organism, dataset, gene]
+      include_rel_types: [IN_DATASET, ABOUT_ORGANISM, FROM_ORGANISM]
+      preserve_node_types: [organism, dataset]
+      skipped_rel_types: []
+
+embedding:
+  type_fields:
+    gene: [genome_location, nested_genes]
+    transcript: [cluster_name, expression_bin_13, expression_bin_38]
+    protein: [protein_sequence, secretion, localizer, interpro, pfam, panther]
+    orthogroup: [name]
+    tag: [namespace, category]
+  default_fields: [name, description]
+
+db_build:
+  source_policy:
+    allowed_domains: []
+    preferred_domains: []
+    blocked_domains: []
+    official_only: false
+  visualization:
+    timeline:
+      preferred_anchor_types: [expression_measure]
+      anchor_order_fields:
+        expression_measure: [stage_order]
+      field_aliases:
+        stage_order: [order_index]
+      weak_order_fields: [created_at, updated_at]
+      required_metadata_by_type:
+        expression_measure: [stage_order]
+  skill_contexts:
+    genomics:
+      help_prompts:
+        - Build a local genomics graph from standardized TSV and YAML sources.
+        - Normalize raw genomics source files into dataset.yaml and schema.yaml for deterministic offline builds.
+        - Refresh the genomics sample database after local source files change.
+      settings:
+        module: genomics
+        extension: functional_genomics
+        profile: scn_effectors
+        primary_record_entity: transcript

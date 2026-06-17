@@ -1,0 +1,42 @@
+name: Genomics Builder
+description: Normalize local genomics source files and build a genomics knowledge graph database without online harvesting.
+entity_types:
+  - gene
+  - transcript
+  - protein
+  - orthogroup
+  - dataset
+entry: run_genomics.py
+args:
+  - name: command
+    flag: ""
+    description: One of infer, review, propose, apply-proposal, normalize, or build.
+    required: true
+  - name: source_dir
+    flag: --source-dir
+    description: Directory containing source files or the destination for inferred metadata.
+    required: false
+  - name: source_file
+    flag: --source-file
+    description: Primary raw table file for inference or review (.tsv, .csv, .xlsx).
+    required: false
+  - name: config
+    flag: --config
+    description: Optional KGX config file that provides local LLM settings for review.
+    required: false
+  - name: review
+    flag: --review
+    description: Review sidecar file used by the propose command.
+    required: false
+  - name: schema
+    flag: --schema
+    description: Schema file used by the propose or apply-proposal command.
+    required: false
+  - name: patch
+    flag: --patch
+    description: Patch file used by the apply-proposal command.
+    required: false
+  - name: db
+    flag: --db
+    description: Output SQLite database path for build.
+    required: false
