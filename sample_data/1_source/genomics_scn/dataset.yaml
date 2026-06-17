@@ -1,0 +1,40 @@
+dataset:
+  id: genomics_scn
+  name: Heterodera glycines functional genomics sample
+  module: genomics
+  extension: functional_genomics
+  profile: scn_effectors
+  organism: Heterodera glycines
+  description: Local functional genomics sample for transcript-centric records that
+    separate gene, transcript, and protein entities while preserving raw feature-group
+    metadata.
+  raw_sources:
+  - path: DATA.tsv
+    kind: tsv
+    role: primary_matrix
+  - path: config.py
+    kind: python
+    role: ui_metadata
+  standardized_sources:
+    schema: schema.yaml
+  primary_record:
+    entity_type: transcript
+    id_column: uniquename
+    gene_id_column: gene_name
+    protein_id_template: '{uniquename}:protein'
+  llm_context:
+    summary: Transcript-centric Heterodera glycines functional genomics dataset with
+      protein-derived annotation, localization, structure, biophysics, composition,
+      and expression features.
+    glossary:
+      scn: Soybean cyst nematode, Heterodera glycines.
+      bcn: Beet cyst nematode, Heterodera schachtii.
+      orthogroup: Comparative gene family assignment across related organisms.
+      dge: Differential gene expression represented as log2 fold-change contrasts.
+  ui_hints:
+    default_focus: gene-centric
+    recommended_focus_modes:
+    - gene-centric
+    - functional-annotation-centric
+    - expression-centric
+    - effector-candidate-centric

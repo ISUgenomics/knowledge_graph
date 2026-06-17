@@ -1,0 +1,2387 @@
+contract:
+  name: functional_genomics
+  version: 1
+  path: /workspace/KnowledgeGraph/skills/genomics/contracts/functional_genomics.yaml
+  module: genomics
+  core_entities:
+  - organism
+  - dataset
+  - chromosome
+  - gene
+  - transcript
+  - protein
+  optional_entities:
+  - orthogroup
+  - bcn_gene
+  - comparative_hit
+  - annotation_term
+  - localization_call
+  - prediction_call
+  - expression_measure
+  - contrast_definition
+  required_relationships:
+  - &id001
+    source: dataset
+    type: ABOUT_ORGANISM
+    target: organism
+  - &id002
+    source: gene
+    type: FROM_ORGANISM
+    target: organism
+  - &id003
+    source: organism
+    type: HAS_CHROMOSOME
+    target: chromosome
+  - &id004
+    source: chromosome
+    type: HAS_GENE
+    target: gene
+  - &id005
+    source: gene
+    type: HAS_TRANSCRIPT
+    target: transcript
+  - &id006
+    source: transcript
+    type: TRANSLATED_TO
+    target: protein
+  - &id007
+    source: gene
+    type: IN_DATASET
+    target: dataset
+raw:
+  data_path: DATA.tsv
+  delimiter: \t
+  config_source: config.py
+  column_order:
+  - uniquename
+  - gene_name
+  - genome_location
+  - nest_genes
+  - nested_genes
+  - average_copy_number
+  - tn7_copy_number
+  - tn8_copy_number
+  - tn10_copy_number
+  - tn20_copy_number
+  - tn22_copy_number
+  - mm26_copy_number
+  - op50_copy_number
+  - pa3_copy_number
+  - x12_copy_number
+  - secretion
+  - dl_signals
+  - dl_localizations
+  - localizer
+  - l_nucleus_peptide
+  - l_mitochondria_peptide
+  - l_mitochondria_score
+  - l_chloroplast_peptide
+  - l_chloroplast_score
+  - signal_peptide
+  - signalp5
+  - signalp6
+  - tm_domain_sp5
+  - tm_domain_sp6
+  - dl_nucleus
+  - dl_mitochondrion
+  - dl_plastid
+  - dl_cytoplasm
+  - dl_endoplasmic_reticulum
+  - dl_lysosome_vacuole
+  - dl_golgi_apparatus
+  - dl_peroxisome
+  - dl_cell_membrane
+  - dl_extracellular
+  - glycines_effectors_dna
+  - glycines_effectors_prot
+  - schachtii_effectors_known
+  - schachtii_effectors_putative
+  - effector_islands
+  - cluster_name
+  - cluster_score
+  - orthogroup
+  - glycines_gene_count
+  - schachtii_gene_count
+  - schachtii_genes
+  - schachtii_hits
+  - celegans_hits
+  - sp_best_hit
+  - nr_best_hit
+  - hgt_donor_id
+  - hgt_alien_index
+  - t_factor
+  - go_consensus
+  - deepgoplus
+  - interpro
+  - smart
+  - pfam
+  - funfam
+  - panther
+  - disorder
+  - diso_regions
+  - num_globular
+  - domains
+  - pdb_hit
+  - hit_class
+  - inclusion_body
+  - mol_weight
+  - isoel_point
+  - charge
+  - charged
+  - aromatic
+  - polar
+  - non_polar
+  - basic
+  - acidic
+  - small
+  - alanine
+  - asparagine
+  - aspartate
+  - cysteine
+  - glutamate
+  - glutamine
+  - glycine
+  - histidine
+  - isoleucine
+  - leucine
+  - lysine
+  - methionine
+  - phenylalanine
+  - proline
+  - arginine
+  - serine
+  - threonine
+  - valine
+  - tryptophan
+  - tyrosine
+  - unknown
+  - expression_bin_13
+  - expression_bin_38
+  - avg_counts
+  - avg_egg
+  - avg_ppj2
+  - avg_pj2
+  - avg_j3
+  - avg_j4
+  - avg_female
+  - avg_male
+  - avg_j2g
+  - avg_j3g
+  - avg_glands
+  - dge_egg_ppj2
+  - dge_egg_pj2
+  - dge_ppj2_pj2
+  - dge_pj2_j3
+  - dge_j3_j4
+  - dge_j4_female
+  - dge_j4_male
+  - dge_female_male
+  - dge_j3g_j2g
+  - dge_j2g_pj2b
+  - dge_j3g_j3b
+  - dge_j2g_mm10_pa3
+  - dge_j3g_mm10_pa3
+  - protein_sequence
+  - mrna_sequence
+entity_model:
+  primary_record_entity: transcript
+  entities:
+    organism:
+      entity_type: organism
+      entity_id: organism:heterodera-glycines
+      name: Heterodera glycines
+    dataset:
+      entity_type: dataset
+      entity_id: dataset:genomics_scn
+      name: Heterodera glycines functional genomics sample
+    chromosome:
+      entity_type: chromosome
+      source_column: genome_location
+      id_template: chromosome:heterodera-glycines:{chromosome}
+      name_template: '{chromosome}'
+    gene:
+      entity_type: gene
+      id_column: gene_name
+      name_column: gene_name
+      metadata_columns:
+      - genome_location
+      - nested_genes
+      - nest_genes
+      - average_copy_number
+      - tn7_copy_number
+      - tn8_copy_number
+      - tn10_copy_number
+      - tn20_copy_number
+      - tn22_copy_number
+      - mm26_copy_number
+      - op50_copy_number
+      - pa3_copy_number
+      - x12_copy_number
+    transcript:
+      entity_type: transcript
+      id_column: uniquename
+      name_column: uniquename
+      metadata_columns:
+      - cluster_name
+      - cluster_score
+      - expression_bin_13
+      - expression_bin_38
+      - avg_counts
+      - avg_egg
+      - avg_ppj2
+      - avg_pj2
+      - avg_j3
+      - avg_j4
+      - avg_female
+      - avg_male
+      - avg_j2g
+      - avg_j3g
+      - avg_glands
+      - dge_egg_ppj2
+      - dge_egg_pj2
+      - dge_ppj2_pj2
+      - dge_pj2_j3
+      - dge_j3_j4
+      - dge_j4_female
+      - dge_j4_male
+      - dge_female_male
+      - dge_j3g_j2g
+      - dge_j2g_pj2b
+      - dge_j3g_j3b
+      - dge_j2g_mm10_pa3
+      - dge_j3g_mm10_pa3
+      - mrna_sequence
+    protein:
+      entity_type: protein
+      id_template: '{uniquename}:protein'
+      name_template: '{gene_name} protein'
+      metadata_columns:
+      - secretion
+      - dl_signals
+      - dl_localizations
+      - localizer
+      - l_nucleus_peptide
+      - l_mitochondria_peptide
+      - l_mitochondria_score
+      - l_chloroplast_peptide
+      - l_chloroplast_score
+      - signal_peptide
+      - signalp5
+      - signalp6
+      - tm_domain_sp5
+      - tm_domain_sp6
+      - dl_nucleus
+      - dl_mitochondrion
+      - dl_plastid
+      - dl_cytoplasm
+      - dl_endoplasmic_reticulum
+      - dl_lysosome_vacuole
+      - dl_golgi_apparatus
+      - dl_peroxisome
+      - dl_cell_membrane
+      - dl_extracellular
+      - glycines_effectors_dna
+      - glycines_effectors_prot
+      - schachtii_effectors_known
+      - schachtii_effectors_putative
+      - effector_islands
+      - orthogroup
+      - glycines_gene_count
+      - schachtii_gene_count
+      - schachtii_genes
+      - schachtii_hits
+      - celegans_hits
+      - sp_best_hit
+      - nr_best_hit
+      - hgt_donor_id
+      - hgt_alien_index
+      - t_factor
+      - go_consensus
+      - deepgoplus
+      - interpro
+      - smart
+      - pfam
+      - funfam
+      - panther
+      - disorder
+      - diso_regions
+      - num_globular
+      - domains
+      - pdb_hit
+      - hit_class
+      - inclusion_body
+      - mol_weight
+      - isoel_point
+      - charge
+      - charged
+      - aromatic
+      - polar
+      - non_polar
+      - basic
+      - acidic
+      - small
+      - alanine
+      - asparagine
+      - aspartate
+      - cysteine
+      - glutamate
+      - glutamine
+      - glycine
+      - histidine
+      - isoleucine
+      - leucine
+      - lysine
+      - methionine
+      - phenylalanine
+      - proline
+      - arginine
+      - serine
+      - threonine
+      - valine
+      - tryptophan
+      - tyrosine
+      - unknown
+      sequence_column: protein_sequence
+  relationships:
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  - *id007
+promoted_entities:
+  shared:
+    orthogroup:
+      source_column: orthogroup
+      entity_type: orthogroup
+      id_template: orthogroup:{value}
+      name_template: '{value}'
+      attach_from: gene
+      relationship_type: BELONGS_TO_ORTHOGROUP
+      metadata_columns:
+      - glycines_gene_count
+      - schachtii_gene_count
+      - schachtii_genes
+  dataset_specific: {}
+comparative_entities:
+  shared: {}
+  dataset_specific:
+    homolog_family_member:
+      source_column: schachtii_genes
+      entity_type: bcn_gene
+      id_template: bcn_gene:heterodera-schachtii:{value}
+      name_template: '{value}'
+      attach_from: orthogroup
+      relationship_type: HAS_BCN_MEMBER
+      target_organism: Heterodera schachtii
+      scope_tag_id: homology-scope-cyst-nematode
+      parser: term_list
+    bcn_hit:
+      source_column: schachtii_hits
+      entity_type: comparative_hit
+      id_template: comparative_hit:cyst_nematode:{value}
+      name_template: '{value}'
+      attach_from: protein
+      relationship_type: HAS_BCN_HIT
+      target_organism: Heterodera schachtii
+      reuse_target_organism_identity: true
+      scope_tag_id: homology-scope-cyst-nematode
+      parser: term_list
+    nematode_hit:
+      source_column: celegans_hits
+      entity_type: comparative_hit
+      id_template: comparative_hit:nematode:{value}
+      name_template: '{value}'
+      attach_from: protein
+      relationship_type: HAS_NEMATODE_HIT
+      scope_tag_id: homology-scope-nematode
+      parser: term_list
+    sp_best_hit:
+      source_column: sp_best_hit
+      entity_type: comparative_hit
+      id_template: comparative_hit:broad_parasitism:{value}
+      name_template: '{value}'
+      attach_from: protein
+      relationship_type: HAS_BROAD_HOMOLOGY_HIT
+      scope_tag_id: homology-scope-broad-parasitism
+      parser: term_list
+    nr_best_hit:
+      source_column: nr_best_hit
+      entity_type: comparative_hit
+      id_template: comparative_hit:broad_parasitism:{value}
+      name_template: '{value}'
+      attach_from: protein
+      relationship_type: HAS_BROAD_HOMOLOGY_HIT
+      scope_tag_id: homology-scope-broad-parasitism
+      parser: term_list
+annotation_bins:
+  shared:
+  - column: go_consensus
+    namespace: go
+    parser: go_plain
+    attach_to: protein
+    parent_tag: go-annotation
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: deepgoplus
+    namespace: go
+    parser: go_scored
+    attach_to: protein
+    parent_tag: go-annotation
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: interpro
+    namespace: interpro
+    parser: interpro_ids
+    attach_to: protein
+    parent_tag: interpro-domain
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: pfam
+    namespace: pfam
+    parser: pfam_ids
+    attach_to: protein
+    parent_tag: pfam-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: smart
+    namespace: smart
+    parser: smart_ids
+    attach_to: protein
+    parent_tag: smart-domain
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: funfam
+    namespace: funfam
+    parser: funfam_ids
+    attach_to: protein
+    parent_tag: funfam-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: panther
+    namespace: panther
+    parser: panther_ids
+    attach_to: protein
+    parent_tag: panther-family
+    category: domain_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  dataset_specific: []
+tag_bins:
+  shared:
+  - column: dl_signals
+    parser: term_list
+    attach_to: protein
+    parent_tag: localization-signal
+    category: prediction_feature
+    promoted_entity_type: prediction_call
+    promoted_relation_type: HAS_PREDICTION
+    promoted_id_template: prediction:{category}:{id}
+  - column: dl_localizations
+    parser: term_list
+    attach_to: protein
+    parent_tag: subcellular-localization
+    category: localization
+    promoted_entity_type: localization_call
+    promoted_relation_type: HAS_LOCALIZATION
+    promoted_id_template: localization:{id}
+  - column: localizer
+    parser: term_list
+    attach_to: protein
+    parent_tag: subcellular-localization
+    category: localization
+    promoted_entity_type: localization_call
+    promoted_relation_type: HAS_LOCALIZATION
+    promoted_id_template: localization:{id}
+  - column: expression_bin_13
+    parser: single_term
+    attach_to: transcript
+    parent_tag: expression-bin
+    category: expression_summary
+  - column: expression_bin_38
+    parser: single_term
+    attach_to: transcript
+    parent_tag: expression-bin
+    category: expression_summary
+  - column: t_factor
+    parser: single_term
+    attach_to: protein
+    parent_tag: functional-prediction
+    category: prediction_feature
+    promoted_entity_type: prediction_call
+    promoted_relation_type: HAS_PREDICTION
+    promoted_id_template: prediction:{category}:{id}
+  dataset_specific: []
+boolean_tags:
+  shared:
+  - column: effector_islands
+    truthy:
+    - 'true'
+    - 'yes'
+    - '1'
+    tag_id: effector-island
+    label: Effector Island
+    attach_to: gene
+    parent_tag: effector-evidence
+  dataset_specific: []
+value_presence_tags:
+  shared:
+  - column: schachtii_effectors_known
+    tag_id: bcn-known-effector-hit
+    label: BCN Known Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+  - column: schachtii_effectors_putative
+    tag_id: bcn-putative-effector-hit
+    label: BCN Putative Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+  - column: glycines_effectors_dna
+    tag_id: scn-dna-effector-hit
+    label: SCN DNA Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+  - column: glycines_effectors_prot
+    tag_id: scn-protein-effector-hit
+    label: SCN Protein Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
+  dataset_specific: []
+tag_hierarchy:
+  shared:
+    genomics:
+      name: Genomics
+      category: domain
+      parent: ''
+    genes-and-transcripts:
+      name: Genes And Transcripts
+      category: field
+      parent: genomics
+    protein-features:
+      name: Protein Features
+      category: field
+      parent: genomics
+    functional-annotations:
+      name: Functional Annotations
+      category: field
+      parent: protein-features
+    subcellular-localization:
+      name: Subcellular Localization
+      category: field
+      parent: protein-features
+    localization-signal:
+      name: Localization Signals
+      category: topic
+      parent: subcellular-localization
+    functional-prediction:
+      name: Functional Predictions
+      category: topic
+      parent: functional-annotations
+    go-annotation:
+      name: GO Annotation
+      category: topic
+      parent: functional-annotations
+    interpro-domain:
+      name: InterPro Domain
+      category: topic
+      parent: functional-annotations
+    pfam-family:
+      name: Pfam Family
+      category: topic
+      parent: functional-annotations
+    smart-domain:
+      name: SMART Domain
+      category: topic
+      parent: functional-annotations
+    funfam-family:
+      name: FunFam Family
+      category: topic
+      parent: functional-annotations
+    panther-family:
+      name: PANTHER Family
+      category: topic
+      parent: functional-annotations
+    expression:
+      name: Expression
+      category: field
+      parent: genomics
+    expression-bin:
+      name: Expression Bin
+      category: topic
+      parent: expression
+    differential-expression:
+      name: Differential Expression
+      category: field
+      parent: expression
+    homology:
+      name: Homology
+      category: field
+      parent: genomics
+    homology-scope:
+      name: Homology Scope
+      category: topic
+      parent: homology
+    homology-scope-cyst-nematode:
+      name: Cyst Nematode
+      category: topic
+      parent: homology-scope
+    homology-scope-nematode:
+      name: Nematode
+      category: topic
+      parent: homology-scope
+    homology-scope-broad-parasitism:
+      name: Broad Parasitism
+      category: topic
+      parent: homology-scope
+    effectors:
+      name: Effectors
+      category: field
+      parent: genomics
+    effector-evidence:
+      name: Effector Evidence
+      category: topic
+      parent: effectors
+  dataset_specific: {}
+expression_entities:
+  summaries:
+    shared: []
+    dataset_specific:
+    - label: Egg
+      column: avg_egg
+      attach_to: transcript
+      measure_type: summary
+      order_index: 0
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: ppJ2
+      column: avg_ppj2
+      attach_to: transcript
+      measure_type: summary
+      order_index: 1
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: pJ2
+      column: avg_pj2
+      attach_to: transcript
+      measure_type: summary
+      order_index: 2
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: J3
+      column: avg_j3
+      attach_to: transcript
+      measure_type: summary
+      order_index: 3
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: J4
+      column: avg_j4
+      attach_to: transcript
+      measure_type: summary
+      order_index: 4
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: Female
+      column: avg_female
+      attach_to: transcript
+      measure_type: summary
+      order_index: 5
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+    - label: Male
+      column: avg_male
+      attach_to: transcript
+      measure_type: summary
+      order_index: 6
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+  contrasts:
+    shared: []
+    dataset_specific:
+    - label: Egg vs ppJ2
+      column: dge_egg_ppj2
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 0
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Egg
+      source_summary_column: avg_egg
+      target_summary_label: ppJ2
+      target_summary_column: avg_ppj2
+    - label: Egg vs pJ2
+      column: dge_egg_pj2
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 1
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Egg
+      source_summary_column: avg_egg
+      target_summary_label: pJ2
+      target_summary_column: avg_pj2
+    - label: ppJ2 vs pJ2
+      column: dge_ppj2_pj2
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 2
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: ppJ2
+      source_summary_column: avg_ppj2
+      target_summary_label: pJ2
+      target_summary_column: avg_pj2
+    - label: pJ2 vs J3
+      column: dge_pj2_j3
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 3
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: pJ2
+      source_summary_column: avg_pj2
+      target_summary_label: J3
+      target_summary_column: avg_j3
+    - label: J3 vs J4
+      column: dge_j3_j4
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 4
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: J3
+      source_summary_column: avg_j3
+      target_summary_label: J4
+      target_summary_column: avg_j4
+    - label: J4 vs F
+      column: dge_j4_female
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 5
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: J4
+      source_summary_column: avg_j4
+      target_summary_label: Female
+      target_summary_column: avg_female
+    - label: J4 vs M
+      column: dge_j4_male
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 6
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: J4
+      source_summary_column: avg_j4
+      target_summary_label: Male
+      target_summary_column: avg_male
+    - label: F vs M
+      column: dge_female_male
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 7
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Female
+      source_summary_column: avg_female
+      target_summary_label: Male
+      target_summary_column: avg_male
+    - label: G(J3 vs J2)
+      column: dge_j3g_j2g
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 8
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: J3
+      source_summary_column: avg_j3
+      target_summary_label: pJ2
+      target_summary_column: avg_pj2
+    - label: G(J2) vs pJ2
+      column: dge_j2g_pj2b
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 9
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: pJ2
+      source_summary_column: avg_pj2
+    - label: G(J3) vs J3
+      column: dge_j3g_j3b
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 10
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: J3
+      source_summary_column: avg_j3
+    - label: G(J2) lines
+      column: dge_j2g_mm10_pa3
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 11
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+    - label: G(J3) lines
+      column: dge_j3g_mm10_pa3
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 12
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+ui:
+  feature_groups:
+    core: Core
+    genomics: Genomics
+    effectors: Effectors
+    secretion: Secretion
+    homology: Homology
+    functional: Functional
+    sequence: Sequence
+    structure: Structure
+    biophysics: Biophysics
+    composition: Composition
+    expression: Expression
+    dge: DGE
+  feature_columns:
+  - key: organism
+    label: Organism
+    type: plain
+    group: core
+    sort_field: organism__genus
+    render: organism
+  - key: uniquename
+    label: Feature ID
+    type: plain
+    group: core
+    sort_field: uniquename
+    render: link_uniquename
+  - key: gene_name
+    label: Gene Name
+    type: prop_text
+    group: genomics
+  - key: genome_location
+    label: Gene Locus
+    type: prop_text
+    group: genomics
+  - key: nested_genes
+    label: Nested Gene
+    type: prop_text
+    group: genomics
+  - key: nest_genes
+    label: (host gene)
+    type: prop_text
+    group: genomics
+  - key: average_copy_number
+    label: Average
+    type: prop_text
+    group: genomics
+  - key: tn7_copy_number
+    label: TN7
+    type: prop_text
+    group: genomics
+  - key: tn8_copy_number
+    label: TN8
+    type: prop_text
+    group: genomics
+  - key: tn10_copy_number
+    label: TN10
+    type: prop_text
+    group: genomics
+  - key: tn20_copy_number
+    label: TN20
+    type: prop_text
+    group: genomics
+  - key: tn22_copy_number
+    label: TN22
+    type: prop_text
+    group: genomics
+  - key: mm26_copy_number
+    label: MM26
+    type: prop_text
+    group: genomics
+  - key: op50_copy_number
+    label: OP50
+    type: prop_text
+    group: genomics
+  - key: pa3_copy_number
+    label: PA3
+    type: prop_text
+    group: genomics
+  - key: x12_copy_number
+    label: X12
+    type: prop_text
+    group: genomics
+  - key: effector
+    label: SCN putative
+    type: prop_text
+    group: effectors
+  - key: glycines_effectors_dna
+    label: SCN known (N)
+    type: prop_text
+    group: effectors
+  - key: glycines_effectors_prot
+    label: SCN known (P)
+    type: prop_text
+    group: effectors
+  - key: schachtii_effectors_known
+    label: BCN known
+    type: prop_text
+    group: effectors
+  - key: schachtii_effectors_putative
+    label: BCN putative
+    type: prop_text
+    group: effectors
+  - key: effector_islands
+    label: Effector Islands
+    type: prop_text
+    group: effectors
+  - key: cluster_name
+    label: Cluster Name
+    type: prop_text
+    group: effectors
+  - key: cluster_score
+    label: (score)
+    type: prop_float
+    group: effectors
+  - key: secretion
+    label: Secretion
+    type: prop_text
+    group: secretion
+  - key: dl_signals
+    label: DL-signals
+    type: prop_text
+    group: secretion
+  - key: dl_localizations
+    label: DL-localization
+    type: prop_text
+    group: secretion
+  - key: localizer
+    label: Localizer
+    type: prop_text
+    group: secretion
+  - key: l_nucleus_peptide
+    label: L-nucleus
+    type: prop_text
+    group: secretion
+  - key: l_mitochondria_peptide
+    label: L-mitochondria
+    type: prop_text
+    group: secretion
+  - key: l_mitochondria_score
+    label: (score)
+    type: prop_float
+    group: secretion
+  - key: l_chloroplast_peptide
+    label: L-chloroplast
+    type: prop_text
+    group: secretion
+  - key: l_chloroplast_score
+    label: (score)
+    type: prop_float
+    group: secretion
+  - key: signal_peptide
+    label: Signal Peptide
+    type: prop_text
+    group: secretion
+  - key: signalp5
+    label: (score_v5)
+    type: prop_float
+    group: secretion
+  - key: signalp6
+    label: (score_v6)
+    type: prop_float
+    group: secretion
+  - key: tm_domain_sp5
+    label: (TM_v5)
+    type: prop_float
+    group: secretion
+  - key: tm_domain_sp6
+    label: (TM_v6)
+    type: prop_float
+    group: secretion
+  - key: dl_nucleus
+    label: nucleus
+    type: prop_float
+    group: secretion
+  - key: dl_mitochondrion
+    label: mitochondrion
+    type: prop_float
+    group: secretion
+  - key: dl_plastid
+    label: plastid
+    type: prop_float
+    group: secretion
+  - key: dl_cytoplasm
+    label: cytoplasm
+    type: prop_float
+    group: secretion
+  - key: dl_endoplasmic_reticulum
+    label: endoplasmic_reticulum
+    type: prop_float
+    group: secretion
+  - key: dl_lysosome_vacuole
+    label: lysosome_vacuole
+    type: prop_float
+    group: secretion
+  - key: dl_golgi_apparatus
+    label: golgi_apparatus
+    type: prop_float
+    group: secretion
+  - key: dl_peroxisome
+    label: peroxisome
+    type: prop_float
+    group: secretion
+  - key: dl_cell_membrane
+    label: peroxisome
+    type: prop_float
+    group: secretion
+  - key: dl_extracellular
+    label: extracellular
+    type: prop_float
+    group: secretion
+  - key: orthogroup
+    label: Orthogroup
+    type: prop_text
+    group: homology
+  - key: glycines_gene_count
+    label: (SCN counts)
+    type: prop_float
+    group: homology
+  - key: schachtii_gene_count
+    label: (BCN counts)
+    type: prop_float
+    group: homology
+  - key: schachtii_genes
+    label: (BCN genes)
+    type: prop_text
+    group: homology
+  - key: schachtii_hits
+    label: BCN hits
+    type: prop_text
+    group: homology
+  - key: celegans_hits
+    label: C. elegans hits
+    type: prop_text
+    group: homology
+  - key: sp_best_hit
+    label: SP best hit
+    type: prop_text
+    group: homology
+  - key: nr_best_hit
+    label: NR best hit
+    type: prop_text
+    group: homology
+  - key: hgt_donor_id
+    label: HGT Donor
+    type: prop_text
+    group: homology
+  - key: hgt_alien_index
+    label: HGT Index
+    type: prop_float
+    group: homology
+  - key: t_factor
+    label: TF
+    type: prop_text
+    group: functional
+  - key: go_consensus
+    label: GO terms
+    type: prop_text
+    group: functional
+  - key: deepgoplus
+    label: DeepGoPlus
+    type: prop_text
+    group: functional
+  - key: interpro
+    label: InterPro
+    type: prop_text
+    group: functional
+  - key: smart
+    label: SMART
+    type: prop_text
+    group: functional
+  - key: pfam
+    label: Pfam
+    type: prop_text
+    group: functional
+  - key: funfam
+    label: FunFam
+    type: prop_text
+    group: functional
+  - key: panther
+    label: Panther
+    type: prop_text
+    group: functional
+  - key: disorder
+    label: Disorder
+    type: prop_text
+    group: structure
+  - key: diso_regions
+    label: (regions)
+    type: prop_text
+    group: structure
+  - key: num_globular
+    label: Ordered
+    type: prop_float
+    group: structure
+  - key: domains
+    label: (regions)
+    type: prop_text
+    group: structure
+  - key: pdb_hit
+    label: PDB
+    type: prop_text
+    group: structure
+  - key: hit_class
+    label: (hit type)
+    type: prop_text
+    group: structure
+  - key: inclusion_body
+    label: Inclusion Body
+    type: prop_text
+    group: biophysics
+  - key: mol_weight
+    label: Mol weight
+    type: prop_float
+    group: biophysics
+  - key: isoel_point
+    label: pI
+    type: prop_float
+    group: biophysics
+  - key: charge
+    label: Net Charge
+    type: prop_float
+    group: biophysics
+  - key: charged
+    label: Charged
+    type: prop_float
+    group: biophysics
+  - key: aromatic
+    label: Aromatic
+    type: prop_float
+    group: biophysics
+  - key: polar
+    label: Polar
+    type: prop_float
+    group: biophysics
+  - key: non_polar
+    label: Non-polar
+    type: prop_float
+    group: biophysics
+  - key: basic
+    label: Basic
+    type: prop_float
+    group: biophysics
+  - key: acidic
+    label: Acidic
+    type: prop_float
+    group: biophysics
+  - key: small
+    label: Small
+    type: prop_float
+    group: biophysics
+  - key: alanine
+    label: Ala
+    type: prop_float
+    group: composition
+  - key: asparagine
+    label: Asn
+    type: prop_float
+    group: composition
+  - key: aspartate
+    label: Asp
+    type: prop_float
+    group: composition
+  - key: cysteine
+    label: Cys
+    type: prop_float
+    group: composition
+  - key: glutamate
+    label: Glu
+    type: prop_float
+    group: composition
+  - key: glutamine
+    label: Gln
+    type: prop_float
+    group: composition
+  - key: glycine
+    label: Gly
+    type: prop_float
+    group: composition
+  - key: histidine
+    label: His
+    type: prop_float
+    group: composition
+  - key: isoleucine
+    label: Ile
+    type: prop_float
+    group: composition
+  - key: leucine
+    label: Leu
+    type: prop_float
+    group: composition
+  - key: lysine
+    label: Lys
+    type: prop_float
+    group: composition
+  - key: methionine
+    label: Met
+    type: prop_float
+    group: composition
+  - key: phenylalanine
+    label: Phe
+    type: prop_float
+    group: composition
+  - key: proline
+    label: Pro
+    type: prop_float
+    group: composition
+  - key: arginine
+    label: Arg
+    type: prop_float
+    group: composition
+  - key: serine
+    label: Ser
+    type: prop_float
+    group: composition
+  - key: threonine
+    label: Thr
+    type: prop_float
+    group: composition
+  - key: valine
+    label: Val
+    type: prop_float
+    group: composition
+  - key: tryptophan
+    label: Trp
+    type: prop_float
+    group: composition
+  - key: tyrosine
+    label: Tyr
+    type: prop_float
+    group: composition
+  - key: unknown
+    label: Xaa
+    type: prop_float
+    group: composition
+  - key: expression_bin_13
+    label: Bin13
+    type: prop_text
+    group: expression
+  - key: expression_bin_38
+    label: Bin38
+    type: prop_text
+    group: expression
+  - key: avg_counts
+    label: Average
+    type: prop_float
+    group: expression
+  - key: avg_egg
+    label: Egg
+    type: prop_float
+    group: expression
+  - key: avg_ppj2
+    label: ppJ2
+    type: prop_float
+    group: expression
+  - key: avg_pj2
+    label: pJ2
+    type: prop_float
+    group: expression
+  - key: avg_j3
+    label: J3
+    type: prop_float
+    group: expression
+  - key: avg_j4
+    label: J4
+    type: prop_float
+    group: expression
+  - key: avg_female
+    label: Female
+    type: prop_float
+    group: expression
+  - key: avg_male
+    label: Male
+    type: prop_float
+    group: expression
+  - key: avg_j2g
+    label: Gland (J2)
+    type: prop_float
+    group: expression
+  - key: avg_j3g
+    label: Gland (J3)
+    type: prop_float
+    group: expression
+  - key: avg_glands
+    label: Gland (J2+J3)
+    type: prop_float
+    group: expression
+  - key: dge_egg_ppj2
+    label: Egg vs ppJ2
+    type: prop_float
+    group: dge
+  - key: dge_egg_pj2
+    label: Egg vs pJ2
+    type: prop_float
+    group: dge
+  - key: dge_ppj2_pj2
+    label: ppJ2 vs pJ2
+    type: prop_float
+    group: dge
+  - key: dge_pj2_j3
+    label: pJ2 vs J3
+    type: prop_float
+    group: dge
+  - key: dge_j3_j4
+    label: J3 vs J4
+    type: prop_float
+    group: dge
+  - key: dge_j4_female
+    label: J4 vs F
+    type: prop_float
+    group: dge
+  - key: dge_j4_male
+    label: J4 vs M
+    type: prop_float
+    group: dge
+  - key: dge_female_male
+    label: F vs M
+    type: prop_float
+    group: dge
+  - key: dge_j3g_j2g
+    label: G(J3 vs J2)
+    type: prop_float
+    group: dge
+  - key: dge_j2g_pj2b
+    label: G(J2) vs pJ2
+    type: prop_float
+    group: dge
+  - key: dge_j3g_j3b
+    label: G(J3) vs J3
+    type: prop_float
+    group: dge
+  - key: dge_j2g_mm10_pa3
+    label: G(J2) lines
+    type: prop_float
+    group: dge
+  - key: dge_j3g_mm10_pa3
+    label: G(J3) lines
+    type: prop_float
+    group: dge
+  - key: length
+    label: Length
+    type: plain
+    group: sequence
+    sort_field: seqlen
+  - key: residues
+    label: Protein Sequence
+    type: prop_text
+    group: sequence
+    sort_field: residues
+  dropdown_initials:
+    effectors:
+      cluster_name:
+      - 1-J4_Female
+      - 2-pJ2_J3_J4_Female
+      - 3-Not_described
+      - 4-Egg_Male
+      - 5-pJ2_J3_J4
+      - 6-pJ2_J3_J4_Male
+      - 7-ppJ2
+      - 8-Eggs_J4_Males
+      - 9-Migratory
+      - 10-Pre_planta
+      - 11-Not_described
+      - 12-ppJ2_pJ2_J3_Females
+      - 13-Not_described
+      - 14-Not_described
+      - 15-Male
+      - 16-Females_and_Males
+      - 17-ppJ2_pJ2
+      - 18-ppJ2_pJ2_J3_J4_Male
+      - 19-Eggs_Female
+      - 20-Egg_ppJ2_pJ2_J3_J4
+      - 21-pJ2_J3
+      - 22-J4_Male
+      - 23-Female
+      - 24-J3_Female
+      - 25-Eggs_Female
+      - 26-J3_J4
+      - 27-ppJ2_pJ2_J3_J4_Female_Male
+      - 28-Egg
+      - 29-J3_J4_Female_Male
+      - 30-pJ2
+      - Not_Clustered
+    functional:
+      go_term:
+      - GO:0005575
+      - GO:0110165
+      - GO:0008150
+      - GO:0016020
+      - GO:0009987
+      - GO:0005622
+      - GO:0003674
+      - GO:0043226
+      - GO:0043229
+      - GO:0005737
+      - GO:0043227
+      - GO:0065007
+      - GO:0043231
+      - GO:0008152
+      - GO:0050789
+      - GO:0050794
+      - GO:0005488
+      - GO:0044238
+      - GO:0071944
+      - GO:0005515
+      interpro:
+      - IPR027417
+      - IPR011009
+      - IPR000719
+      - IPR011333
+      - IPR013083
+      - IPR000276
+      - IPR013320
+      - IPR000210
+      - IPR043136
+      - IPR017452
+      - IPR001841
+      - IPR003877
+      - IPR008974
+      - IPR017441
+      - IPR016024
+      - IPR001870
+      - IPR002083
+      - IPR015943
+      - IPR044736
+      - IPR008271
+      smart:
+      - SM00220
+      - SM00225
+      - SM01381
+      - SM00449
+      - SM00875
+      - SM00320
+      - SM00355
+      - SM00184
+      - SM00248
+      - SM00360
+      - SM00389
+      - SM00061
+      - SM00490
+      - SM00382
+      - SM01088
+      - SM00487
+      - SM00399
+      - SM00235
+      - SM00254
+      - SM00054
+      pfam:
+      - PF00069
+      - PF00651
+      - PF00622
+      - PF22486
+      - PF07707
+      - PF10320
+      - PF12796
+      - PF00076
+      - PF00400
+      - PF00001
+      - PF00046
+      - PF01391
+      - PF13639
+      - PF00271
+      - PF01484
+      - PF00105
+      - PF07714
+      - PF02931
+      - PF01549
+      - PF00096
+      funfam:
+      - G3DSA:1.25.40.420:FF:000008
+      - G3DSA:2.60.40.10:FF:000032
+      - G3DSA:3.30.50.10:FF:000030
+      - G3DSA:1.10.510.10:FF:000571
+      - G3DSA:1.10.510.10:FF:000624
+      - G3DSA:1.10.10.60:FF:000679
+      - G3DSA:1.10.220.10:FF:000002
+      - G3DSA:3.40.50.2000:FF:000021
+      - G3DSA:1.10.630.10:FF:000036
+      - G3DSA:3.40.50.11660:FF:000002
+      - G3DSA:3.30.200.20:FF:000042
+      - G3DSA:2.60.40.10:FF:000107
+      - G3DSA:3.30.200.20:FF:000003
+      - G3DSA:1.20.1640.10:FF:000013
+      - G3DSA:3.40.390.10:FF:000015
+      - G3DSA:2.10.25.10:FF:000038
+      - G3DSA:1.10.20.10:FF:000016
+      - G3DSA:2.70.170.10:FF:000016
+      - G3DSA:3.30.479.30:FF:000002
+      - G3DSA:1.10.287.600:FF:000005
+      panther:
+      - PTHR45774
+      - PTHR23360
+      - PTHR24637
+      - PTHR12864
+      - PTHR46481
+      - PTHR18945
+      - PTHR10127
+      - PTHR10682
+      - PTHR11130
+      - PTHR23021
+      - PTHR47160
+      - PTHR22744
+      - PTHR11003
+      - PTHR11893
+      - PTHR24067
+      - PTHR24083
+      - PTHR12411
+      - PTHR13504
+      - PTHR47022
+      - PTHR11668
+    homology:
+      gene:
+      - 4G06
+      - 24A12
+      - Gland6
+      - VAP2
+      - Gland5
+      - 17G06
+      - 10A06
+      - 17G01
+      - 4C10
+      - 32E03
+      - 16B09
+      - 28B03
+      - 45D07
+      - 29D09
+      - ENG-3
+      - 10C01
+      - 16A01
+      - 30C02
+      - 26D05
+      - Hgg-18
+      accession:
+      - MT012331.1
+      - KJ825717.1
+      - AY028639.1
+      - MT012317.1
+      - MT012336.1
+      - AF490247.1
+      - AF502391.1
+      - AF500031.1
+      - MT012337.1
+      - AF490246.1
+      - AF500025.1
+      - MT012340.1
+      - AF500016.1
+      - AF044210.1
+      - AF500017.1
+      - AF490245.1
+      - AY101191.1
+      - AF500015.1
+      - AF500036.1
+      - AF500029.1
+      celegans_gene:
+      - F23H12.4
+      - F45F2.2
+      - B0035.9
+      - F17E9.12
+      - F45F2.3
+      - C50F4.7
+      - K06C4.10
+      - ZK131.1
+      - F22B3.1
+      - T23D8.5
+      - ZK131.4
+      - F55G1.11
+      - K03A1.6
+      - K06C4.2
+      - F07B7.9
+      - T10C6.14
+      - F54E12.3
+      - ZK131.8
+      - ZK1010.1
+      - F25B5.4
+    structure:
+      pdb_id:
+      - 9han
+      - 2vkp
+      - 9cai
+      - 3hr2
+      - 8ro1
+      - 2i13
+      - 1iym
+      - 4egc
+      - 8rm5
+      - 9oh9
+      - 9ygy
+      - 3lqb
+      - 8bv0
+      - 9mmr
+      - 9fmd
+      - 5uan
+      - 8ouw
+      - 1pzv
+      - 8was
+      - 9qiw
+  expression_fields:
+    Egg: avg_egg
+    ppJ2: avg_ppj2
+    pJ2: avg_pj2
+    J3: avg_j3
+    J4: avg_j4
+    Female: avg_female
+    Male: avg_male
+  log2fc_fields:
+    Egg vs ppJ2: dge_egg_ppj2
+    Egg vs pJ2: dge_egg_pj2
+    ppJ2 vs pJ2: dge_ppj2_pj2
+    pJ2 vs J3: dge_pj2_j3
+    J3 vs J4: dge_j3_j4
+    J4 vs F: dge_j4_female
+    J4 vs M: dge_j4_male
+    F vs M: dge_female_male
+    G(J3 vs J2): dge_j3g_j2g
+    G(J2) vs pJ2: dge_j2g_pj2b
+    G(J3) vs J3: dge_j3g_j3b
+    G(J2) lines: dge_j2g_mm10_pa3
+    G(J3) lines: dge_j3g_mm10_pa3
+  crosslink:
+    ncbi_nuccore: https://www.ncbi.nlm.nih.gov/nuccore/{id}
+    rcsb_pdb: https://www.rcsb.org/structure/{id}
+    amigo: https://amigo.geneontology.org/amigo/term/{id}
+    interpro: https://www.ebi.ac.uk/interpro/entry/InterPro/{id}
+    pfam: https://www.ebi.ac.uk/interpro/entry/pfam/{id}
+    smart: https://www.ebi.ac.uk/interpro/entry/smart/{id}
+    panther: http://www.pantherdb.org/panther/family.do?clsAccession={id}
+    funfam: https://www.cathdb.info/version/latest/superfamily/{sf}/funfam/{ff}
+    wormbase: https://wormbase.org/species/c_elegans/cds/{id}
+    uniprot: https://www.uniprot.org/uniprotkb/{id}/entry
+    ncbi_nr: https://www.ncbi.nlm.nih.gov/protein/{id}
+  tooltips:
+    group.core: Feature (transcript) identifier and organism <i>(Heterodera glycines)</i>
+    group.genomics: Gene name and localization, nested genes, gene copy counts across
+      lines <i>(TN7, TN8, TN10, TN20, TN22, MM26, OP50, PA3, X12)</i>
+    group.effectors: 'Effector-focused annotations: identified known/putative SCN/BCN
+      references, effector islands, expression-based clustering'
+    group.secretion: Predicted cellular localization and targeting signals <br><i>(signal
+      peptide ranges, scores for predicted localization)</i>
+    group.homology: 'Homology search results: orthogroups, cyst nematode < nematode
+      < broader parasitism, horizontal gene transfer'
+    group.functional: 'Functional annotations: transcription factor, GO terms, functional
+      families/domains <i>(InterPro, SMART, Pfam, FunFam, Panther)</i>'
+    group.sequence: Protein sequence and length
+    group.structure: Predicted protein structure-related properties (e.g., intrinsically
+      disordered regions, <b>IDR</b>) and PDB hits
+    group.biophysics: 'Predicted potein biophysical properties: mol weight, pI, net
+      charge, fraction of charged / aromatic / polar / basic / acidic amino acids'
+    group.composition: "Protein sequence composition <br><i>AA abundance represented\
+      \ as DayhoffStat (amino acid's molar percentage divided by the Dayhoff ref.\
+      \ frequency)</i><br>\u2248 1.0 : AA frequency close to Dayhoff expectation <br>\u226B\
+      \ 1.0 : <b class='text-bright'>AA enriched</b> relative to Dayhoff background\
+      \ <br>< 1.0 : AA depleted relative to Dayhoff background"
+    group.expression: 'Expression (gene counts) across: <br>- developmental stage
+      <i class=''text-bright''>(Egg, ppJ2, pJ2, J3, J4)</i><br>- sex <i class=''text-bright''>(Female,
+      Male)</i><br>- tissue <i class=''text-bright''>(Gland)</i> <br><i>Useful for
+      within-condition expression comparisons.</i>'
+    group.dge: Differential gene expression (<b>DGE</b>) <br>measured as log<sub>2</sub>
+      fold-change between conditions <br>(e.g., <span class='text-bright'>Female vs
+      Male</span> or <span class='text-bright'>Egg vs J3</span>). <br><i>Useful for
+      cross-condition expression comparisons.</i>
+    col.organism: Organism <i>(Heterodera glycines)</i>
+    col.uniquename: Transcript ID - internal feature identifier <br><i>Click to open
+      details view.</i>
+    col.gene_name: Gene name in <b>TN10</b> line.
+    col.genome_location: Gene localization in the H. glycines genome
+    col.nest_genes: The larger gene that fully contains a nested gene. <br><i>Nested
+      and host genes may be co-expressed or independently regulated, and the transcription
+      or splicing of one can affect the other.</i>
+    col.nested_genes: A gene located entirely within the genomic region of another
+      gene. <br><i>Nested and host genes may be co-expressed or independently regulated,
+      and the transcription or splicing of one can affect the other.</i>
+    col.average_copy_number: Average gene copy number across SCN population assemblies.
+    col.tn7_copy_number: Gene copy number in the <b class='text-bright'>TN7</b> SCN
+      population assembly.
+    col.tn8_copy_number: Gene copy number in the <b class='text-bright'>TN8</b> SCN
+      population assembly.
+    col.tn10_copy_number: Gene copy number in the <b class='text-bright'>TN10</b>
+      SCN population assembly.
+    col.tn20_copy_number: Gene copy number in the <b class='text-bright'>TN20</b>
+      SCN population assembly.
+    col.tn22_copy_number: Gene copy number in the <b class='text-bright'>TN22</b>
+      SCN population assembly.
+    col.mm26_copy_number: Gene copy number in the <b class='text-bright'>MM26</b>
+      SCN population assembly.
+    col.op50_copy_number: Gene copy number in the <b class='text-bright'>OP50</b>
+      SCN population assembly.
+    col.pa3_copy_number: Gene copy number in the <b class='text-bright'>PA3</b> SCN
+      population assembly.
+    col.x12_copy_number: Gene copy number in the <b class='text-bright'>X12</b SCN
+      population assembly.
+    col.effector: <b class='text-bright'>SCN putative effectors</b> estimated as described
+      in XXX.
+    col.glycines_effectors_dna: '[<span class=''text-bright''>SCN effector homology</span>]
+      <br>DNA-level sequence alignment to <b class=''text-bright''>SCN known</b> (soybean
+      cyst nematode) effector references. <br>Method: <i class=''text-muted''>BLAST
+      (nucleotide)</i>'
+    col.glycines_effectors_prot: '[<span class=''text-bright''>SCN effector homology</span>]
+      <br>Protein-level sequence alignment to <b class=''text-bright''>SCN known</b>
+      (soybean cyst nematode) effector references. <br>Method: <i class=''text-muted''>BLAST
+      (protein)</i>'
+    col.schachtii_effectors_known: '[<span class=''text-bright''>cyst neamtode effector
+      homology</span>] <br>Protein homology to <b class=''text-bright''>BCN known</b>
+      (beet cyst nematode) effector sequences. <br>Method: <i class=''text-muted''>BLASTP
+      effector comparison (.7 query cov, .85 identity)</i>'
+    col.schachtii_effectors_putative: '[<span class=''text-bright''>cyst neamtode
+      effector homology</span>] <br>Protein homology to <b class=''text-bright''>BCN
+      putative</b> (beet cyst nematode) effector sequences. <br>Method: <i class=''text-muted''>BLASTP
+      effector comparison (.7 query cov, .85 identity)</i>'
+    col.effector_islands: 'Putative effector genes were clustered within 20kb windows
+      and clusters with >4 genes were defined as effector islands. <br><i>The gene
+      is located in a genomic region (island) where effector genes are clustered and
+      enriched, often associated with shared regulation, rapid evolution, or specialized
+      pathogenicity functions.</i><br>Tool: <i class=''text-muted''>BEDTools v2.31.1</i>'
+    col.cluster_name: 'Expression cluster assignment based on fuzzy c-means clustering
+      of TPM-normalized profiles. <br>Tool: <i class=''text-muted''>ClusterGVis v0.1.1
+      (fuzzy c-means)</i>'
+    col.cluster_score: 'Fuzzy c-means membership score indicating confidence of assignment
+      to the expression cluster. <br>Tool: <i class=''text-muted''>ClusterGVis v0.1.1
+      (fuzzy c-means)</i>'
+    col.secretion: Secretion consensus derived from signal peptide (SP) and transmembrane
+      (TM) predictions.
+    col.dl_signals: 'Predicted protein localization signal features used for subcellular
+      targeting inference. <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_localizations: 'Predicted probability distribution across subcellular localization
+      compartments. <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.localizer: 'Predicted subcellular localization class based on signal peptide
+      and targeting sequence features. <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.l_nucleus_peptide: 'Presence of nuclear localization signal peptide motifs.
+      <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.l_mitochondria_peptide: 'Presence of mitochondrial targeting peptide motifs.
+      <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.l_mitochondria_score: 'Confidence score for mitochondrial targeting prediction.
+      <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.l_chloroplast_peptide: 'Presence of chloroplast targeting peptide motifs.
+      <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.l_chloroplast_score: 'Confidence score for chloroplast targeting prediction.
+      <br>Tool: <i class=''text-muted''>Localizer</i>'
+    col.signal_peptide: 'Signal peptide prediction (cleavage site). <br>Tool: <i class=''text-muted''>SignalP</i>'
+    col.signalp5: 'Signal peptide prediction score, ML predictor <br>(can overcall
+      SPs in some membrane proteins) <br>Tool: <i class=''text-muted''>SignalP v5.0</i>'
+    col.signalp6: 'Signal peptide prediction score, DL predictor <br>(generally more
+      accurate) <br>Tool: <i class=''text-muted''>SignalP v6.0 (DL predictor)</i>'
+    col.tm_domain_sp5: 'Predicted transmembrane domains (after SignalP5 cleavage).
+      <br>Tool: XXX (TM predictor)'
+    col.tm_domain_sp6: 'Predicted transmembrane domains (after SignalP6 cleavage).
+      <br>Tool: XXX (TM predictor)'
+    col.dl_nucleus: 'Predicted likelihood of nuclear localization. <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_mitochondrion: 'Predicted likelihood of mitochondrial localization. <br>Tool:
+      <i class=''text-muted''>DeepLoc</i>'
+    col.dl_plastid: 'Predicted likelihood of plastid localization. <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_cytoplasm: 'Predicted likelihood of cytoplasmic localization. <br>Tool:
+      <i class=''text-muted''>DeepLoc</i>'
+    col.dl_endoplasmic_reticulum: 'Predicted likelihood of endoplasmic reticulum localization.
+      <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_lysosome_vacuole: 'Predicted likelihood of lysosome/vacuole localization.
+      <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_golgi_apparatus: 'Predicted likelihood of Golgi apparatus localization.
+      <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.dl_peroxisome: 'Predicted likelihood of peroxisomal localization. <br>Tool:
+      <i class=''text-muted''>DeepLoc</i>'
+    col.dl_cell_membrane: 'Predicted likelihood of cell membrane localization. <br>Tool:
+      <i class=''text-muted''>DeepLoc</i>'
+    col.dl_extracellular: 'Predicted likelihood of extracellular secretion/localization.
+      <br>Tool: <i class=''text-muted''>DeepLoc</i>'
+    col.orthogroup: '[cyst nematode homology] <br>Orthogroup (gene family) assignment
+      indicating shared evolutionary ancestry between  cyst nematodes: soybean (SCN,
+      H. glycines) and beet (BCN, H. schachtii). <br>Tool: <i class=''text-muted''>OrthoFinder</i>'
+    col.glycines_gene_count: '[orthogroup] <br>Number of homologous gene copies detected
+      in Heterodera glycines (soybean cyst nematode). <br>Method: <i class=''text-muted''>comparative
+      genomics</i>'
+    col.schachtii_gene_count: '[orthogroup] <br>Number of homologous gene copies detected
+      in Heterodera schachtii (beet cyst nematode). <br>Method: <i class=''text-muted''>comparative
+      genomics</i>'
+    col.schachtii_genes: '[orthogroup] <br>Identifiers of homologous genes detected
+      in Heterodera schachtii (beet cyst nematode). <br>Source: <i class=''text-muted''>species-specific
+      homology mapping</i>'
+    col.schachtii_hits: '[cyst nematode homology] <br>Protein homology to Heterodera
+      schachtii (BCN, beet cyst nematode) proteins. <br>Method: <i class=''text-muted''>BLASTP
+      (.9 query cov, .9 identity)</i>'
+    col.celegans_hits: '[nematode homology] <br>Protein homology to the predicted
+      Caenorhabditis elegans proteome (WS290). <br>Method: <i class=''text-muted''>BLASTP
+      (0.6 query cov, .7 identity)</i>'
+    col.sp_best_hit: '[broader parasitism homology] <br>Best protein homology hit
+      from the curated Swiss-Prot database. <br>Reference: <i class=''text-muted''>UniProt
+      Swiss-Prot</i> Tool: <i class=''text-muted''>BLAST (.7 query cov, .8 identity)</i>'
+    col.nr_best_hit: '[broader parasitism homology] <br>Best protein homology hit
+      from the NCBI non-redundant database. <br>Reference: <i class=''text-muted''>NCBI
+      NR</i> Tool: <i class=''text-muted''>BLAST (.7 query cov, .8 identity)</i>'
+    col.hgt_donor_id: '[horizontal gene transfer, HGT] <br>Putative donor identifier
+      for horizontal gene transfer candidate genes. <br<i>No</i> means no donor assigned.
+      <br>Tool: <i class=''text-muted''>DIAMOND BLASTp + Alien Index</i>'
+    col.hgt_alien_index: '[horizontal gene transfer, HGT] <br>Alien Index score measuring
+      support for non-metazoan origin based on differential similarity to metazoan
+      vs non-metazoan hits. <br>Tool: <i class=''text-muted''>DIAMOND BLASTp + Alien
+      Index</i>'
+    col.t_factor: 'Transcription factor prediction (boolean: yes or no). <br>Method:
+      <i class=''text-muted''>XXX</i>.'
+    col.go_consensus: 'Consensus Gene Ontology (GO) terms summarizing predicted molecular
+      function, biological process and cellular component. <br>Source: <i class=''text-muted''>integrated
+      annotation</i>'
+    col.deepgoplus: 'AI-based Gene Ontology (GO) predictions inferred from protein
+      sequence and learned functional patterns. <br>Tool: <i class=''text-muted''>DeepGOPlus</i>'
+    col.interpro: 'Integrated protein domain and functional site annotations combining
+      multiple domain databases. <br>Resource: <i class=''text-muted''>InterPro</i>'
+    col.smart: 'Predicted signaling, regulatory and extracellular protein domains.
+      <br>Resource: <i class=''text-muted''>SMART</i>'
+    col.pfam: 'Predicted conserved protein families and domains based on hidden Markov
+      models. <br>Resource: <i class=''text-muted''>Pfam</i>'
+    col.funfam: 'Functionally coherent protein subfamilies within CATH structural
+      superfamilies. <br>Resource: <i class=''text-muted''>CATH FunFams</i>'
+    col.panther: 'Protein family classification with functional and pathway inference.
+      <br>Resource: <i class=''text-muted''>PANTHER</i>'
+    col.length: Protein sequence length.<br><i>(number of amino acids, including signal
+      peptide)</i>
+    col.residues: Protein sequence in one-letter notation of amino acids.
+    col.mrna_sequence: Transcript sequence in one-letter notation of nucleotides.
+    col.num_globular: 'Number of predicted ordered regions in the protein. <br>Tool:
+      post-processed results of <i class=''text-muted''>IUPred3 (glob mode)</i>'
+    col.domains: 'Sequence coordinates for predicted ordered regions in the protein.
+      <br>Tool: post-processed results of <i class=''text-muted''>IUPred3 (glob mode)</i>'
+    col.pdb_hit: 'PDB hit identifier from structural search results (protein-vs-protein).
+      <br>Search tool: <i class=''text-muted''>blast-plus:2.13.0/blastp</i>'
+    col.hit_class: 'Classification of PDB hit (partial domain vs structural homolog).
+      <br>Rules: STRUCT (pident>=40, qcovs>=70, length>=50, evalue<=1e-5, gapopen<=2,
+      bitscore>=50); PARTIAL (pident>=40, qcovs<70, length<50)'
+    col.diso_regions: 'Predicted disordered region coordinates in the protein. <br>Tool:
+      <i class=''text-muted''>IUPred3</i> (glob mode with ANCHOR2 prediction)'
+    col.disorder: 'Intrinsic disorder call classification (none / regions / full).
+      <br>Tool: post-processed results of <i class=''text-muted''>IUPred3 (glob mode)</i>'
+    col.inclusion_body: 'Predicted propensity of the protein to form inclusion bodies
+      (aggregation-prone insoluble expression). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.mol_weight: 'Molecular weight estimated from amino-acid sequence. <br><i>sequence-derived</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.isoel_point: 'Isoelectric point (pI) estimated from amino-acid sequence. <br><i>(theoretical
+      pH at which the protein has no net charge)</i> <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.inclusion: 'Inclusion body propensity / solubility-related score. <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.charge: 'Net charge estimated from amino acid sequence. <br><i>sequence-derived</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.charged: 'Charged (<b class=''text-bright''>B+D+E+H+K+R+Z</b>) residue content
+      (%) <br>derived from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.aromatic: 'Aromatic (<b class=''text-bright''>F+H+W+Y</b>) residue content
+      (%) <br>derived from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.polar: 'Polar (<b class=''text-bright''>D+E+H+K+N+Q+R+S+T+Z</b>) residue content
+      (%) <br>derived from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.non_polar: 'Non-polar (<b class=''text-bright''>A+C+F+G+I+L+M+P+V+W+Y</b>)
+      residue content (%) <br>derived from sequence (deterministic composition). <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.basic: 'Basic (<b class=''text-bright''>H+K+R</b>) residue content (%) <br>derived
+      from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.acidic: 'Acidic (<b class=''text-bright''>B+D+E+Z</b>) residue content (%)
+      <br>derived from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.small: 'Small (<b class=''text-bright''>A+B+C+D+G+N+P+S+T+V</b>) residue content
+      (%) <br>derived from sequence (deterministic composition). <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.alanine: '[A] Alanine abundance (Dayhoff score, ref. frequency = 8.6 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.asparagine: '[N] Asparagine abundance (Dayhoff score, ref. frequency = 4.3
+      )<br><i>AA relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.aspartate: '[D] Aspartate abundance (Dayhoff score, ref. frequency = 5.5 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.cysteine: '[C] Cysteine abundance (Dayhoff score, ref. frequency = 2.9 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.glutamate: '[E] Glutamate abundance (Dayhoff score, ref. frequency = 6.0 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.glutamine: '[Q] Glutamine abundance (Dayhoff score, ref. frequency = 3.9 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.glycine: '[G] Glycine abundance (Dayhoff score, ref. frequency = 8.4 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.histidine: '[H] Histidine abundance (Dayhoff score, ref. frequency = 2.0 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.isoleucine: '[I] Isoleucine abundance (Dayhoff score, ref. frequency = 4.5
+      )<br><i>AA relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.leucine: '[L] Leucine abundance (Dayhoff score, ref. frequency = 7.4 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.lysine: '[K] Lysine abundance (Dayhoff score, ref. frequency = 6.6 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.methionine: '[M] Methionine abundance (Dayhoff score, ref. frequency = 1.7
+      )<br><i>AA relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.phenylalanine: '[F] Phenylalanine abundance (Dayhoff score, ref. frequency
+      = 3.6 )<br><i>AA relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.proline: '[P] Proline abundance (Dayhoff score, ref. frequency = 5.2 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.arginine: '[R] Arginine abundance (Dayhoff score, ref. frequency = 4.9 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.serine: '[S] Serine abundance (Dayhoff score, ref. frequency = 7.0 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.threonine: '[T] Threonine abundance (Dayhoff score, ref. frequency = 6.1 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.valine: '[V] Valine abundance (Dayhoff score, ref. frequency = 6.6 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.tryptophan: '[W] Tryptophan abundance (Dayhoff score, ref. frequency = 1.3
+      )<br><i>AA relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i>
+      <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.tyrosine: '[Y] Tyrosine abundance (Dayhoff score, ref. frequency = 3.4 )<br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.unknown: '[U] Unknown AA (Dayhoff score, ref. frequency = 0.1 )<br><i>AA relative
+      occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool: <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i>'
+    col.expression_bin_13: 'Binned expression level category (bin 13) based on normalized
+      expression distribution across samples. <br>Tool: <i class=''text-muted''>XXX
+      (TPM/normalized)</i>'
+    col.expression_bin_38: 'Binned expression level category (bin 38) based on normalized
+      expression distribution across samples. <br>Tool: <i class=''text-muted''>XXX
+      (TPM/normalized)</i>'
+    col.avg_counts: Gene counts across all stages, sexes and locations <br><span class='text-muted'>average
+      across 35 samples, normalized</span>
+    col.avg_egg: Gene counts at <span class='text-bright'>Egg</span> stage <i>(pre-hatch)</i>
+      <br><span class='text-muted'>average of 3 replicates (TN10 line)</span>
+    col.avg_ppj2: Gene counts at <span class='text-bright'>pre-parasitic juvenile
+      (J2)</span> stage <br><i>(pre-infective, prior to root entry)</i> <br><span
+      class='text-muted'>average of 3 replicates (TN10 line)</span>
+    col.avg_pj2: Gene counts at <span class='text-bright'>parasitic juvenile (J2)</span>
+      stage <br><i>(infective, after entering the host root, feeding site initiation)</i>
+      <br><span class='text-muted'>average of 3 replicates (TN10 line)</span>
+    col.avg_j3: Gene counts at <span class='text-bright'>third-stage juvenile (J3)</span>
+      <br><i>(typically sedentary in host during development)</i> <br><span class='text-muted'>average
+      of 3 replicates (TN10 line)</span>
+    col.avg_j4: Gene counts at <span class='text-bright'>fourth-stage juvenile (J4)</span>
+      <br><i>(male pathway transitions toward leaving root and mating)</i> <br><span
+      class='text-muted'>average of 3 replicates (TN10 line)</span>
+    col.avg_female: Gene counts in <span class='text-bright'>Adult Female</span> <br><i>(sedentary,
+      continues feeding at the induced feeding site; <br>body becomes a cyst after
+      death)</i> <br><span class='text-muted'>average of 3 replicates (TN10 line)</span>
+    col.avg_male: Gene counts in <span class='text-bright'>Adult Male</span> <br><i>(typically
+      exits the root to mate)</i> <br><span class='text-muted'>average of 3 replicates
+      (TN10 line)</span>
+    col.avg_j2g: Gene counts in <span class='text-bright'>esophageal gland</span>
+      at J2 stage <br><i>(effector-rich secretory tissue)</i> <br><span class='text-muted'>average
+      of 6 samples (MM10+PA3 lines)</span>
+    col.avg_j3g: Gene counts in <span class='text-bright'>esophageal gland</span>
+      at J3 stage <br><i>(effector-rich secretory tissue)</i> <br><span class='text-muted'>average
+      of 6 samples (MM10+PA3 lines)</span>
+    col.avg_glands: Gene counts in <span class='text-bright'>esophageal gland</span>
+      at J2+J3 stage; <br><i>(effector-rich secretory tissue)</i> <br><span class='text-muted'>average
+      of 12 samples (MM10+PA3 lines)</span>
+    col.dge_egg_ppj2: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>Egg</span>
+      and <span class='text-bright'>ppJ2</span> <br><i>(pre-hatch egg and pre-parasitic
+      second-stage juvenile)</i>
+    col.dge_egg_pj2: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>Egg</span>
+      and <span class='text-bright'>pJ2</span> <br><i>(pre-hatch egg and <b class='text-bright'>parasitic</b>
+      second-stage juvenile)</i>
+    col.dge_ppj2_pj2: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>ppJ2</span>
+      and <span class='text-bright'>pJ2</span> <br><i>(pre-parasitic and <b class='text-bright'>parasitic</b>
+      second-stage juveniles)</i>
+    col.dge_pj2_j3: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>pJ2</span>
+      and <span class='text-bright'>J3</span> <br><i>(<b class='text-bright'>parasitic</b>
+      second-stage juvenile and third-stage juvenile)</i>
+    col.dge_j3_j4: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>J3</span>
+      and <span class='text-bright'>J4</span> <br><i>(third-stage juvenile and fourth-stage
+      juvenile)</i>
+    col.dge_j4_female: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>J4</span>
+      and <span class='text-bright'>Female</span> <br><i>(fourth-stage juvenile and
+      adult female)</i>
+    col.dge_j4_male: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>J4</span>
+      and <span class='text-bright'>Male</span> <br><i>(fourth-stage juvenile and
+      adult male)</i>
+    col.dge_female_male: 'DGE (log<sub>2</sub> fold-change) between <span class=''text-bright''>Female</span>
+      and <span class=''text-bright''>Male</span> <br><i>(condition: <b class=''text-bright''>sex</b>,
+      adult female vs adult male)</i>'
+    col.dge_j3g_j2g: DGE (log<sub>2</sub> fold-change) between <span class='text-bright'>J2</span>
+      and <span class='text-bright'>J3</span> <br>in <b class='text-bright'>esophageal
+      gland</b> tissue <br><i>(second-stage juvenile and third-stage juvenile)</i>
+    col.dge_j2g_pj2b: DGE (log<sub>2</sub> fold-change) between <br><b class='text-bright'>esophageal
+      gland</b> and whole body <br>in <b class='text-bright'>parasitic</b> second-stage
+      juvenile (<span class='text-bright'>pJ2</span>)
+    col.dge_j3g_j3b: DGE (log<sub>2</sub> fold-change) between <br><b class='text-bright'>esophageal
+      gland</b> and whole body <br>in third-stage juvenile (<span class='text-bright'>J3</span>)
+    col.dge_j2g_mm10_pa3: DGE (log<sub>2</sub> fold-change) between <b class='text-bright'>eesophageal
+      gland</b> samples <br>from <i class='text-muted'>MM10</i> and <i class='text-muted'>PA3</i>
+      lines at <span class='text-bright'>J2</span> stage
+    col.dge_j3g_mm10_pa3: DGE (log<sub>2</sub> fold-change) between <b class='text-bright'>eesophageal
+      gland</b> samples <br>from <i class='text-muted'>MM10</i> and <i class='text-muted'>PA3</i>
+      lines at <span class='text-bright'>J3</span> stage
+    dataset.download: Download filtered dataset. <br>- <b>Default:</b> <i>(not checked)</i>
+      all columns across all groups <br>- <b>Selected:</b> <i>(checked)</i> only active
+      groups <br><i>Core</i> always included to provide gene identifiers.
+    filter.scn_putative: Quick filter for SCN putative effectors as described in XXX.
+      <br><i>1160 genes, 1221 transcripts</i>
+    filter.reset_all: Remove all applied filters and reset database state.
+    filter.remove: Remove this filter rule.
+    filter.add: Add another filter rule. <br><i>All rules are combined using logical
+      AND</i>.
+    filter.clear: Remove all filter rules and start over with new rules. <br><i>Use
+      <b>Clear</b> followed by <b>Filter</b> button <br>to remove this filter from
+      your subset.</i>
+    filter.apply: Update results using all active filters. <br><i>Click after changing
+      any filter settings.</i>
+    filter.operator: Choose the comparison operator applied to this filter.
+    filter.clear2: Remove all motif search rules and start over. <br><i>Use <b>Clear</b>
+      followed by <b>Apply</b> button <br>to clean the custom traces on the plot.</i>
+    filter.apply2: Update the plot by adding custom traces. <br><i>Click after adding/removing
+      any motif in the input box.</i>
+    filter.select: Manually keep or remove specific records <br>from the current filtered
+      dataset.
+    filter.sel_enable: Check to display per-row checkboxes in the table <br>for selecting
+      records to <i>keep</i> or <i>remove</i>. <br>1. Select individual records. <br>2.
+      Select <i>keep</i> or <i>remove</i> option. <br>3. Click <b>Filter</b> button
+      to apply.
+    filter.sel_keep: Filter only the manually selected records. <br><i>Other rows
+      will be hidden from current subset and Results table.</i>
+    filter.sel_remove: "Exclude the manually selected rows from the current results.\
+      \ <br><i>Removal can be done iteratively, meaning multiple selections are stacked\
+      \ until cleared with the \xD7 button.</i>"
+    filter.sel_clear: Clear stored row selections and restore the full filtered dataset.
+      <br><i>This happens automatically - no need to apply <b>Filter</b> button.</i>
+    filter.sel_display: Number of records currently selected by the manual 'Select
+      rows' filter.
+    filter.min_len: Minimum protein length (aa).
+    filter.max_len: Maximum protein length (aa).
+    filter.locus_chr: Show features located on the selected chromosome(s) <br>in <i>Heterodera
+      glycines</i>. <i>(multiple selections allowed)</i>
+    filter.seq_motif: Search for custom amino acid motifs or sequence patterns.
+    filter.seq_motif_search: 'Use the regex syntax: <br><b>+</b> &ensp; for AND <i>(e.g.,
+      [KR]&#123;4,&#125;+GG)</i> <br><b>|</b> &emsp;for alternatives <i>(e.g., [KR]&#123;4,&#125;|GG)</i>
+      <br><b>.</b> &emsp;as wildcard <i>(e.g., P..P)</i>'
+    filter.has_effector: Keep rows with a non-empty <i class='text-bright'>SCN putative</i>
+      value.
+    filter.has_effector_island: Keep rows with a boolean=true <i class='text-bright'>Effector
+      Islands</i> value.
+    filter.align_hit: Best sequence alignmnet hit to known SCN effectors.
+    filter.has_alignment_hit: Only show records with DNA and/or Protein alignment
+      hits.
+    filter.alignment_hit_mode: Choose whether the alignment hit is DNA-DNA, protein-protein,
+      <i>either</i> or <i>both</i>.
+    filter.gene_tag: 'Filter by known SCN gene id: <br>- Any: no restriction<br>-
+      <span class=''text-bright''>select gene</span>: keep records with an alignment
+      to that gene<br><i class=''ps-2''>(matching record counts in parentheses)</i>'
+    filter.accession: 'Filter by NCBI nuccore (curated GenBank accession): <br>- Any:
+      no restriction<br>- <span class=''text-bright''>select accession</span>: keep
+      records with that accession hit<br><i class=''ps-2''>(matching record counts
+      in parentheses)</i>'
+    filter.bcn_effector: Filter beet cyst nematode effector annotations.
+    filter.has_schachtii_known: Keep rows with a boolean=true <i class='text-bright'>BCN
+      known</i> value.
+    filter.has_schachtii_putative: Keep rows with a boolean=true <i class='text-bright'>BCN
+      putative</i> value.
+    filter.cluster_name: Dynamic dropdown of unique <i class='text-bright'>Cluster
+      Name</i> values with counts in the current filtered subset.
+    filter.secretion: "Filter dataset based on predicted secretion consensus. <br>-\
+      \ <span class='text-bright'>secreted</span>: signal peptide present, no TM segments\
+      \ <br><i class='ps-2'>strongest indicator for effectors / feeding-tube delivery</i>\
+      \ <br>- membrane-bound: signal peptide present with \u22651 TM segment <br><i\
+      \ class='ps-2'>likely membrane-anchored</i> <br>- not secreted: no signal peptide\
+      \ detected; <i>unlikely effector</i>"
+    filter.localization: 'Search predicted signal and/or localization tags by keyword.
+      <br>Use commas for <b>OR</b>, plus for <b>AND</b> <br><i>Examples: <br>- cyto,
+      mito        -> cyto OR mito <br>- signal + mito       -> signal AND mito <br>-
+      signal + mito, nuc  -> (signal AND mito) OR nuc</i>'
+    filter.dl_sig: 'Check to search in the <b class=''text-bright''>DL-signals</b>
+      column. <br><i>(multiple selection allowed)</i> <br>Tool: <i class=''text-muted''>DeepLoc2.0_Signals</i>'
+    filter.dl_loc: 'Check to search in the <b class=''text-bright''>DL-localization</b>
+      column. <br><i>(multiple selection allowed)</i> <br>Tool: <i class=''text-muted''>DeepLoc2.0_Localizations</i>'
+    filter.loc_loc: 'Check to search in the <b class=''text-bright''>Localizer</b>
+      column. <br><i>(multiple selection allowed)</i> <br>Tool: <i class=''text-muted''>Localizer
+      v1.0.5</i>'
+    filter.loc_text: 'Enter localization or signal terms to search in the selected
+      columns. <br>Recommended terms follow normalized tags such as: <i class=''text-muted''>nucleus</i>,
+      <i class=''text-muted''>mitochondrion</i>, <i class=''text-muted''>signal_peptide</i>.'
+    filter.signal_peptide: 'Filter by presence of a predicted signal/transit peptide:
+      <br>- signal peptide predicted with SignalP <br>- transit peptide predicted
+      with Localizer (L-nucleus, L-mitochondria, L-chloroplast)'
+    filter.sp_sigp: 'SignalP cleavage-site prediction column: <b class=''text-bright''>Signal
+      Peptide</b>. <br><i>(multiple selection allowed)</i>'
+    filter.sp_nuc: 'Localizer nucleus-targeting peptide column: <b class=''text-bright''>L-nucleus</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.sp_mito: 'Localizer mitochondrial transit peptide column: <b class=''text-bright''>L-mitochondria</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.sp_chloro: 'Localizer chloroplast transit peptide column: <b class=''text-bright''>L-chloroplast</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.signal_presence: 'Apply the selected state to all checked targeting/signal
+      columns. <br>- Any: no restriction<br>- <span class=''text-bright''>has peptide</span>:
+      signal/transit peptide detected <br><i class=''ps-2''>(suggests secretion; expected
+      for effectors)</i><br>- no peptide: signal/transit peptide not detected'
+    filter_sp_score: 'Signal peptide prediction score. Agremment ~ high confidence.<br>-
+      <b>v5</b> uses classical machine learning <br><i class=''ps-2''>(neural networks
+      + HMM-style post-processing)</i> <br>- <b>v6</b> uses deep learning with transformer-based
+      models <br><i class=''px-2''>(trained on much larger/diverse datasets)</i> <br>Tool:
+      <i class=''text-muted''>SignalP v5 and v6</i>'
+    filter.signalp5: Minimum SignalP5 score threshold. Enter positive <b>float</b>.
+    filter.signalp6: Minimum SignalP6 score threshold. Enter positive <b>float</b>.
+    filter.tm_count: 'Predicted number of transmembrane domains. <br><i>(TM counts
+      after signal peptide removal <br>depend on the cleavage site in SignalP v5/v6.)</i>
+      <br>Tool: <i class=''text-muted''>XXX (TM predictor)</i>'
+    filter.tm_v5: TM count value for v5. Enter <b>int</b> number. <br><i>(0 means
+      no TM; supports soluble secretion)</i>
+    filter.tm_v6: TM count value for v6. Enter <b>int</b> number. <br><i>(0 means
+      no TM; supports soluble secretion)</i>
+    filter.dl_score: Filter DeepLoc score columns with one shared threshold. <br>-
+      choose ANY to keep records where any checked localization score passes the threshold,
+      <br>- choose ALL to require all checked localization scores to pass.
+    filter.dl_score_mode: Combine checked DeepLoc score columns with ANY or ALL mode.
+    filter.dl_score_val: Minimum DeepLoc score threshold applied to checked columns.
+    filter.dl_nucleus: 'NUCLEUS <br>DeepLoc score column: <b class=''text-bright''>dl_nucleus</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_mitochondrion: 'MITOCHONDRION <br>DeepLoc score column: <b class=''text-bright''>dl_mitochondrion</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_plastid: 'PLASTID <br>DeepLoc score column: <b class=''text-bright''>dl_plastid</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_cytoplasm: 'CYTOPLASM <br>DeepLoc score column: <b class=''text-bright''>dl_cytoplasm</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_er: 'ENDOPLASMIC RETICULUM <br>DeepLoc score column: <b class=''text-bright''>dl_endoplasmic_reticulum</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_lyso: 'LYSOSOME VACUOLE <br>DeepLoc score column: <b class=''text-bright''>dl_lysosome_vacuole</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_golgi: 'GOLGI APPARATUS <br>DeepLoc score column: <b class=''text-bright''>dl_golgi_apparatus</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_peroxisome: 'PROXISOME <br>DeepLoc score column: <b class=''text-bright''>dl_peroxisome</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_membrane: 'CELL MEMBRANE <br>DeepLoc score column: <b class=''text-bright''>dl_cell_membrane</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.dl_extracellular: 'EXTRACELLULAR <br>DeepLoc score column: <b class=''text-bright''>dl_extracellular</b>.
+      <br><i>(multiple selection allowed)</i>'
+    filter.orthogroup: Filter individual orthogroups. Use commas for <b>OR</b> search.
+      <br><i>(e.g. 'OG0000006, OG0000052' returns both)</i>
+    filter.min_glycines_gene_count: "Filter records with H. glycines homolog copy\
+      \ count \u2265 <i class='text-bright'>SCN counts</i>."
+    filter.min_schachtii_gene_count: "Filter records with H. schachtii homolog copy\
+      \ count \u2265 <i class='text-bright'>BCN counts</i>."
+    filter.celegans_gene: Unique <i>C. elegans</i> gene-level homologs annotated in
+      WormBase. <br>Counts reflect distinct records with any hit to the gene. <br>List
+      of detected isoforms (CDS) is provided for reference.
+    filter.broad_homology: '[broader parasitism homology] <br>Search across Uniprot
+      (SP) and NCBI-protein (NR) best hit.'
+    filter.broad_search: Use flexible search with '+' for <b>AND</b> and ',' for <b>OR</b>.
+      <br><i>For example, enter 'effector,secretory+gland'</i>
+    filter.has_hgt_donor: Keep only records with an HGT donor assignment present and
+      different from <i>No</i>.
+    filter.hgt_donor_q: Free-text search in <i class='text-bright'>HGT Donor</i>.
+      Supports partial matches such as <i>WP_</i>, <i>XP_0027</i>, or full accession
+      IDs.
+    filter.pivoting: '- <b>Dynamic options</b> are recomputed on the current subset
+      (defined by all active filters except this one); options reflect alternative
+      values for this filter based on the dataset before applying it.<br>- <b>Pivoting</b>
+      removes this filter before computing counts for its options. This prevents getting
+      stuck with a one-option dropdown, and you still see alternative option choices
+      for this filter. <br>- <b>Counts</b> show how many results you''d get if you
+      chose a corresponding option for this filter next.'
+    filter.t_factor: Filter by transcription factor prediction stored in <i class='text-bright'>TF</i>.<br>-
+      <b>TF only</b> keeps rows with value <b>yes</b>, <br>- <b>non-TF</b> keeps rows
+      with value <b>no</b>.
+    filter.go_term: Filter by Gene Ontology (GO) annotation derived from consensus
+      annotation and DeepGoPlus predictions (machine-learning based). <br>Predictions
+      may include lower-confidence functional assignments.
+    filter.go_values: 'Included DeepGoPlus counts together with consensus GO annotations.
+      <br>- Any: no restriction<br>- <span class=''text-bright''>select GO term</span>:
+      keep records annotated with that term<br><i class=''ps-2''>Counts reflect current
+      filters, excluding this dropdown''s own selection.</i>'
+    filter.go_score: Minimum DeepGOPlus / GO score threshold. <br>Keep records with
+      at least one GO term at or above this score. <br><i>If a GO term is also selected,
+      the threshold applies to that selected term.</i>
+    filter.interpro: 'Filter by InterPro domain annotation. <br>- Any: no restriction<br>-
+      <span class=''text-bright''>select InterPro ID</span>: keep records containing
+      that domain<br><i class=''ps-2''>Counts reflect current filters, excluding this
+      dropdown''s own selection.</i>'
+    filter.smart: 'Filter by SMART domain annotation. <br>- Any: no restriction<br>-
+      <span class=''text-bright''>select SMART ID</span>: keep records containing
+      that domain<br><i class=''ps-2''>SMART specializes in signaling and extracellular
+      domains.</i> <br><i class=''ps-2''>Counts reflect current filters, excluding
+      this dropdown''s own selection.</i>'
+    filter.pfam: 'Filter by Pfam protein family/domain annotation. <br>- Any: no restriction<br>-
+      <span class=''text-bright''>select Pfam ID</span>: keep records assigned to
+      that family<br><i class=''ps-2''>Counts reflect current filters, excluding this
+      dropdown''s own selection.</i>'
+    filter.funfam: 'CATH Functional Family (FunFam) assignments based on structural
+      homology. <br>- Any: no restriction<br>- <span class=''text-bright''>select
+      FunFam</span>: keep records in that functional family<br><i class=''ps-2''>(useful
+      for fine-grained functional grouping)</i>'
+    filter.panther: 'PANTHER protein family classification. <br>- Any: no restriction<br>-
+      <span class=''text-bright''>select family</span>: keep records assigned to that
+      PANTHER family<br><i class=''ps-2''>(families reflect evolutionary relationships)</i>'
+    filter.functional_desc: Free text search across functional annotations (GO terms,
+      domains, families).
+    filter.functional_search: Use flexible search with '+' for <b>AND</b> and ','
+      for <b>OR</b>. <br><i>For example, enter 'GO:0008150+Zinc,Immuno'</i>
+    filter.num_globular: Enter the number of expected globular domains; <i>int</i
+    filter.has_pdb_hit: Only show proteins with at least one PDB hit.
+    filter.pdb_hit_class: Filter by type of PDB hit.
+    filter.pdb_id: 'Filter by PDB hit (ID only, chain ignored):<br>- Any: no restriction<br>-
+      <span class=''text-bright''>select PDB ID</span>: keeps proteins with a matching
+      PDB hit<br><i class=''ps-2''>(useful to focus on candidates with structural
+      homologs/domains)</i>'
+    filter.disorder_class: Select disorder class.
+    filter.iel_min: "lower bound - keep proteins with <i>pI \u2265 value</i> <br>enter\
+      \ a value in range: 0-14 <br><i>Use to enrich for more basic proteins.</i>"
+    filter.iel_max: "upper bound - keep proteins with </i>pI \u2264 value</i> <br>enter\
+      \ a value in range: 0-14 <br><i>Use to enrich for more basic proteins.</i>"
+    filter.charge_min: "lower bound - keep proteins with <i>net_charge \u2265 value</i>\
+      \ <br><i>Positive values indicate net basic; negative indicate net acidic.</i>"
+    filter.charge_max: "upper bound - keep proteins with <i>net_charge \u2264 value</i>\
+      \ <br><i>Use to exclude highly charged sequences.</i>"
+    filter.charged_min: "lower bound (0-100) - keep proteins with charged % \u2265\
+      \ value<br><i>Charged/disordered proteins can be interaction-prone.</i>"
+    filter.charged_max: "upper bound (0-100) - keep proteins with charged % \u2264\
+      \ value<br><i>Use to focus on less-charged sequences.</i>"
+    filter.aromatic_min: "lower bound (0-100) - keep proteins with aromatic % \u2265\
+      \ value<br><i>Aromatics may contribute to binding and stability.</i>"
+    filter.aromatic_max: "upper bound (0-100) - keep proteins with aromatic % \u2264\
+      \ value<br><i>Use to exclude aromatic-rich proteins.</i>"
+    filter.basic_min: "lower bound (0-100) - keep proteins with basic % \u2265 value<br><i>Basic\
+      \ residues may support charge-driven interactions and targeting.</i>"
+    filter.basic_max: "upper bound (0-100) - keep proteins with basic % \u2264 value<br><i>Use\
+      \ to exclude strongly basic sequences.</i>"
+    filter.acidic_min: "lower bound (0-100) - keep proteins with acidic % \u2265 value<br><i>Acidic\
+      \ regions can influence solubility and interaction profiles.</i>"
+    filter.acidic_max: "upper bound (0-100) - keep proteins with acidic % \u2264 value<br><i>Use\
+      \ to exclude strongly acidic sequences.</i>"
+    filter.aa_abundance: 'AA abundance (DayhoffStat), includes signal peptide <br><i>AA
+      relative occurence per 1000aa normalised to 100 by rls@ebi.ac.uk.</i> <br>Tool:
+      <i class=''text-muted''>EMBOSS:6.6.0.0/pepstats</i> <br>Reference frequency:
+      <br>A=8.6 ; C=2.9 ; D=5.5 ; E=6.0 ; F=3.6 ; G=8.4 ; H=2.0 ; I=4.5 ; K=6.6 ;
+      L=7.4 ; M=1.7 ; N=4.3 ; P=5.2 ; Q=3.9 ; R=4.9 ; S=7.0 ; T=6.1 ; U=0.1 ; V=6.6
+      ; W=1.3 ; Y=3.4'
+    filter.aa_min: "lower bound - keep proteins with AA abundance \u2265 value<br>\
+      \ 0 = none; values >1 indicate AA enrichment"
+    filter.aa_max: "upper bound - keep proteins with AA abundance \u2264 value <br><i>Leave\
+      \ blank for no upper bound.</i>"
+    filter.cys_min: "lower bound - keep proteins with AA abundance \u2265 value<br><i>Cysteine-rich\
+      \ secreted proteins are common in plant-pathogen systems.</i>"
+    filter.expr_field: Select an expression column to filter on <br><i>(e.g. Egg,
+      Gland (J2), Adult Female)</i>.
+    filter.expr_ref: 'Select the reference measure for filtering: <br>- a dataset-wide
+      statistic <i>(e.g., mean, median or percentile)</i> <br>- or, enter a custom
+      treshold in the <i>value</i> box.'
+    filter.expr_val: Enter a numeric value when using a <i>'Custom'</i> treshold.
+      <br><i>Otherwise, shows a value for the selected statistic.</i>
+    filter.dge_field: Select a differential gene expression (DGE) column<br><i>(log<sub>2</sub>
+      fold-change between two conditions)</i>.
+    filter.dge_mode: 'Select the direction of regulation for this comparison: <br>-
+      <span class=''text-bright''>Up-regulated</span>: higher expression in the <b>second</b>
+      condition<br>- <span class=''text-bright''>Down-regulated</span>: lower expression
+      in the <b>second</b> condition<br>- <span class=''text-bright''>Any change</span>:
+      either up or down regulation, custom range <br>- <span class=''text-bright''>No
+      change</span>: stable expression between conditions.'
+    filter.dge_min: "Set the minimum magnitude of differential expression <br><i>log<sub>2</sub>\
+      \ fold-change; e.g. 1.0 = 2\xD7 change, 2.0 = 4\xD7</i>."
+    filter.dge_max: <i>(optional)</i> <br>Set a maximum magnitude of differential
+      expression <br><i>useful to exclude extreme outliers</i>.
+    filter.dge_eps: "Define the tolerance for <i>'No change'</i> filtering <br><i>|log<sub>2</sub>\
+      \ fold-change| \u2264 \u03B5; e.g., 0.5 (around zero)</i>."
+    filter.dge_include_no_data: "Include all N/A results (applies to each DGE rule\
+      \ added below). <br>log<sub>2</sub>FC = N/A are skipped by default <br><i>In\
+      \ DGE outputs, NA \u2260 0, meaning the selected contrast for this gene was\
+      \ not testable / not estimable due to low-count in one or both conditions or\
+      \ Cook's distance outlier removal.</i>"
+    filter.patterns: Check presence of custom amino acid pattern(s) or known motifs
+      in a sequenece.
+    filter.input_pattern: Define custom regex pattern(s) to search within the sequence.
+      <br>- Use a semicolon (;) to define multiple patterns, <br>each shown as a separate
+      row. <br>- Define amino-acid sets with commas <i>(e.g. C,S,H)</i> <br>to highlight
+      all occurrences. <br>- Detect sequence motifs using . as a wildcard for any
+      amino acid <i>(e.g. GG.G)</i>. <br>- Use '|' to specify alternative motifs on
+      the same row <br><i>(e.g. PAPS|PAPSQ)</i>.
+    filter.signal_window: Set the sliding-window size used to compute signal profiles.
+    filter.window_size: Choose the window length (in amino acids, aa) for profiles.
+      <br>- Used for Entropy, NCPR, FCR, and the custom profile track. <br>- Larger
+      windows produce smoother profiles. <br>- Smaller windows capture more local
+      variation.
+    filter.custom_profile: Define a custom amino-acid set for a windowed composition
+      profile.
+    filter.custom_signal: Enter one or more amino acids to calculate their sliding-window
+      fraction across the sequence. <br>- Profile shows the fraction of residues from
+      this set in each frame. <br>- Useful for tracking local enrichment of residue
+      classes, such as aromatic residues <i>(e.g. FWY)</i>. <br>- The number of aa
+      must not exceed the selected window size.
