@@ -109,6 +109,33 @@ def test_person_acknowledgements_derived_target_fields_parse():
     assert ack.source_snapshot_dir == "/tmp/people_isu_biotech"
 
 
+def test_skill_contexts_parse():
+    cfg = KGXConfig.model_validate({
+        "db_build": {
+            "skill_contexts": {
+                "genomics": {
+                    "help_prompts": [
+                        "Build a local genomics graph from standardized TSV and YAML sources.",
+                    ],
+                    "settings": {
+                        "module": "genomics",
+                        "primary_record_entity": "transcript",
+                    },
+                    "source_policy": {
+                        "official_only": False,
+                    },
+                }
+            }
+        }
+    })
+
+    genomics = cfg.db_build.skill_contexts["genomics"]
+    assert genomics.settings["module"] == "genomics"
+    assert genomics.help_prompts[0].startswith("Build a local genomics graph")
+    assert genomics.source_policy is not None
+    assert genomics.source_policy.official_only is False
+
+
 def test_hierarchical_layout_defaults_present():
     cfg = KGXConfig()
 
@@ -117,6 +144,80 @@ def test_hierarchical_layout_defaults_present():
     assert "BROADER" in cfg.ui.layouts.hierarchical.relation_classes.hierarchy
     assert cfg.ui.layouts.hierarchical.bands.person_y == 0.0
     assert cfg.ui.layouts.hierarchical.annotation_driver_default is True
+
+
+def test_explore_presets_parse():
+    cfg = KGXConfig.model_validate({
+        "explore": {
+            "mediator_type": "orthogroup",
+            "mediator_edge": "BELONGS_TO_ORTHOGROUP",
+            "derived_edge_type": "SHARES_ORTHOGROUP",
+            "preserve_node_types": ["organism"],
+            "include_rel_types": ["FROM_ORGANISM", "BELONGS_TO_ORTHOGROUP"],
+            "include_rel_patterns": [
+                {
+                    "rel_type": "FROM_ORGANISM",
+                    "source_type": "bcn_gene",
+                    "target_type": "organism",
+                }
+            ],
+            "default_hidden_rel_types": [],
+            "derived_path_edges": [
+                {
+                    "source_type": "gene",
+                    "via_type": "transcript",
+                    "target_type": "protein",
+                    "first_rel_type": "HAS_TRANSCRIPT",
+                    "second_rel_type": "TRANSLATED_TO",
+                    "edge_type": "GENE_PRODUCT",
+                }
+            ],
+            "hierarchy_edge": "BROADER",
+            "annotation_edge": "TAGGED",
+            "skipped_rel_types": ["IN_DATASET"],
+            "active_preset": "gene_centric",
+            "presets": {
+                "gene_centric": {
+                    "label": "Gene-centric",
+                    "include_node_types": ["gene", "transcript", "protein", "orthogroup", "tag"],
+                    "include_rel_types": ["FROM_ORGANISM", "HAS_TRANSCRIPT"],
+                    "default_hidden_rel_types": ["TRANSLATED_TO"],
+                },
+                "annotation_centric": {
+                    "label": "Annotation-centric",
+                    "include_node_types": ["gene", "protein", "tag"],
+                    "include_rel_types": ["FROM_ORGANISM", "HAS_ANNOTATION", "TAGGED"],
+                    "preserve_node_types": ["gene"],
+                    "derived_path_edges": [
+                        {
+                            "source_type": "gene",
+                            "via_type": "transcript",
+                            "target_type": "protein",
+                            "first_rel_type": "HAS_TRANSCRIPT",
+                            "second_rel_type": "TRANSLATED_TO",
+                            "edge_type": "GENE_PRODUCT",
+                        }
+                    ],
+                    "included_tag_roots": ["functional-annotations"],
+                    "mediator_type": "tag",
+                    "mediator_edge": "TAGGED",
+                    "skipped_rel_types": ["IN_DATASET", "BROADER"],
+                },
+            },
+        }
+    })
+
+    assert cfg.explore.active_preset == "gene_centric"
+    assert cfg.explore.preserve_node_types == ["organism"]
+    assert cfg.explore.include_rel_types == ["FROM_ORGANISM", "BELONGS_TO_ORTHOGROUP"]
+    assert cfg.explore.include_rel_patterns[0]["source_type"] == "bcn_gene"
+    assert cfg.explore.default_hidden_rel_types == []
+    assert cfg.explore.derived_path_edges[0]["edge_type"] == "GENE_PRODUCT"
+    assert cfg.explore.presets["annotation_centric"].included_tag_roots == ["functional-annotations"]
+    assert cfg.explore.presets["gene_centric"].include_rel_types == ["FROM_ORGANISM", "HAS_TRANSCRIPT"]
+    assert cfg.explore.presets["gene_centric"].default_hidden_rel_types == ["TRANSLATED_TO"]
+    assert cfg.explore.presets["annotation_centric"].preserve_node_types == ["gene"]
+    assert cfg.explore.presets["annotation_centric"].mediator_type == "tag"
 
 
 def test_hierarchical_layout_custom_values_parse():
@@ -134,6 +235,14 @@ def test_hierarchical_layout_custom_values_parse():
                     },
                     "type_families": {
                         "award": "artifact",
+                    },
+                    "type_aliases": {
+                        "bcn_gene": "gene",
+                    },
+                    "type_levels": {
+                        "organization": 1.0,
+                        "person": 0.0,
+                        "publication": -1.0,
                     },
                     "bands": {
                         "organization_y": 0.5,
@@ -155,6 +264,8 @@ def test_hierarchical_layout_custom_values_parse():
     assert cfg.ui.layouts.hierarchical is not None
     assert cfg.ui.layouts.hierarchical.relation_classes.structural == ["AUTHORED", "WON"]
     assert cfg.ui.layouts.hierarchical.type_families["award"] == "artifact"
+    assert cfg.ui.layouts.hierarchical.type_aliases["bcn_gene"] == "gene"
+    assert cfg.ui.layouts.hierarchical.type_levels["organization"] == 1.0
     assert cfg.ui.layouts.hierarchical.bands.publication_y == -0.75
     assert cfg.ui.layouts.hierarchical.mediator_one_side_default is True
     assert cfg.ui.layouts.hierarchical.strict_bands_default is True
@@ -189,6 +300,12 @@ def test_visualization_contract_custom_values_parse():
                     "type_families": {
                         "award": "artifact",
                     },
+                    "type_aliases": {
+                        "bcn_gene": "gene",
+                    },
+                    "type_levels": {
+                        "award": -1.5,
+                    },
                     "bands": {
                         "organization_y": 0.5,
                         "person_y": 0.0,
@@ -209,6 +326,8 @@ def test_visualization_contract_custom_values_parse():
     assert cfg.db_build.visualization.timeline.anchor_order_fields["publication"] == ["year"]
     assert cfg.db_build.visualization.timeline.field_aliases["award_year"] == ["year"]
     assert cfg.db_build.visualization.hierarchical.type_families["award"] == "artifact"
+    assert cfg.db_build.visualization.hierarchical.type_aliases["bcn_gene"] == "gene"
+    assert cfg.db_build.visualization.hierarchical.type_levels["award"] == -1.5
     assert cfg.db_build.visualization.hierarchical.strict_bands_default is True
 
 
@@ -233,6 +352,10 @@ db_build:
     hierarchical:
       type_families:
         award: artifact
+      type_aliases:
+        bcn_gene: gene
+      type_levels:
+        award: -1.5
       relation_classes:
         hierarchy: [BROADER]
         structural: [AUTHORED]
@@ -261,5 +384,7 @@ db_build:
     assert cfg.ui.layouts.timeline.order.field_candidates == ["award_year"]
     assert cfg.ui.layouts.hierarchical is not None
     assert cfg.ui.layouts.hierarchical.type_families["award"] == "artifact"
+    assert cfg.ui.layouts.hierarchical.type_aliases["bcn_gene"] == "gene"
+    assert cfg.ui.layouts.hierarchical.type_levels["award"] == -1.5
     assert cfg.ui.layouts.hierarchical.relation_classes.structural == ["AUTHORED"]
     assert cfg.ui.layouts.hierarchical.strict_bands_default is True

@@ -148,3 +148,112 @@ async def test_app_smoke(app_config):
             signal_help = resp.json()
             assert signal_help["source_policy"]["official_only"] is True
             assert any("official Nobel announcement" in prompt for prompt in signal_help["help_prompts"])
+
+
+@pytest.mark.asyncio
+async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
+    db_path = tmp_path / "genomics.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("organism", "organism:heterodera-schachtii", name="Heterodera schachtii")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1", metadata={"expression_bin_13": "bin_a"})
+    db.upsert_entity("protein", "prot-1", name="Protein 1", metadata={"pfam": "PF00001"})
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("bcn_gene", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
+    db.upsert_entity("comparative_hit", "comparative_hit:cyst_nematode:hsc-gene-1-t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
+    db.upsert_entity("tag", "homology", name="Homology", metadata={"category": "field"})
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope", metadata={"category": "topic"})
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode", metadata={"category": "topic"})
+    db.upsert_entity("tag", "functional-annotations", name="Functional Annotations", metadata={"category": "field"})
+    db.upsert_entity("tag", "pfam-family", name="Pfam Family", metadata={"category": "topic"})
+    db.upsert_entity("tag", "pfam:pf00001", name="PF00001", metadata={"category": "topic"})
+    db.upsert_entity("tag", "expression", name="Expression", metadata={"category": "field"})
+    db.upsert_entity("tag", "expression-bin", name="Expression Bin", metadata={"category": "topic"})
+    db.upsert_entity("tag", "tag:bin_a", name="bin_a", metadata={"category": "topic"})
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("chromosome:heterodera-glycines:chr1", "HAS_GENE", "gene-1")
+    db.add_relationship("gene-1", "FROM_ORGANISM", "organism:heterodera-glycines")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1")
+    db.add_relationship("prot-1", "HAS_BCN_HIT", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "comparative_hit:cyst_nematode:hsc-gene-1-t1")
+    db.add_relationship("bcn_gene:heterodera-schachtii:hsc_gene_1.t1", "FROM_ORGANISM", "organism:heterodera-schachtii")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.add_relationship("bcn_gene:heterodera-schachtii:hsc_gene_1.t1", "TAGGED", "homology-scope-cyst-nematode")
+    db.add_relationship("comparative_hit:cyst_nematode:hsc-gene-1-t1", "TAGGED", "homology-scope-cyst-nematode")
+    db.add_relationship("pfam-family", "BROADER", "functional-annotations")
+    db.add_relationship("pfam:pf00001", "BROADER", "pfam-family")
+    db.add_relationship("expression-bin", "BROADER", "expression")
+    db.add_relationship("tag:bin_a", "BROADER", "expression-bin")
+    db.add_relationship("prot-1", "TAGGED", "pfam:pf00001")
+    db.add_relationship("tx-1", "TAGGED", "tag:bin_a")
+    db.close()
+
+    cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/genomics.yaml"))
+    app_config = {
+        "db_path": str(db_path),
+        "server": cfg.server.model_dump(),
+        "ui": cfg.ui.model_dump(),
+        "llm": cfg.llm.model_dump(),
+        "skills": cfg.skills.model_dump(),
+        "explore": cfg.explore.model_dump(),
+        "embedding": cfg.embedding.model_dump(),
+        "domain": cfg.domain.model_dump(),
+        "db_build": cfg.db_build.model_dump(),
+    }
+    app = create_app(app_config)
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.get("/api/graph", params={"mode": "explore", "preset": "protein_centric"})
+        assert resp.status_code == 200
+        data = resp.json()
+        node_ids = {n["id"] for n in data["nodes"]}
+        rel_types = {e["rel_type"] for e in data["edges"]}
+        assert data["projection"]["active_preset"] == "protein_centric"
+        assert any(p["id"] == "expression_centric" for p in data["projection"]["available_presets"])
+        assert "prot-1" in node_ids
+        assert "gene-1" in node_ids
+        assert "tx-1" not in node_ids
+        assert "pfam:pf00001" in node_ids
+        assert "tag:bin_a" not in node_ids
+        assert "GENE_PRODUCT" in rel_types
+
+        resp = await client.get("/api/graph", params={"mode": "display", "preset": "comparative"})
+        assert resp.status_code == 200
+        data = resp.json()
+        display_tag_group_ids = {group["id"] for group in data["projection"].get("visible_tag_groups", [])}
+        assert "homology-scope" in display_tag_group_ids
+
+        resp = await client.get("/api/graph", params={"mode": "explore", "preset": "comparative"})
+        assert resp.status_code == 200
+        data = resp.json()
+        node_ids = {n["id"] for n in data["nodes"]}
+        rel_types = {e["rel_type"] for e in data["edges"]}
+        tag_group_ids = {group["id"] for group in data["projection"].get("visible_tag_groups", [])}
+        assert data["projection"]["active_preset"] == "comparative"
+        assert "homology-scope" in tag_group_ids
+        assert "orthogroup:og1" in node_ids
+        assert "bcn_gene:heterodera-schachtii:hsc_gene_1.t1" in node_ids
+        assert "comparative_hit:cyst_nematode:hsc-gene-1-t1" in node_ids
+        assert "homology-scope-cyst-nematode" in node_ids
+        assert "gene-1" in node_ids
+        assert "prot-1" in node_ids
+        assert "organism:heterodera-glycines" in node_ids
+        assert "organism:heterodera-schachtii" in node_ids
+        assert "chromosome:heterodera-glycines:chr1" in node_ids
+        assert "tx-1" not in node_ids
+        assert "HAS_CHROMOSOME" in rel_types
+        assert "HAS_GENE" in rel_types
+        assert "BELONGS_TO_ORTHOGROUP" in rel_types
+        assert "HAS_BCN_MEMBER" in rel_types
+        assert "HAS_BCN_HIT" in rel_types
+        assert "HAS_BROAD_HOMOLOGY_HIT" in rel_types
+        assert "TAGGED" in rel_types
+        assert "BROADER" in rel_types
+        assert "FROM_ORGANISM" in rel_types

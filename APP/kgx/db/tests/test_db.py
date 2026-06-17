@@ -306,6 +306,70 @@ class TestGraphQueries:
         assert projection["pruned_tags"] == 3
         assert projection["pruned_orphans"] == 3
 
+    def test_graph_explore_preserves_anchor_types_and_derives_two_hop_edges(self, db):
+        db.upsert_entity("organization", "organism:test", name="Test organism")
+        db.upsert_entity("person", "gene-1", name="Gene 1")
+        db.upsert_entity("publication", "tx-1", name="Transcript 1")
+        db.upsert_entity("event", "prot-1", name="Protein 1")
+        db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+        db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+
+        graph = db.graph_explore({
+            "include_node_types": ["organization", "person", "event"],
+            "include_rel_types": ["FROM_ORGANISM"],
+            "preserve_node_types": ["organization"],
+            "skipped_rel_types": ["HAS_TRANSCRIPT", "TRANSLATED_TO"],
+            "derived_path_edges": [
+                {
+                    "source_type": "person",
+                    "via_type": "publication",
+                    "target_type": "event",
+                    "first_rel_type": "HAS_TRANSCRIPT",
+                    "second_rel_type": "TRANSLATED_TO",
+                    "edge_type": "GENE_PRODUCT",
+                }
+            ],
+        })
+
+        node_ids = {node["id"] for node in graph["nodes"]}
+        edge_types = {(edge["source"], edge["rel_type"], edge["target"]) for edge in graph["edges"]}
+        projection = graph["projection"]
+
+        assert "organism:test" in node_ids
+        assert "gene-1" in node_ids
+        assert "prot-1" in node_ids
+        assert ("gene-1", "GENE_PRODUCT", "prot-1") in edge_types
+        assert projection["included_rel_types"] == ["FROM_ORGANISM"]
+        assert projection["preserved_types"] == ["organization"]
+        assert projection["derived_path_edges"] == 1
+
+    def test_graph_explore_can_include_relationships_by_typed_pattern(self, db):
+        db.upsert_entity("organization", "organism:local", name="Local organism")
+        db.upsert_entity("organization", "organism:external", name="External organism")
+        db.upsert_entity("person", "gene-1", name="Gene 1")
+        db.upsert_entity("event", "homolog-1", name="Homolog 1")
+        db.add_relationship("gene-1", "FROM_ORGANISM", "organism:local")
+        db.add_relationship("homolog-1", "FROM_ORGANISM", "organism:external")
+
+        graph = db.graph_explore({
+            "include_node_types": ["organization", "person", "event"],
+            "include_rel_patterns": [
+                {
+                    "rel_type": "FROM_ORGANISM",
+                    "source_type": "event",
+                    "target_type": "organization",
+                }
+            ],
+            "preserve_node_types": ["organization"],
+        })
+
+        edge_types = {(edge["source"], edge["rel_type"], edge["target"]) for edge in graph["edges"]}
+        projection = graph["projection"]
+
+        assert ("homolog-1", "FROM_ORGANISM", "organism:external") in edge_types
+        assert ("gene-1", "FROM_ORGANISM", "organism:local") not in edge_types
+        assert projection["included_rel_patterns"][0]["source_type"] == "event"
+
 
 # --- Raw SQL ---
 
