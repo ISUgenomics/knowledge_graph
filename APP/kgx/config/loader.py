@@ -181,6 +181,9 @@ class HierarchyLayoutConfig(BaseModel):
     profile_name: str = "default"
     relation_classes: HierarchyRelationClassesConfig = Field(default_factory=HierarchyRelationClassesConfig)
     type_families: dict[str, str] = Field(default_factory=dict)
+    type_aliases: dict[str, str] = Field(default_factory=dict)
+    type_levels: dict[str, float] = Field(default_factory=dict)
+    driver_direction_overrides: dict[str, str] = Field(default_factory=dict)
     bands: HierarchyBandsConfig = Field(default_factory=HierarchyBandsConfig)
     annotation_driver_default: bool = True
     mediator_one_side_default: bool = False
@@ -202,6 +205,9 @@ class VisualizationHierarchyContractConfig(BaseModel):
 
     relation_classes: HierarchyRelationClassesConfig = Field(default_factory=HierarchyRelationClassesConfig)
     type_families: dict[str, str] = Field(default_factory=dict)
+    type_aliases: dict[str, str] = Field(default_factory=dict)
+    type_levels: dict[str, float] = Field(default_factory=dict)
+    driver_direction_overrides: dict[str, str] = Field(default_factory=dict)
     bands: HierarchyBandsConfig = Field(default_factory=HierarchyBandsConfig)
     annotation_driver_default: bool = True
     mediator_one_side_default: bool = False
@@ -227,7 +233,12 @@ class UIConfig(BaseModel):
     show_labels: bool = True
     max_visible_nodes: int = 5000
     edge_filters_default_visible: list[str] = Field(default_factory=list)  # empty = all visible
-    layouts: LayoutsConfig | None = None
+    layouts: LayoutsConfig | None = Field(
+        default_factory=lambda: LayoutsConfig(
+            timeline=TimelineLayoutConfig(),
+            hierarchical=HierarchyLayoutConfig(),
+        )
+    )
 
 
 class ExploreConfig(BaseModel):
@@ -235,13 +246,46 @@ class ExploreConfig(BaseModel):
 
     stub_type: str = ""
     stub_flag: str = "profiled"
+    include_node_types: list[str] = Field(default_factory=list)
+    include_rel_types: list[str] = Field(default_factory=list)
+    include_rel_patterns: list[dict[str, Any]] = Field(default_factory=list)
     excluded_node_types: list[str] = Field(default_factory=list)
+    preserve_node_types: list[str] = Field(default_factory=list)
+    included_tag_roots: list[str] = Field(default_factory=list)
     mediator_type: str = ""
     mediator_edge: str = ""
     derived_edge_type: str = "RELATED"
+    derived_path_edges: list[dict[str, Any]] = Field(default_factory=list)
     hierarchy_edge: str = ""
     annotation_edge: str = ""
+    default_hidden_rel_types: list[str] = Field(default_factory=list)
     skipped_rel_types: list[str] = Field(default_factory=list)
+
+
+class ExplorePresetConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = ""
+    description: str = ""
+    include_node_types: list[str] | None = None
+    include_rel_types: list[str] | None = None
+    include_rel_patterns: list[dict[str, Any]] | None = None
+    excluded_node_types: list[str] | None = None
+    preserve_node_types: list[str] | None = None
+    included_tag_roots: list[str] | None = None
+    mediator_type: str | None = None
+    mediator_edge: str | None = None
+    derived_edge_type: str | None = None
+    derived_path_edges: list[dict[str, Any]] | None = None
+    hierarchy_edge: str | None = None
+    annotation_edge: str | None = None
+    default_hidden_rel_types: list[str] | None = None
+    skipped_rel_types: list[str] | None = None
+
+
+class ExploreModuleConfig(ExploreConfig):
+    active_preset: str = ""
+    presets: dict[str, ExplorePresetConfig] = Field(default_factory=dict)
 
 
 class EmbeddingConfig(BaseModel):
@@ -270,6 +314,14 @@ class DBBuildSkillConfig(BaseModel):
 
     enabled: bool = False
     help_prompts: list[str] = Field(default_factory=list)
+
+
+class SkillContextConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    help_prompts: list[str] = Field(default_factory=list)
+    settings: dict[str, Any] = Field(default_factory=dict)
+    source_policy: SourcePolicyConfig | None = None
 
 
 class PersonRoleProfileConfig(BaseModel):
@@ -490,6 +542,7 @@ class DBBuildConfig(BaseModel):
     event_research: EventResearchConfig = Field(default_factory=EventResearchConfig)
     center_research: CenterResearchConfig = Field(default_factory=CenterResearchConfig)
     extensions: dict[str, PersonResearchExtensionConfig] = Field(default_factory=dict)
+    skill_contexts: dict[str, SkillContextConfig] = Field(default_factory=dict)
 
 
 class KGXConfig(BaseModel):
@@ -498,7 +551,7 @@ class KGXConfig(BaseModel):
     skills: SkillsConfig = Field(default_factory=SkillsConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     ui: UIConfig = Field(default_factory=UIConfig)
-    explore: ExploreConfig = Field(default_factory=ExploreConfig)
+    explore: ExploreModuleConfig = Field(default_factory=ExploreModuleConfig)
     embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
     domain: DomainConfig = Field(default_factory=DomainConfig)
     db_build: DBBuildConfig = Field(default_factory=DBBuildConfig)
@@ -817,6 +870,12 @@ def _apply_visualization_defaults(config: KGXConfig, raw: dict[str, Any]) -> KGX
             hierarchy_cfg.relation_classes = vis.hierarchical.relation_classes.model_copy(deep=True)
         if "type_families" not in hierarchical_raw:
             hierarchy_cfg.type_families = dict(vis.hierarchical.type_families)
+        if "type_aliases" not in hierarchical_raw:
+            hierarchy_cfg.type_aliases = dict(vis.hierarchical.type_aliases)
+        if "type_levels" not in hierarchical_raw:
+            hierarchy_cfg.type_levels = dict(vis.hierarchical.type_levels)
+        if "driver_direction_overrides" not in hierarchical_raw:
+            hierarchy_cfg.driver_direction_overrides = dict(vis.hierarchical.driver_direction_overrides)
         if "bands" not in hierarchical_raw:
             hierarchy_cfg.bands = vis.hierarchical.bands.model_copy(deep=True)
         if "annotation_driver_default" not in hierarchical_raw:

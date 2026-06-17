@@ -305,11 +305,11 @@ class KnowledgeGraphDB:
     # ------------------------------------------------------------------
 
     def graph_nodes(self, stub_type: str = "", stub_flag: str = "profiled") -> list[dict]:
-        """Return all nodes with id/type/name/group/metadata — for graph rendering."""
+        """Return graph-rendering nodes with only id/type/name/group fields."""
         if stub_type and stub_flag:
             cur = self.conn.execute(
                 """
-                SELECT id, type, name, metadata,
+                SELECT id, type, name,
                     CASE
                         WHEN type = ?
                              AND COALESCE(json_extract(metadata, '$.' || ?), 0) != 1
@@ -322,9 +322,9 @@ class KnowledgeGraphDB:
             )
         else:
             cur = self.conn.execute(
-                'SELECT id, type, name, metadata, type AS "group" FROM entities ORDER BY type, name'
+                'SELECT id, type, name, type AS "group" FROM entities ORDER BY type, name'
             )
-        return [_deserialize(row) for row in _rows(cur)]
+        return _rows(cur)
 
     def graph_edges(self) -> list[dict]:
         """Return all edges with source/target/rel_type — for graph rendering."""
@@ -339,7 +339,9 @@ class KnowledgeGraphDB:
                       stub_type: str = "", stub_flag: str = "profiled",
                       authored_edge: str = "AUTHORED",
                       collaboration_edge: str = "COAUTHOR",
-                      mediator_type: str = "") -> dict:
+                      mediator_type: str = "",
+                      included_tag_roots: list[str] | None = None,
+                      hierarchy_edge: str = "BROADER") -> dict:
         """Return a reduced graph projection for visualization.
 
         - collapse_rel_types: relationship types to hide by default
@@ -437,6 +439,29 @@ class KnowledgeGraphDB:
             projected["hidden"] = hidden
             projected_edges.append(projected)
 
+        visible_tag_groups = []
+        if included_tag_roots:
+            root_name_by_id = {
+                n["id"]: n.get("name", n["id"])
+                for n in nodes
+                if n.get("type") == "tag"
+            }
+            visible_node_ids = {n["id"] for n in projected_nodes if not n["hidden"]}
+            for root_id in [str(tag_id).strip() for tag_id in (included_tag_roots or []) if str(tag_id).strip()]:
+                normalized_root = _normalize_id(root_id)
+                descendant_ids = self._descendant_ids(normalized_root, hierarchy_edge=hierarchy_edge)
+                group_node_ids = sorted(
+                    tag_id for tag_id in ({normalized_root} | descendant_ids)
+                    if tag_id in visible_node_ids
+                )
+                if not group_node_ids:
+                    continue
+                visible_tag_groups.append({
+                    "id": normalized_root,
+                    "label": root_name_by_id.get(normalized_root, normalized_root),
+                    "node_ids": group_node_ids,
+                })
+
         return {
             "nodes": projected_nodes,
             "edges": projected_edges,
@@ -446,6 +471,7 @@ class KnowledgeGraphDB:
                 "top_k": top_k,
                 "min_weight": min_weight,
                 "collapse_stubs": collapse_stubs,
+                "visible_tag_groups": visible_tag_groups,
             },
         }
 
@@ -458,10 +484,16 @@ class KnowledgeGraphDB:
         cfg = explore_config or {}
         stub_type = cfg.get("stub_type", "")
         stub_flag = cfg.get("stub_flag", "profiled")
+        include_node_types = set(cfg.get("include_node_types", []))
+        include_rel_types = set(cfg.get("include_rel_types", []))
+        include_rel_patterns = list(cfg.get("include_rel_patterns", []) or [])
         excluded_node_types = set(cfg.get("excluded_node_types", []))
+        preserve_node_types = set(cfg.get("preserve_node_types", []))
+        included_tag_roots = [str(tag_id).strip() for tag_id in cfg.get("included_tag_roots", []) if str(tag_id).strip()]
         mediator_type = cfg.get("mediator_type", "")
         mediator_edge = cfg.get("mediator_edge", "")
         derived_edge_type = cfg.get("derived_edge_type", "RELATED")
+        derived_path_edges = list(cfg.get("derived_path_edges", []) or [])
         hierarchy_edge = cfg.get("hierarchy_edge", "")
         annotation_edge = cfg.get("annotation_edge", "")
         skipped_rel_types = set(cfg.get("skipped_rel_types", []))
@@ -474,6 +506,8 @@ class KnowledgeGraphDB:
 
         leaf_to_field: dict[str, str] = {}
         field_tag_ids: set[str] = set()
+        hierarchy_parent_tag_ids: set[str] = set()
+        hierarchy_child_tag_ids: set[str] = set()
         leaf_tag_ids: set[str] = set()
         if hierarchy_edge:
             hierarchy_rows = self._exec(
@@ -481,13 +515,23 @@ class KnowledgeGraphDB:
                 (hierarchy_edge,),
             ).fetchall()
             for row in hierarchy_rows:
+                hierarchy_child_tag_ids.add(row[0])
+                hierarchy_parent_tag_ids.add(row[1])
                 # Only roll tags upward when the parent is field-like.
                 # This preserves umbrella/domain containers like awards -> nobel-prize
                 # instead of replacing all visible topic tags with their root parent.
                 if tag_categories.get(row[1]) == "field":
                     leaf_to_field[row[0]] = row[1]
                 field_tag_ids.add(row[1])
-            leaf_tag_ids = set(leaf_to_field.keys()) - field_tag_ids
+            leaf_tag_ids = hierarchy_child_tag_ids - hierarchy_parent_tag_ids
+
+        allowed_tag_ids: set[str] | None = None
+        if included_tag_roots:
+            allowed_tag_ids = set()
+            for root_id in included_tag_roots:
+                normalized_root = _normalize_id(root_id)
+                allowed_tag_ids.add(normalized_root)
+                allowed_tag_ids.update(self._descendant_ids(normalized_root, hierarchy_edge=hierarchy_edge))
 
         stub_ids: set[str] = set()
         if stub_type and stub_flag:
@@ -520,9 +564,36 @@ class KnowledgeGraphDB:
 
         exclude_ids = stub_ids | excluded_type_ids
         all_nodes = self.graph_nodes(stub_type=stub_type, stub_flag=stub_flag)
+        node_by_id = {n["id"]: n for n in all_nodes}
         nodes = [n for n in all_nodes if n["id"] not in exclude_ids]
+        if include_node_types:
+            nodes = [n for n in nodes if n.get("type") in include_node_types]
+        if allowed_tag_ids is not None:
+            nodes = [
+                n for n in nodes
+                if n.get("type") != "tag" or n["id"] in allowed_tag_ids
+            ]
 
         all_edges = self.graph_edges()
+
+        def edge_matches_include_pattern(edge: dict) -> bool:
+            if not include_rel_patterns:
+                return False
+            src_type = str(node_by_id.get(edge["source"], {}).get("type", ""))
+            tgt_type = str(node_by_id.get(edge["target"], {}).get("type", ""))
+            rel_type = str(edge.get("rel_type", ""))
+            for pattern in include_rel_patterns:
+                pattern_rel = str(pattern.get("rel_type", "") or "")
+                source_type = str(pattern.get("source_type", "") or "")
+                target_type = str(pattern.get("target_type", "") or "")
+                if pattern_rel and rel_type != pattern_rel:
+                    continue
+                if source_type and src_type != source_type:
+                    continue
+                if target_type and tgt_type != target_type:
+                    continue
+                return True
+            return False
 
         collab_weights: dict[tuple[str, str], int] = {}
         mediator_actors: dict[str, set[str]] = {}
@@ -554,11 +625,16 @@ class KnowledgeGraphDB:
                     e["source"] if e["target"] in mediator_type_ids else None
                 )
                 if med and tag:
+                    if allowed_tag_ids is not None and tag not in allowed_tag_ids:
+                        continue
                     mediator_annotations.setdefault(med, set()).add(leaf_to_field.get(tag, tag))
 
         edges = []
         node_id_set = {n["id"] for n in nodes}
         for e in all_edges:
+            if include_rel_types or include_rel_patterns:
+                if e["rel_type"] not in include_rel_types and not edge_matches_include_pattern(e):
+                    continue
             if e["rel_type"] in skipped_rel_types:
                 continue
             src, tgt = e["source"], e["target"]
@@ -584,6 +660,67 @@ class KnowledgeGraphDB:
                     "weight": weight,
                 })
 
+        if derived_path_edges:
+            all_edges_by_rel: dict[str, list[dict]] = {}
+            for edge in all_edges:
+                all_edges_by_rel.setdefault(str(edge["rel_type"]), []).append(edge)
+            for spec in derived_path_edges:
+                source_type = str(spec.get("source_type", "") or "")
+                via_type = str(spec.get("via_type", "") or "")
+                target_type = str(spec.get("target_type", "") or "")
+                first_rel_type = str(spec.get("first_rel_type", "") or "")
+                second_rel_type = str(spec.get("second_rel_type", "") or "")
+                path_edge_type = str(spec.get("edge_type", "") or derived_edge_type or "RELATED")
+                if not source_type or not target_type or not first_rel_type or not second_rel_type:
+                    continue
+
+                source_to_via: dict[str, set[str]] = {}
+                via_to_target: dict[str, set[str]] = {}
+
+                for edge in all_edges_by_rel.get(first_rel_type, []):
+                    src_id, tgt_id = edge["source"], edge["target"]
+                    src_type = node_by_id.get(src_id, {}).get("type", "")
+                    tgt_type = node_by_id.get(tgt_id, {}).get("type", "")
+                    if src_type == source_type and tgt_type == via_type:
+                        source_to_via.setdefault(src_id, set()).add(tgt_id)
+                    elif tgt_type == source_type and src_type == via_type:
+                        source_to_via.setdefault(tgt_id, set()).add(src_id)
+
+                for edge in all_edges_by_rel.get(second_rel_type, []):
+                    src_id, tgt_id = edge["source"], edge["target"]
+                    src_type = node_by_id.get(src_id, {}).get("type", "")
+                    tgt_type = node_by_id.get(tgt_id, {}).get("type", "")
+                    if src_type == via_type and tgt_type == target_type:
+                        via_to_target.setdefault(src_id, set()).add(tgt_id)
+                    elif tgt_type == via_type and src_type == target_type:
+                        via_to_target.setdefault(tgt_id, set()).add(src_id)
+
+                path_weights: dict[tuple[str, str], int] = {}
+                for source_id, via_ids in source_to_via.items():
+                    if source_id not in node_id_set:
+                        continue
+                    for via_id in via_ids:
+                        for target_id in via_to_target.get(via_id, set()):
+                            if target_id not in node_id_set or source_id == target_id:
+                                continue
+                            key = (source_id, target_id)
+                            path_weights[key] = path_weights.get(key, 0) + 1
+
+                for (source_id, target_id), weight in path_weights.items():
+                    edge_payload = {
+                        "source": source_id,
+                        "target": target_id,
+                        "rel_type": path_edge_type,
+                        "weight": weight,
+                    }
+                    if via_type:
+                        edge_payload["metadata"] = {
+                            "derived": True,
+                            "via_type": via_type,
+                            "path": [first_rel_type, second_rel_type],
+                        }
+                    edges.append(edge_payload)
+
         seen_edges: set[tuple[str, str, str]] = set()
         deduped_edges = []
         for e in edges:
@@ -597,6 +734,11 @@ class KnowledgeGraphDB:
         for e in edges:
             connected_ids.add(e["source"])
             connected_ids.add(e["target"])
+        if preserve_node_types:
+            connected_ids.update(
+                n["id"] for n in nodes
+                if n.get("type") in preserve_node_types
+            )
         initial_node_ids = node_id_set
         initial_tag_ids = {
             n["id"] for n in nodes
@@ -608,6 +750,27 @@ class KnowledgeGraphDB:
         pruned_node_ids = initial_node_ids - final_node_ids
         pruned_tag_ids = initial_tag_ids & pruned_node_ids
         pruned_leaf_tag_ids = leaf_tag_ids & pruned_tag_ids
+        visible_tag_groups = []
+        if included_tag_roots:
+            root_name_by_id = {
+                n["id"]: n.get("name", n["id"])
+                for n in all_nodes
+                if n.get("type") == "tag"
+            }
+            for root_id in included_tag_roots:
+                normalized_root = _normalize_id(root_id)
+                descendant_ids = self._descendant_ids(normalized_root, hierarchy_edge=hierarchy_edge)
+                group_node_ids = sorted(
+                    tag_id for tag_id in ({normalized_root} | descendant_ids)
+                    if tag_id in final_node_ids
+                )
+                if not group_node_ids:
+                    continue
+                visible_tag_groups.append({
+                    "id": normalized_root,
+                    "label": root_name_by_id.get(normalized_root, normalized_root),
+                    "node_ids": group_node_ids,
+                })
 
         return {
             "nodes": nodes,
@@ -617,12 +780,19 @@ class KnowledgeGraphDB:
                 "mediator_type": mediator_type,
                 "mediator_edge": mediator_edge,
                 "annotation_edge": annotation_edge,
+                "included_types": sorted(include_node_types),
+                "included_rel_types": sorted(include_rel_types),
+                "included_rel_patterns": include_rel_patterns,
                 "excluded_types": sorted(excluded_node_types),
+                "preserved_types": sorted(preserve_node_types),
+                "included_tag_roots": included_tag_roots,
                 "excluded_stubs": len(stub_ids),
                 "excluded_leaf_tags": len(pruned_leaf_tag_ids),
                 "derived_edges": len(collab_weights),
+                "derived_path_edges": len(derived_path_edges),
                 "pruned_orphans": pruned,
                 "pruned_tags": len(pruned_tag_ids),
+                "visible_tag_groups": visible_tag_groups,
             },
         }
 
