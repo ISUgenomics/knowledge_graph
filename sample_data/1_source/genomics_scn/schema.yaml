@@ -360,8 +360,6 @@ promoted_entities:
       attach_from: gene
       relationship_type: BELONGS_TO_ORTHOGROUP
       metadata_columns:
-      - glycines_gene_count
-      - schachtii_gene_count
       - schachtii_genes
   dataset_specific: {}
 comparative_entities:

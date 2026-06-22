@@ -42,8 +42,7 @@ def test_normalize_source_package_emits_machine_readable_metadata(tmp_path: Path
     schema = yaml.safe_load(text)
     assert "chromosome" in schema["entity_model"]["entities"]
     orthogroup_spec = combine_section(schema["promoted_entities"])["orthogroup"]
-    assert "glycines_gene_count" in orthogroup_spec["metadata_columns"]
-    assert "schachtii_gene_count" in orthogroup_spec["metadata_columns"]
+    assert "schachtii_genes" in orthogroup_spec["metadata_columns"]
     comparative_entities = combine_section(schema["comparative_entities"])
     assert "homolog_family_member" in comparative_entities
     assert "bcn_hit" in comparative_entities
@@ -134,10 +133,11 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert all(":protein" not in rel["source_id"] and "mrna" not in rel["source_id"] for rel in dataset_incoming)
         orthogroup = db.get_entity("orthogroup:og0005552")
         assert orthogroup is not None
-        assert orthogroup["metadata"]["glycines_gene_count"] == 1
-        assert orthogroup["metadata"]["schachtii_gene_count"] == 1
-        assert orthogroup["metadata"]["local_gene_count"] == 1
-        assert orthogroup["metadata"]["local_gene_ids"] == ["hg_chrom1_tn10gene_10"]
+        assert orthogroup["metadata"]["dataset"] == "genomics_scn"
+        assert orthogroup["metadata"]["organism"] == "Heterodera glycines"
+        assert orthogroup["metadata"]["gene_counts"]["Heterodera glycines"] == 1
+        assert orthogroup["metadata"]["gene_counts"]["Heterodera schachtii"] == 1
+        assert orthogroup["metadata"]["gene_ids"] == ["hg_chrom1_tn10gene_10"]
         assert orthogroup["metadata"]["schachtii_genes"] == ["Hsc_gene_14957.t1"]
         bcn_gene = db.get_entity("bcn_gene:heterodera-schachtii:hsc_gene_14957.t1")
         assert bcn_gene is not None

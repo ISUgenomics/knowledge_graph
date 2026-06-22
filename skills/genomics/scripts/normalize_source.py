@@ -370,8 +370,6 @@ def normalize_source_package(
             "relationship_type": "BELONGS_TO_ORTHOGROUP",
             "metadata_columns": [
                 column for column in [
-                    "glycines_gene_count",
-                    "schachtii_gene_count",
                     "schachtii_genes",
                 ]
                 if column in header_set

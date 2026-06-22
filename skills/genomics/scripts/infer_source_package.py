@@ -82,8 +82,6 @@ def _infer_orthogroup_promoted_entities(header: list[str]) -> dict[str, Any]:
         return {}
     metadata_columns = [
         column for column in [
-            "glycines_gene_count",
-            "schachtii_gene_count",
             "schachtii_genes",
             "schachtii_hits",
         ]

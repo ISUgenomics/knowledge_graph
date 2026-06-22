@@ -867,11 +867,20 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
 
         for orthogroup_id, state in orthogroup_state.items():
             member_gene_ids = sorted(state["local_gene_ids"])
+            local_organism = str(dataset_cfg.get("organism", "") or "").strip()
+            local_organism_gene_count = len(member_gene_ids)
+            schachtii_gene_count = len(state["schachtii_genes"])
+            organism_gene_counts: dict[str, int] = {}
+            if local_organism:
+                organism_gene_counts[local_organism] = local_organism_gene_count
+            if schachtii_gene_count:
+                organism_gene_counts["Heterodera schachtii"] = schachtii_gene_count
             metadata = {
                 **state["row_metadata"],
                 "dataset": dataset_cfg.get("id", ""),
-                "local_gene_count": len(member_gene_ids),
-                "local_gene_ids": member_gene_ids,
+                "organism": local_organism,
+                "gene_counts": organism_gene_counts,
+                "gene_ids": member_gene_ids,
             }
             if state["schachtii_genes"]:
                 metadata["schachtii_genes"] = sorted(state["schachtii_genes"])
