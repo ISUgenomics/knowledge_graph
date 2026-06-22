@@ -356,10 +356,11 @@ const COMMUNITY_COLORS = [
         const base = `${getNodeDisplayName(n)} (${n._group || n.type})`;
         const meta = n?.metadata || {};
         if (graphPreset === 'comparative' && n.type === 'orthogroup') {
-            const extras = [
-                meta.local_gene_count != null ? `local genes: ${meta.local_gene_count}` : '',
-                meta.schachtii_gene_count != null ? `H. schachtii: ${meta.schachtii_gene_count}` : '',
-            ].filter(Boolean).join(' • ');
+            const extras = (
+                meta.gene_counts && typeof meta.gene_counts === 'object'
+                    ? Object.entries(meta.gene_counts).map(([organism, count]) => `${organism}: ${count}`)
+                    : []
+            ).filter(Boolean).join(' • ');
             return extras ? `${base}\n${extras}` : base;
         }
         if (graphPreset === 'comparative' && n.type === 'bcn_gene') {
