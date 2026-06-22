@@ -142,9 +142,9 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         bcn_gene = db.get_entity("bcn_gene:heterodera-schachtii:hsc_gene_14957.t1")
         assert bcn_gene is not None
         assert bcn_gene["metadata"]["organism"] == "Heterodera schachtii"
-        assert bcn_gene["metadata"]["source_columns"] == ["schachtii_genes", "schachtii_hits"]
-        assert bcn_gene["metadata"]["relationship_types"] == ["HAS_BCN_HIT", "HAS_BCN_MEMBER"]
-        assert bcn_gene["metadata"]["scope_tag_ids"] == ["homology-scope-cyst-nematode"]
+        assert bcn_gene["metadata"]["sources"] == ["schachtii_genes", "schachtii_hits"]
+        assert bcn_gene["metadata"]["relations"] == ["bcn_homology", "ortholog_member"]
+        assert bcn_gene["metadata"]["scopes"] == ["cyst-nematode"]
         schachtii = db.get_entity("organism:heterodera-schachtii")
         assert schachtii is not None
         bcn_org_rels = db.get_relationships("bcn_gene:heterodera-schachtii:hsc_gene_14957.t1", "FROM_ORGANISM", direction="outgoing")
@@ -155,8 +155,21 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert any(rel["target_id"] == "bcn_gene:heterodera-schachtii:hsc_gene_14957.t1" for rel in bcn_hit_rels)
         singleton_bcn_hit = db.get_entity("comparative_hit:cyst_nematode:hsc-gene-4672-t1")
         assert singleton_bcn_hit is not None
-        assert singleton_bcn_hit["metadata"]["source_columns"] == ["schachtii_hits"]
-        assert singleton_bcn_hit["metadata"]["scope_tag_ids"] == ["homology-scope-cyst-nematode"]
+        assert singleton_bcn_hit["name"] == "Hsc_gene_4672.t1"
+        assert singleton_bcn_hit["metadata"]["sources"] == ["schachtii_hits"]
+        assert singleton_bcn_hit["metadata"]["scopes"] == ["cyst-nematode"]
+        assert singleton_bcn_hit["metadata"]["relations"] == ["bcn_homology"]
+        assert singleton_bcn_hit["metadata"]["identifier"] == "Hsc_gene_4672.t1"
+        broad_hit = db.get_entity("comparative_hit:broad_parasitism:q04456-1-gut-esterase-1-caenorhabditis-briggsae")
+        assert broad_hit is not None
+        assert broad_hit["name"] == "Q04456.1"
+        assert broad_hit["metadata"]["identifier"] == "Q04456.1"
+        assert broad_hit["metadata"]["description"] == "Gut esterase 1"
+        assert broad_hit["metadata"]["matched_organism"] == "Caenorhabditis briggsae"
+        assert broad_hit["metadata"]["raw_value"] == "Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]"
+        broad_hit_tag_rels = db.get_relationships("comparative_hit:broad_parasitism:q04456-1-gut-esterase-1-caenorhabditis-briggsae", "TAGGED", direction="outgoing")
+        assert any(rel["target_id"] == "homology-hit-organism:caenorhabditis-briggsae" for rel in broad_hit_tag_rels)
+        assert db.get_entity("homology-hit-organism:caenorhabditis-briggsae") is not None
         singleton_hit_rels = db.get_relationships("hg_chrom1_tn10mrna_1:protein", "HAS_BCN_HIT", direction="outgoing")
         assert any(rel["target_id"] == "comparative_hit:cyst_nematode:hsc-gene-4672-t1" for rel in singleton_hit_rels)
         broad_hits = db.get_relationships("hg_chrom1_tn10mrna_1:protein", "HAS_BROAD_HOMOLOGY_HIT", direction="outgoing")

@@ -123,6 +123,97 @@ def _to_int_if_numeric(value: Any) -> Any:
     return text
 
 
+def _comparative_relation_label(rel_type: str) -> str:
+    mapping = {
+        "HAS_BCN_MEMBER": "ortholog_member",
+        "HAS_BCN_HIT": "bcn_homology",
+        "HAS_NEMATODE_HIT": "nematode_homology",
+        "HAS_BROAD_HOMOLOGY_HIT": "broad_homology",
+    }
+    return mapping.get(str(rel_type or "").strip().upper(), _slugify(str(rel_type or "")).replace("-", "_"))
+
+
+def _comparative_scope_label(tag_id: str) -> str:
+    text = str(tag_id or "").strip()
+    prefix = "homology-scope-"
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
+
+def _parse_comparative_entity_value(value: str, spec: dict[str, Any]) -> dict[str, str]:
+    raw_text = str(value or "").strip()
+    if not raw_text:
+        return {"raw_value": ""}
+
+    entity_type = str(spec.get("entity_type", "") or "")
+    source_column = str(spec.get("source_column", "") or "")
+    parser_name = str(spec.get("value_parser", "") or "")
+
+    parsed: dict[str, str] = {"raw_value": raw_text}
+
+    bracket_match = re.match(r"^\s*([^\s]+)\s+(.+?)\s+\[([^\]]+)\]\s*$", raw_text)
+    if bracket_match and (entity_type == "comparative_hit" or parser_name == "comparative_hit_label"):
+        parsed["identifier"] = bracket_match.group(1).strip()
+        parsed["description"] = bracket_match.group(2).strip()
+        parsed["matched_organism"] = bracket_match.group(3).strip()
+        parsed["display_name"] = parsed["identifier"]
+        return parsed
+
+    token_match = re.match(r"^\s*([^\s]+)\s*(.*)$", raw_text)
+    if token_match:
+        parsed["identifier"] = token_match.group(1).strip()
+        remainder = token_match.group(2).strip()
+        if remainder and source_column not in {"schachtii_genes", "schachtii_hits"}:
+            parsed["description"] = remainder
+        parsed["display_name"] = parsed["identifier"]
+        return parsed
+
+    parsed["display_name"] = raw_text
+    return parsed
+
+
+def _promote_comparative_parsed_fields(
+    db: KnowledgeGraphDB,
+    *,
+    comparative_id: str,
+    parsed_item: dict[str, str],
+    spec: dict[str, Any],
+    seeded_tags: dict[str, str],
+) -> None:
+    for promotion in list(spec.get("parsed_field_promotions", []) or []):
+        field_name = str(promotion.get("field", "") or "").strip()
+        if not field_name:
+            continue
+        value = str(parsed_item.get(field_name, "") or "").strip()
+        if not value:
+            continue
+        kind = str(promotion.get("kind", "tag") or "tag").strip().lower()
+        if kind != "tag":
+            continue
+        parent_tag = str(promotion.get("parent_tag", "") or "").strip()
+        canonical_parent = seeded_tags.get(parent_tag, parent_tag)
+        value_slug = _slugify(value)
+        tag_id = str(promotion.get("id_template", "{value_slug}") or "{value_slug}").format(
+            value=value,
+            value_slug=value_slug,
+        )
+        tag_name = str(promotion.get("name_template", "{value}") or "{value}").format(
+            value=value,
+            value_slug=value_slug,
+        )
+        canonical_tag = _ensure_tag(
+            db,
+            tag_id,
+            name=tag_name,
+            category="topic",
+            parent=canonical_parent,
+            metadata={"namespace": "comparative"},
+        )
+        rel_type = str(promotion.get("rel_type", "TAGGED") or "TAGGED").strip() or "TAGGED"
+        db.add_relationship(comparative_id, rel_type, canonical_tag, metadata={"field": field_name})
+
+
 def _parse_single_term(text: str) -> list[dict[str, Any]]:
     cleaned = _clean_value(text)
     if cleaned is None:
@@ -555,6 +646,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                 if not attach_id:
                     continue
                 for item_value in _parse_term_values(source_value):
+                    parsed_item = _parse_comparative_entity_value(item_value, spec)
                     target_organism = str(spec.get("target_organism", "") or "").strip()
                     identity_key = (target_organism.lower(), item_value.strip().lower()) if target_organism else ("", item_value.strip().lower())
                     comparative_id = ""
@@ -577,18 +669,29 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                     db.upsert_entity(
                         str(spec.get("entity_type", "comparative_hit") or "comparative_hit"),
                         comparative_id,
-                        name=str(spec.get("name_template", "{value}")).format(value=item_value),
-                        metadata={"category": "comparative"},
+                        name=str(parsed_item.get("display_name") or str(spec.get("name_template", "{value}")).format(value=item_value)),
+                        metadata={
+                            "category": "comparative",
+                            **{
+                                key: parsed_item[key]
+                                for key in ("identifier", "description", "matched_organism", "raw_value")
+                                if parsed_item.get(key)
+                            },
+                        },
                     )
                     if target_organism and identity_key[1]:
                         comparative_identity_index.setdefault(identity_key, comparative_id)
                     state = comparative_state.setdefault(comparative_id, {
-                        "name": str(spec.get("name_template", "{value}")).format(value=item_value),
+                        "name": str(parsed_item.get("display_name") or str(spec.get("name_template", "{value}")).format(value=item_value)),
                         "entity_type": str(spec.get("entity_type", "comparative_hit") or "comparative_hit"),
                         "organism": str(spec.get("target_organism", "") or ""),
                         "source_columns": set(),
                         "relationship_types": set(),
                         "scope_tag_ids": set(),
+                        "identifier": str(parsed_item.get("identifier", "") or ""),
+                        "description": str(parsed_item.get("description", "") or ""),
+                        "matched_organism": str(parsed_item.get("matched_organism", "") or ""),
+                        "raw_value": str(parsed_item.get("raw_value", "") or ""),
                     })
                     state["source_columns"].add(str(spec.get("source_column", "") or ""))
                     state["relationship_types"].add(str(spec.get("relationship_type", "") or ""))
@@ -610,6 +713,13 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                             metadata={"source_column": str(spec.get("source_column", "") or "")},
                         )
                         state["scope_tag_ids"].add(canonical_scope_tag)
+                    _promote_comparative_parsed_fields(
+                        db,
+                        comparative_id=comparative_id,
+                        parsed_item=parsed_item,
+                        spec=spec,
+                        seeded_tags=seeded_tags,
+                    )
 
             for spec in annotation_bins:
                 parser = PARSERS[spec["parser"]]
@@ -776,13 +886,22 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             metadata = {
                 "category": "comparative",
                 "organism": state["organism"],
-                "source_columns": sorted(column for column in state["source_columns"] if column),
-                "relationship_types": sorted(rel for rel in state["relationship_types"] if rel),
+                "sources": sorted(column for column in state["source_columns"] if column),
+                "relations": sorted(
+                    _comparative_relation_label(rel)
+                    for rel in state["relationship_types"]
+                    if rel
+                ),
             }
+            for key in ("identifier", "description", "matched_organism", "raw_value"):
+                if state.get(key):
+                    metadata[key] = state[key]
             if state["scope_tag_ids"]:
-                metadata["scope_tag_ids"] = sorted(state["scope_tag_ids"])
-            if len(metadata["source_columns"]) == 1:
-                metadata["source_column"] = metadata["source_columns"][0]
+                metadata["scopes"] = sorted(
+                    _comparative_scope_label(scope_id)
+                    for scope_id in state["scope_tag_ids"]
+                    if scope_id
+                )
             db.upsert_entity(
                 state["entity_type"],
                 comparative_id,

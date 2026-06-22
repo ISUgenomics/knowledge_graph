@@ -128,6 +128,7 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "target_organism": "Heterodera schachtii",
             "reuse_target_organism_identity": True,
             "scope_tag_id": "homology-scope-cyst-nematode",
+            "value_parser": "comparative_hit_label",
             "parser": "term_list",
         }
     if "celegans_hits" in header_set:
@@ -139,6 +140,17 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "attach_from": "protein",
             "relationship_type": "HAS_NEMATODE_HIT",
             "scope_tag_id": "homology-scope-nematode",
+            "value_parser": "comparative_hit_label",
+            "parsed_field_promotions": [
+                {
+                    "field": "matched_organism",
+                    "kind": "tag",
+                    "parent_tag": "homology-hit-organism",
+                    "id_template": "homology-hit-organism:{value_slug}",
+                    "name_template": "{value}",
+                    "rel_type": "TAGGED",
+                }
+            ],
             "parser": "term_list",
         }
     if "sp_best_hit" in header_set:
@@ -150,6 +162,17 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "attach_from": "protein",
             "relationship_type": "HAS_BROAD_HOMOLOGY_HIT",
             "scope_tag_id": "homology-scope-broad-parasitism",
+            "value_parser": "comparative_hit_label",
+            "parsed_field_promotions": [
+                {
+                    "field": "matched_organism",
+                    "kind": "tag",
+                    "parent_tag": "homology-hit-organism",
+                    "id_template": "homology-hit-organism:{value_slug}",
+                    "name_template": "{value}",
+                    "rel_type": "TAGGED",
+                }
+            ],
             "parser": "term_list",
         }
     if "nr_best_hit" in header_set:
@@ -161,6 +184,17 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "attach_from": "protein",
             "relationship_type": "HAS_BROAD_HOMOLOGY_HIT",
             "scope_tag_id": "homology-scope-broad-parasitism",
+            "value_parser": "comparative_hit_label",
+            "parsed_field_promotions": [
+                {
+                    "field": "matched_organism",
+                    "kind": "tag",
+                    "parent_tag": "homology-hit-organism",
+                    "id_template": "homology-hit-organism:{value_slug}",
+                    "name_template": "{value}",
+                    "rel_type": "TAGGED",
+                }
+            ],
             "parser": "term_list",
         }
     return entities
