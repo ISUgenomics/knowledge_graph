@@ -78,6 +78,9 @@ def make_chat_router(db: KnowledgeGraphDB, llm_config: dict) -> tuple:
         if result.sql:
             response["sql"] = result.sql
 
+        if result.debug:
+            response["debug"] = result.debug
+
         if result.intent == "query":
             response["results"] = result.results
             response["count"] = len(result.results)
