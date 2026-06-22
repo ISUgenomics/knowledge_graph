@@ -20,6 +20,7 @@ from typing import Any
 
 from kgx.db import KnowledgeGraphDB
 from .client import OllamaClient
+from .modules.base import ChatModule
 
 _SYSTEM_TEMPLATE = """\
 You are a SQL assistant for a local knowledge graph database backed by SQLite.
@@ -63,7 +64,7 @@ Find nodes tagged with a topic:
 ```sql
 SELECT e.name, e.type, t.topic
 FROM entities e JOIN entity_topics t ON e.id = t.entity_id
-WHERE t.topic LIKE '%genomics%'
+WHERE t.topic LIKE '%example-topic%'
 ```
 
 Find an entity's contact info:
@@ -108,9 +109,10 @@ class ChatResult:
 
 
 class ChatToSQL:
-    def __init__(self, db: KnowledgeGraphDB, llm: OllamaClient):
+    def __init__(self, db: KnowledgeGraphDB, llm: OllamaClient, module: ChatModule | None = None):
         self.db = db
         self.llm = llm
+        self.module = module
 
     def _schema_context(self) -> str:
         """Build a compact schema snapshot from the live DB."""
@@ -140,6 +142,11 @@ class ChatToSQL:
                     lines.append(f"Metadata keys for '{etype}': {', '.join(keys[:12])}")
         except Exception:
             pass
+        if self.module:
+            try:
+                lines.extend(self.module.schema_context_lines(self))
+            except Exception:
+                pass
         try:
             typed_patterns = self.db.conn.execute(
                 """
@@ -379,7 +386,7 @@ class ChatToSQL:
             )
         return hints
 
-    def _validate_sql_against_schema(self, sql: str, requested_types: list[str]) -> str | None:
+    def _validate_sql_against_schema(self, sql: str, requested_types: list[str], message: str = "") -> str | None:
         """
         Catch a common NL→SQL failure mode:
         the model selects one entity type but applies a relationship as if it
@@ -387,6 +394,7 @@ class ChatToSQL:
         """
         if not sql or not requested_types:
             return None
+        message_low = str(message or "").lower()
         if not re.search(r"\bfrom\s+entities\s+e\b", sql, re.IGNORECASE):
             return None
 
@@ -397,12 +405,62 @@ class ChatToSQL:
             sql,
             re.IGNORECASE,
         )
-        if not (type_match and rel_match and join_match):
+        if not type_match:
             return None
 
         selected_type = type_match.group(1)
+        if requested_types and selected_type not in requested_types:
+            bridge_bits = []
+            for requested_type in requested_types[:3]:
+                path = self._shortest_type_path(requested_type, selected_type)
+                if path:
+                    rendered = " ; ".join(f"{src} -{rel}-> {dst}" for src, rel, dst in path)
+                    bridge_bits.append(f"To reach '{selected_type}' from '{requested_type}': {rendered}")
+            bridge_text = f" {' '.join(bridge_bits)}" if bridge_bits else ""
+            return (
+                f"Wrong result type: the SQL returns '{selected_type}' rows, but the user requested "
+                f"'{', '.join(requested_types)}'. Keep the user's requested result type in the final SELECT rows."
+                f"{bridge_text}"
+            )
+
+        metadata_owners: dict[str, set[str]] = {}
+        try:
+            for row in self.db.entity_types():
+                etype = row["type"]
+                metadata_owners[etype] = set(self.db.metadata_keys(etype))
+        except Exception:
+            metadata_owners = {}
+
+        for field_name in re.findall(r"json_extract\(\s*e\.metadata\s*,\s*'\$\.([A-Za-z0-9_]+)", sql, re.IGNORECASE):
+            owner_keys = metadata_owners.get(selected_type, set())
+            if field_name in owner_keys:
+                continue
+            other_types = sorted(
+                etype for etype, keys in metadata_owners.items()
+                if field_name in keys and etype != selected_type
+            )
+            if other_types:
+                bridge_bits = []
+                for owner_type in other_types[:3]:
+                    path = self._shortest_type_path(selected_type, owner_type)
+                    if path:
+                        rendered = " ; ".join(f"{src} -{rel}-> {dst}" for src, rel, dst in path)
+                        bridge_bits.append(f"Path to '{owner_type}': {rendered}")
+                bridge_text = f" {' '.join(bridge_bits)}" if bridge_bits else ""
+                return (
+                    f"Wrong metadata owner: field '{field_name}' is not stored on '{selected_type}' rows. "
+                    f"In the live DB it exists on: {', '.join(other_types)}. "
+                    f"Keep the requested result type in the final SELECT rows, but join to the related entity type "
+                    f"that owns '{field_name}' before filtering on that metadata.{bridge_text}"
+                )
+
+        if not (rel_match and join_match):
+            rel_match = re.search(r"r\.rel_type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
+            if not rel_match:
+                return None
+
         rel_type = rel_match.group(1)
-        rel_side = join_match.group(1).lower()
+        rel_side = join_match.group(1).lower() if join_match else "source_id"
         patterns = self._typed_rel_patterns()
 
         if rel_side == "source_id":
@@ -441,6 +499,30 @@ class ChatToSQL:
                         f"Keep the requested result type, but bridge through the typed path instead of joining "
                         f"that relationship directly to '{selected_type}'.{bridge_text}"
                     )
+        if self.module:
+            try:
+                module_error = self.module.validation_error(self, sql, requested_types, message)
+            except Exception:
+                module_error = None
+            if module_error:
+                return module_error
+        return None
+
+    @staticmethod
+    def _extract_numeric_threshold(message: str, sql: str) -> tuple[str, int] | None:
+        msg = str(message or "").lower()
+        if match := re.search(r"\b(\d+)\s+or\s+more\b", msg):
+            return (">=", int(match.group(1)))
+        if match := re.search(r"\bat\s+least\s+(\d+)\b", msg):
+            return (">=", int(match.group(1)))
+        if match := re.search(r"\bmore\s+than\s+(\d+)\b", msg):
+            return (">", int(match.group(1)))
+        if match := re.search(r"\b(\d+)\s+or\s+less\b", msg):
+            return ("<=", int(match.group(1)))
+        if match := re.search(r"\bless\s+than\s+(\d+)\b", msg):
+            return ("<", int(match.group(1)))
+        if match := re.search(r"(>=|<=|>|<)\s*(\d+)", sql or ""):
+            return (match.group(1), int(match.group(2)))
         return None
 
     @staticmethod
@@ -697,10 +779,25 @@ class ChatToSQL:
 
         result = self._parse(reply)
         debug_steps.append({"step": "initial_sql", "sql": result.sql, "count": len(result.results)})
-        validation_error = self._validate_sql_against_schema(result.sql or "", requested_types)
+        validation_error = self._validate_sql_against_schema(result.sql or "", requested_types, message)
         if validation_error:
             debug_steps.append({"step": "validation_error", "value": validation_error})
         if validation_error:
+            count_map_sql = self.module.synthesize_query(self, message, result.sql or "", requested_types) if self.module else None
+            debug_steps.append({"step": "validation_count_map_sql", "sql": count_map_sql})
+            if count_map_sql:
+                try:
+                    count_map_results = self.db.execute_read(count_map_sql)
+                except Exception:
+                    count_map_results = []
+                debug_steps.append({"step": "validation_count_map_sql_results", "count": len(count_map_results)})
+                return ChatResult(
+                    intent="query",
+                    content=result.content,
+                    sql=count_map_sql,
+                    results=count_map_results,
+                    debug=debug_steps,
+                )
             retry_messages = list(messages)
             retry_messages.append({
                 "role": "system",
@@ -716,11 +813,26 @@ class ChatToSQL:
                 return result
             retry_result = self._parse(retry_reply)
             debug_steps.append({"step": "validation_retry_sql", "sql": retry_result.sql, "count": len(retry_result.results)})
-            retry_validation_error = self._validate_sql_against_schema(retry_result.sql or "", requested_types)
+            retry_validation_error = self._validate_sql_against_schema(retry_result.sql or "", requested_types, message)
             if retry_result.sql and not retry_validation_error:
                 retry_result.debug = debug_steps
                 return retry_result
         if result.intent == "query" and result.sql and not result.results:
+            count_map_sql = self.module.synthesize_query(self, message, result.sql, requested_types) if self.module else None
+            debug_steps.append({"step": "count_map_sql", "sql": count_map_sql})
+            if count_map_sql:
+                try:
+                    count_map_results = self.db.execute_read(count_map_sql)
+                except Exception:
+                    count_map_results = []
+                debug_steps.append({"step": "count_map_sql_results", "count": len(count_map_results)})
+                return ChatResult(
+                    intent="query",
+                    content=result.content,
+                    sql=count_map_sql,
+                    results=count_map_results,
+                    debug=debug_steps,
+                )
             synthesized_sql = self._synthesize_typed_path_query(result.sql, requested_types)
             debug_steps.append({"step": "synthesized_sql", "sql": synthesized_sql})
             if synthesized_sql:
@@ -729,14 +841,13 @@ class ChatToSQL:
                 except Exception:
                     synthesized_results = []
                 debug_steps.append({"step": "synthesized_sql_results", "count": len(synthesized_results)})
-                if synthesized_results:
-                    return ChatResult(
-                        intent="query",
-                        content=result.content,
-                        sql=synthesized_sql,
-                        results=synthesized_results,
-                        debug=debug_steps,
-                    )
+                return ChatResult(
+                    intent="query",
+                    content=result.content,
+                    sql=synthesized_sql,
+                    results=synthesized_results,
+                    debug=debug_steps,
+                )
             zero_hint = self._zero_result_retry_hint(result.sql, requested_types)
             debug_steps.append({"step": "zero_result_retry_hint", "value": zero_hint})
             if zero_hint:
@@ -749,7 +860,7 @@ class ChatToSQL:
                     return result
                 retry_result = self._parse(retry_reply)
                 debug_steps.append({"step": "zero_retry_sql", "sql": retry_result.sql, "count": len(retry_result.results)})
-                retry_validation_error = self._validate_sql_against_schema(retry_result.sql or "", requested_types)
+                retry_validation_error = self._validate_sql_against_schema(retry_result.sql or "", requested_types, message)
                 if retry_result.sql and not retry_validation_error and retry_result.results:
                     retry_result.debug = debug_steps
                     return retry_result

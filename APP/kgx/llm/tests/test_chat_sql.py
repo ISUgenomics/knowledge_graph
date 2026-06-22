@@ -2,6 +2,7 @@ from pathlib import Path
 
 from kgx.db import KnowledgeGraphDB
 from kgx.llm import ChatToSQL
+from kgx.llm.modules.genomics import GenomicsChatModule
 
 
 class _FakeLLM:
@@ -85,7 +86,7 @@ def test_schema_context_includes_typed_patterns_and_tag_hierarchy(tmp_path: Path
     db.close()
 
     db = KnowledgeGraphDB(str(db_path))
-    chat = ChatToSQL(db, _FakeLLM())
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
     context = chat._schema_context()
     db.close()
 
@@ -167,6 +168,32 @@ WHERE e.type = 'gene' AND r.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
     assert err is not None
     assert "gene -HAS_TRANSCRIPT-> transcript" in err
     assert "transcript -TRANSLATED_TO-> protein" in err
+
+
+def test_validation_error_rejects_wrong_result_type(tmp_path: Path):
+    db_path = tmp_path / "chat-result-type.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'orthogroup'
+  AND 1 = 1
+""",
+        ["gene"],
+    )
+    db.close()
+
+    assert err is not None
+    assert "Wrong result type" in err
+    assert "gene -BELONGS_TO_ORTHOGROUP-> orthogroup" in err
 
 
 def test_message_entity_match_hints_detect_exact_name_types(tmp_path: Path):
@@ -267,3 +294,200 @@ AND e.type = 'gene'
     assert "t.name = 'Ditylenchus destructor'" in sql
     assert rows
     assert rows[0]["id"] == "gene-1"
+
+
+def test_synthesizes_ortholog_copy_query_from_count_map_misread(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(
+        chat,
+        "select genes with 3 or more ortholog gene copies",
+        """
+SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.gene_counts') as gene_counts
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'BELONGS_TO_ORTHOGROUP'
+AND e.type = 'gene'
+AND json_extract(e.metadata, '$.gene_counts') IS NOT NULL
+AND (
+    (json_extract(e.metadata, '$.gene_counts.\"Ditylenchus destructor\"') >= 3)
+)
+""",
+        ["gene"],
+    )
+    assert sql is not None
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in sql
+    assert "gc.key != json_extract(owner.metadata, '$.organism')" in sql
+    assert "CAST(gc.value AS INTEGER) >= 3" in sql
+    assert rows
+    assert rows[0]["id"] == "gene-1"
+
+
+def test_zero_result_count_map_fallback_still_returns_corrected_sql(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-zero.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 1,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    class _BadOrthologLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.orthogroup') as orthogroup_id
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+      AND r.rel_type = 'BELONGS_TO_ORTHOGROUP'
+) >= 3
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadOrthologLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 3 or more ortholog gene copies")
+    db.close()
+
+    assert result.sql is not None
+    assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in result.sql
+    assert "JOIN json_each(owner.metadata, '$.gene_counts') gc" in result.sql
+    assert result.results == []
+
+
+def test_synthesizes_gene_query_from_owner_side_orthogroup_count_sql(tmp_path: Path):
+    db_path = tmp_path / "chat-owner-side-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(
+        chat,
+        "select genes with 3 or more ortholog gene copies",
+        """
+SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.organism') AS organism, json_extract(e.metadata, '$.gene_counts') AS gene_counts
+FROM entities e
+WHERE e.type = 'orthogroup'
+AND json_extract(e.metadata, '$.gene_counts') IS NOT NULL
+AND (
+    SELECT COUNT(*)
+    FROM json_each(json_extract(e.metadata, '$.gene_counts'))
+    WHERE value > 0
+) >= 1
+ORDER BY e.name
+""",
+        ["gene"],
+    )
+    assert sql is not None
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert "JOIN relationships p1 ON p1.source_id = e.id AND p1.rel_type = 'BELONGS_TO_ORTHOGROUP'" in sql
+    assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in sql
+    assert "CAST(gc.value AS INTEGER) >= 3" in sql
+    assert rows
+    assert rows[0]["id"] == "gene-1"
+
+
+def test_validation_error_rejects_counting_orthogroup_edges_for_ortholog_copies(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-edge-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {"Heterodera glycines": 1, "Heterodera schachtii": 3},
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+      AND r.rel_type = 'BELONGS_TO_ORTHOGROUP'
+) >= 3
+""",
+        ["gene"],
+        "select genes with 3 or more ortholog gene copies",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Wrong counting strategy" in err
+    assert "metadata.gene_counts" in err
+
+
+def test_validation_error_rejects_reading_gene_counts_from_gene_metadata(tmp_path: Path):
+    db_path = tmp_path / "chat-gene-count-owner.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {"Heterodera glycines": 1, "Heterodera schachtii": 3},
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.gene_counts') as gene_counts
+FROM entities e
+WHERE e.type = 'gene'
+AND json_extract(e.metadata, '$.gene_counts') IS NOT NULL
+AND (
+    SELECT COUNT(*)
+    FROM json_each(json_extract(e.metadata, '$.gene_counts'))
+    WHERE value >= 3
+) > 0
+""",
+        ["gene"],
+    )
+    db.close()
+
+    assert err is not None
+    assert "Wrong metadata owner" in err
+    assert "orthogroup" in err
+    assert "gene -BELONGS_TO_ORTHOGROUP-> orthogroup" in err

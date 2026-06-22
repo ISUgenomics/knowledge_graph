@@ -40,7 +40,8 @@ def create_app(config: dict) -> FastAPI:
     # Database — single instance shared across all routes via dependency
     db = KnowledgeGraphDB(config["db_path"])
     llm_config = config.get("llm", {})
-    chat_router, llm_client = make_chat_router(db, llm_config)
+    domain_name = (config.get("domain") or {}).get("name")
+    chat_router, llm_client = make_chat_router(db, llm_config, domain_name=domain_name)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
