@@ -365,15 +365,15 @@ const COMMUNITY_COLORS = [
         if (graphPreset === 'comparative' && n.type === 'bcn_gene') {
             const extras = [
                 meta.organism,
-                Array.isArray(meta.relationship_types) ? meta.relationship_types.join(', ') : '',
+                Array.isArray(meta.relations) ? meta.relations.join(', ') : '',
             ].filter(Boolean).join(' • ');
             return extras ? `${base}\n${extras}` : base;
         }
         if (graphPreset === 'comparative' && n.type === 'comparative_hit') {
             const extras = [
                 meta.organism,
-                Array.isArray(meta.scope_tag_ids) ? meta.scope_tag_ids.join(', ') : '',
-                Array.isArray(meta.relationship_types) ? meta.relationship_types.join(', ') : '',
+                Array.isArray(meta.scopes) ? meta.scopes.join(', ') : '',
+                Array.isArray(meta.relations) ? meta.relations.join(', ') : '',
             ].filter(Boolean).join(' • ');
             return extras ? `${base}\n${extras}` : base;
         }
