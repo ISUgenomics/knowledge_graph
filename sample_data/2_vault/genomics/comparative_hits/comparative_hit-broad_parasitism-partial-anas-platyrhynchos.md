@@ -1,18 +1,20 @@
 ---
 id: "comparative_hit:broad_parasitism:partial-anas-platyrhynchos"
 type: "comparative_hit"
-name: "partial [Anas platyrhynchos]"
+name: "partial"
 ---
 
-# partial [Anas platyrhynchos]
+# partial
 
 ## Properties
 
 | Field | Value |
 |---|---|
 | category | comparative |
+| description | [Anas platyrhynchos] |
+| identifier | partial |
 | organism |  |
-| source_column | nr_best_hit |
+| raw_value | partial [Anas platyrhynchos] |
 
 ## Relationships
 

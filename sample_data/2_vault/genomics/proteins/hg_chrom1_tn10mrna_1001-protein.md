@@ -149,8 +149,8 @@ name: "Hg_chrom1_TN10gene_957 protein"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[comparative_hits/comparative_hit-broad_parasitism-o04353-1-acyl-lipid-9-3-desaturase-borago-officinalis|O04353.1 Acyl-lipid (9-3)-desaturase [Borago officinalis]]] (source_column=sp_best_hit)
-- [[comparative_hits/comparative_hit-broad_parasitism-ejw86009-1-fatty-acid-hydroxylase-wuchereria-bancrofti|EJW86009.1 fatty acid hydroxylase [Wuchereria bancrofti]]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-o04353-1-acyl-lipid-9-3-desaturase-borago-officinalis|O04353.1]] (source_column=sp_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-ejw86009-1-fatty-acid-hydroxylase-wuchereria-bancrofti|EJW86009.1]] (source_column=nr_best_hit)
 
 ### HAS_LOCALIZATION
 

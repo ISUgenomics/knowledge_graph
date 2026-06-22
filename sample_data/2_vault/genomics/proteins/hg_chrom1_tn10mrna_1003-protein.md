@@ -103,8 +103,8 @@ name: "Hg_chrom1_TN10gene_959 protein"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[comparative_hits/comparative_hit-broad_parasitism-q04456-1-gut-esterase-1-caenorhabditis-briggsae|Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]]] (source_column=sp_best_hit)
-- [[comparative_hits/comparative_hit-broad_parasitism-kah7723845-1-cbn-ges-1-protein-aphelenchus-avenae|KAH7723845.1 CBN-GES-1 protein [Aphelenchus avenae]]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-q04456-1-gut-esterase-1-caenorhabditis-briggsae|Q04456.1]] (source_column=sp_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-kah7723845-1-cbn-ges-1-protein-aphelenchus-avenae|KAH7723845.1]] (source_column=nr_best_hit)
 
 ### HAS_LOCALIZATION
 

@@ -17,4 +17,5 @@ name: "Homology"
 ### BROADER
 
 - [[tags/genomics|Genomics]]
+- [[tags/homology-hit-organism|Hit Organism]]
 - [[tags/homology-scope|Homology Scope]]

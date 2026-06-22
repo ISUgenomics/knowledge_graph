@@ -82,7 +82,7 @@ name: "Hg_chrom1_TN10gene_96 protein"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[comparative_hits/comparative_hit-broad_parasitism-kai1713285-1-ligand-gated-ion-channel-ditylenchus-destructor|KAI1713285.1 Ligand-Gated ion Channel [Ditylenchus destructor]]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-kai1713285-1-ligand-gated-ion-channel-ditylenchus-destructor|KAI1713285.1]] (source_column=nr_best_hit)
 
 ### HAS_LOCALIZATION
 

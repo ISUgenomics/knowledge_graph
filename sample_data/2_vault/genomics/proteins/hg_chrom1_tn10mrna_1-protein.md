@@ -136,9 +136,9 @@ name: "Hg_chrom1_TN10gene_1 protein"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[comparative_hits/comparative_hit-broad_parasitism-q9wtz1-1-ring-box-protein-2-mus-musculus|Q9WTZ1.1 RING-box protein 2 [Mus musculus]]] (source_column=sp_best_hit)
-- [[comparative_hits/comparative_hit-broad_parasitism-eob07714-1-ring-box-protein-2|EOB07714.1 RING-box protein 2]] (source_column=nr_best_hit)
-- [[comparative_hits/comparative_hit-broad_parasitism-partial-anas-platyrhynchos|partial [Anas platyrhynchos]]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-q9wtz1-1-ring-box-protein-2-mus-musculus|Q9WTZ1.1]] (source_column=sp_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-eob07714-1-ring-box-protein-2|EOB07714.1]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-partial-anas-platyrhynchos|partial]] (source_column=nr_best_hit)
 
 ### HAS_LOCALIZATION
 

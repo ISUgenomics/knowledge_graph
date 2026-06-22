@@ -1,18 +1,21 @@
 ---
 id: "comparative_hit:broad_parasitism:a1r990-1-demethylmenaquinone-methyltransferase-paenarthrobacter-aurescens-tc1"
 type: "comparative_hit"
-name: "A1R990.1 Demethylmenaquinone methyltransferase [Paenarthrobacter aurescens TC1]"
+name: "A1R990.1"
 ---
 
-# A1R990.1 Demethylmenaquinone methyltransferase [Paenarthrobacter aurescens TC1]
+# A1R990.1
 
 ## Properties
 
 | Field | Value |
 |---|---|
 | category | comparative |
+| description | Demethylmenaquinone methyltransferase |
+| identifier | A1R990.1 |
+| matched_organism | Paenarthrobacter aurescens TC1 |
 | organism |  |
-| source_column | sp_best_hit |
+| raw_value | A1R990.1 Demethylmenaquinone methyltransferase [Paenarthrobacter aurescens TC1] |
 
 ## Relationships
 
@@ -23,3 +26,4 @@ name: "A1R990.1 Demethylmenaquinone methyltransferase [Paenarthrobacter aurescen
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=sp_best_hit)
+- [[tags/homology-hit-organism-paenarthrobacter-aurescens-tc1|Paenarthrobacter aurescens TC1]] (field=matched_organism)

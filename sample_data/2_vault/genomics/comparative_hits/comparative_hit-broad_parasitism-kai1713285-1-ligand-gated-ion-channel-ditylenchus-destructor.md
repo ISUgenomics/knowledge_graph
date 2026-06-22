@@ -1,18 +1,21 @@
 ---
 id: "comparative_hit:broad_parasitism:kai1713285-1-ligand-gated-ion-channel-ditylenchus-destructor"
 type: "comparative_hit"
-name: "KAI1713285.1 Ligand-Gated ion Channel [Ditylenchus destructor]"
+name: "KAI1713285.1"
 ---
 
-# KAI1713285.1 Ligand-Gated ion Channel [Ditylenchus destructor]
+# KAI1713285.1
 
 ## Properties
 
 | Field | Value |
 |---|---|
 | category | comparative |
+| description | Ligand-Gated ion Channel |
+| identifier | KAI1713285.1 |
+| matched_organism | Ditylenchus destructor |
 | organism |  |
-| source_column | nr_best_hit |
+| raw_value | KAI1713285.1 Ligand-Gated ion Channel [Ditylenchus destructor] |
 
 ## Relationships
 
@@ -23,3 +26,4 @@ name: "KAI1713285.1 Ligand-Gated ion Channel [Ditylenchus destructor]"
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=nr_best_hit)
+- [[tags/homology-hit-organism-ditylenchus-destructor|Ditylenchus destructor]] (field=matched_organism)

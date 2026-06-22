@@ -1,18 +1,21 @@
 ---
 id: "comparative_hit:broad_parasitism:q04456-1-gut-esterase-1-caenorhabditis-briggsae"
 type: "comparative_hit"
-name: "Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]"
+name: "Q04456.1"
 ---
 
-# Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]
+# Q04456.1
 
 ## Properties
 
 | Field | Value |
 |---|---|
 | category | comparative |
+| description | Gut esterase 1 |
+| identifier | Q04456.1 |
+| matched_organism | Caenorhabditis briggsae |
 | organism |  |
-| source_column | sp_best_hit |
+| raw_value | Q04456.1 Gut esterase 1 [Caenorhabditis briggsae] |
 
 ## Relationships
 
@@ -23,3 +26,4 @@ name: "Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]"
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=sp_best_hit)
+- [[tags/homology-hit-organism-caenorhabditis-briggsae|Caenorhabditis briggsae]] (field=matched_organism)

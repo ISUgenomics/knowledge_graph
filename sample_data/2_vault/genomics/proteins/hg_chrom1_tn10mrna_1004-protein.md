@@ -118,8 +118,8 @@ name: "Hg_chrom1_TN10gene_960 protein"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[comparative_hits/comparative_hit-broad_parasitism-q95qu0-1-pci-domain-containing-protein-2-homolog-caenorhabditis-elegans|Q95QU0.1 PCI domain-containing protein 2 homolog [Caenorhabditis elegans]]] (source_column=sp_best_hit)
-- [[comparative_hits/comparative_hit-broad_parasitism-kai1724392-1-pci-domain-containing-protein-ditylenchus-destructor|KAI1724392.1 PCI domain-containing protein [Ditylenchus destructor]]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-q95qu0-1-pci-domain-containing-protein-2-homolog-caenorhabditis-elegans|Q95QU0.1]] (source_column=sp_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-kai1724392-1-pci-domain-containing-protein-ditylenchus-destructor|KAI1724392.1]] (source_column=nr_best_hit)
 
 ### HAS_LOCALIZATION
 

@@ -1,18 +1,21 @@
 ---
 id: "comparative_hit:broad_parasitism:ejw86009-1-fatty-acid-hydroxylase-wuchereria-bancrofti"
 type: "comparative_hit"
-name: "EJW86009.1 fatty acid hydroxylase [Wuchereria bancrofti]"
+name: "EJW86009.1"
 ---
 
-# EJW86009.1 fatty acid hydroxylase [Wuchereria bancrofti]
+# EJW86009.1
 
 ## Properties
 
 | Field | Value |
 |---|---|
 | category | comparative |
+| description | fatty acid hydroxylase |
+| identifier | EJW86009.1 |
+| matched_organism | Wuchereria bancrofti |
 | organism |  |
-| source_column | nr_best_hit |
+| raw_value | EJW86009.1 fatty acid hydroxylase [Wuchereria bancrofti] |
 
 ## Relationships
 
@@ -23,3 +26,4 @@ name: "EJW86009.1 fatty acid hydroxylase [Wuchereria bancrofti]"
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=nr_best_hit)
+- [[tags/homology-hit-organism-wuchereria-bancrofti|Wuchereria bancrofti]] (field=matched_organism)

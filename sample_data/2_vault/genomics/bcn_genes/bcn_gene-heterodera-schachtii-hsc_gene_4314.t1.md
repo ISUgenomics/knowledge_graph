@@ -11,8 +11,9 @@ name: "Hsc_gene_4314.t1"
 | Field | Value |
 |---|---|
 | category | comparative |
+| identifier | Hsc_gene_4314.t1 |
 | organism | Heterodera schachtii |
-| source_column | schachtii_genes |
+| raw_value | Hsc_gene_4314.t1 |
 
 ## Relationships
 
