@@ -11,9 +11,7 @@ name: "OG0005830"
 | Field | Value |
 |---|---|
 | dataset | genomics_scn |
-| glycines_gene_count | 1 |
-| local_gene_count | 1 |
-| schachtii_gene_count | 1 |
+| organism | Heterodera glycines |
 
 ## Relationships
 
