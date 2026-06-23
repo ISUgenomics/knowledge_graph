@@ -112,6 +112,7 @@ def main():
 
     # Build app
     app_config = {
+        "domain": config.domain.model_dump(),
         "db_path": str(db_path),
         "server": config.server.model_dump(),
         "ui": config.ui.model_dump(),

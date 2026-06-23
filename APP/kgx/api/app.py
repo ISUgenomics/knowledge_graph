@@ -94,7 +94,7 @@ def create_app(config: dict) -> FastAPI:
     db_build_cfg = db_build_config
     registry = SkillRegistry(skills_cfg.get("directory", "./skills"))
     runner = SkillRunner(python=skills_cfg.get("python", "python3"))
-    app.include_router(make_skills_router(registry, runner, db_build_cfg), prefix="/api")
+    app.include_router(make_skills_router(registry, runner, db_build_cfg, domain_name=domain_name), prefix="/api")
     app.include_router(make_watch_router(config["db_path"]), prefix="/api")
     app.include_router(
         make_layout_router(db, config.get("llm", {}), embedding_config, app.state.ui_config, db_build_config),

@@ -29,11 +29,94 @@ except ImportError:
     _YAML_OK = False
 
 
+def _parse_simple_manifest_yaml(text: str) -> dict[str, Any]:
+    """
+    Minimal YAML parser for our flat skill manifests when PyYAML is unavailable.
+
+    Supports:
+    - top-level scalar keys: `name: ...`
+    - top-level string lists:
+        entity_types:
+          - person
+    - top-level list of dict items:
+        args:
+          - name: ...
+            flag: ...
+    """
+    data: dict[str, Any] = {}
+    lines = text.splitlines()
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            i += 1
+            continue
+        if raw.startswith((" ", "\t")):
+            i += 1
+            continue
+        if ":" not in raw:
+            i += 1
+            continue
+        key, value = raw.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+        if value:
+            data[key] = value
+            i += 1
+            continue
+
+        # block value
+        i += 1
+        items: list[Any] = []
+        while i < len(lines):
+            child = lines[i]
+            if not child.strip() or child.lstrip().startswith("#"):
+                i += 1
+                continue
+            if not child.startswith((" ", "\t")):
+                break
+            stripped = child.strip()
+            if stripped.startswith("- "):
+                first = stripped[2:].strip()
+                if ":" in first:
+                    item: dict[str, Any] = {}
+                    subkey, subval = first.split(":", 1)
+                    item[subkey.strip()] = subval.strip()
+                    i += 1
+                    while i < len(lines):
+                        cont = lines[i]
+                        if not cont.strip() or cont.lstrip().startswith("#"):
+                            i += 1
+                            continue
+                        if not cont.startswith((" ", "\t")):
+                            break
+                        cont_stripped = cont.strip()
+                        if cont_stripped.startswith("- "):
+                            break
+                        if ":" in cont_stripped:
+                            subkey, subval = cont_stripped.split(":", 1)
+                            text_val = subval.strip()
+                            if text_val.lower() == "true":
+                                item[subkey.strip()] = True
+                            elif text_val.lower() == "false":
+                                item[subkey.strip()] = False
+                            else:
+                                item[subkey.strip()] = text_val
+                        i += 1
+                    items.append(item)
+                    continue
+                items.append(first)
+            i += 1
+        data[key] = items
+    return data
+
+
 @dataclass
 class SkillMeta:
     id: str                         # directory name slug, e.g. "person_research"
     name: str                       # human-readable label
     description: str
+    module: str                     # logical KGX module/domain, e.g. "people", "genomics"
     entity_types: list[str]         # entity types this skill can act on (empty = any)
     args: list[dict]                # [{name, flag, description, required}]
     path: Path                      # absolute path to skill directory
@@ -45,6 +128,7 @@ class SkillMeta:
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "module": self.module,
             "entity_types": self.entity_types,
             "args": self.args,
             "entry_path": str(self.entry_path.name),
@@ -77,6 +161,7 @@ class SkillRegistry:
         defaults: dict[str, Any] = {
             "name": skill_id.replace("_", " ").title(),
             "description": f"Run the {skill_id} skill.",
+            "module": "",
             "entity_types": [],
             "args": [],
         }
@@ -87,6 +172,12 @@ class SkillRegistry:
                 defaults.update(data)
             except Exception:
                 pass
+        elif manifest_path.exists():
+            try:
+                data = _parse_simple_manifest_yaml(manifest_path.read_text()) or {}
+                defaults.update(data)
+            except Exception:
+                pass
 
         entry_path = self._resolve_entry_path(skill_dir, defaults.get("entry"))
 
@@ -94,6 +185,7 @@ class SkillRegistry:
             id=skill_id,
             name=defaults["name"],
             description=defaults["description"],
+            module=str(defaults.get("module") or "").strip().lower(),
             entity_types=defaults.get("entity_types") or [],
             args=defaults.get("args") or [],
             path=skill_dir,
@@ -125,8 +217,11 @@ class SkillRegistry:
 
         return skill_dir / "plugin.py"
 
-    def list(self, entity_type: str = "") -> list[SkillMeta]:
+    def list(self, entity_type: str = "", module_name: str = "") -> list[SkillMeta]:
         skills = list(self._skills.values())
+        if module_name:
+            wanted = module_name.strip().lower()
+            skills = [s for s in skills if not s.module or s.module == wanted]
         if entity_type:
             skills = [s for s in skills if not s.entity_types or entity_type in s.entity_types]
         return skills

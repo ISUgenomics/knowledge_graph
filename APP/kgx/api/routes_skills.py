@@ -24,9 +24,15 @@ class RunRequest(BaseModel):
     args: list[str] = []
 
 
-def make_skills_router(registry: SkillRegistry, runner: SkillRunner, db_build: dict | None = None) -> APIRouter:
+def make_skills_router(
+    registry: SkillRegistry,
+    runner: SkillRunner,
+    db_build: dict | None = None,
+    domain_name: str | None = None,
+) -> APIRouter:
     router = APIRouter(tags=["skills"])
     db_build = db_build or {}
+    domain_name = str(domain_name or "").strip().lower()
 
     def _selected_person_extensions() -> list[str]:
         person_cfg = db_build.get("person_research", {}) or {}
@@ -63,7 +69,7 @@ def make_skills_router(registry: SkillRegistry, runner: SkillRunner, db_build: d
 
     @router.get("/skill/list")
     def skill_list(entity_type: str = ""):
-        return {"skills": [s.to_dict() for s in registry.list(entity_type)]}
+        return {"skills": [s.to_dict() for s in registry.list(entity_type, module_name=domain_name)]}
 
     @router.get("/skill/help/{skill_id}")
     def skill_help(skill_id: str):

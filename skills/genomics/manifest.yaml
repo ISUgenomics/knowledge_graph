@@ -1,5 +1,6 @@
 name: Genomics Builder
 description: Normalize local genomics source files and build a genomics knowledge graph database without online harvesting.
+module: genomics
 entity_types:
   - gene
   - transcript
