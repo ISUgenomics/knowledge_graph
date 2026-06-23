@@ -255,6 +255,7 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         assert "HAS_BCN_MEMBER" in rel_types
         assert "HAS_BCN_HIT" in rel_types
         assert "HAS_BROAD_HOMOLOGY_HIT" in rel_types
+        assert "PROTEIN_ORTHOGROUP" in rel_types
         assert "TAGGED" in rel_types
         assert "BROADER" in rel_types
         assert "FROM_ORGANISM" in rel_types

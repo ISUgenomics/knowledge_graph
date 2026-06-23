@@ -170,6 +170,9 @@ explore:
           first_rel_type: HAS_TRANSCRIPT
           second_rel_type: TRANSLATED_TO
           edge_type: GENE_PRODUCT
+        - node_types: [protein, transcript, gene, orthogroup]
+          rel_types: [TRANSLATED_TO, HAS_TRANSCRIPT, BELONGS_TO_ORTHOGROUP]
+          edge_type: PROTEIN_ORTHOGROUP
       skipped_rel_types: []
     transcript_centric:
       label: Transcript
@@ -221,6 +224,9 @@ explore:
           first_rel_type: HAS_TRANSCRIPT
           second_rel_type: TRANSLATED_TO
           edge_type: GENE_PRODUCT
+        - node_types: [protein, transcript, gene, orthogroup]
+          rel_types: [TRANSLATED_TO, HAS_TRANSCRIPT, BELONGS_TO_ORTHOGROUP]
+          edge_type: PROTEIN_ORTHOGROUP
       default_hidden_rel_types: []
       skipped_rel_types: []
     expression_centric:

@@ -665,46 +665,63 @@ class KnowledgeGraphDB:
             for edge in all_edges:
                 all_edges_by_rel.setdefault(str(edge["rel_type"]), []).append(edge)
             for spec in derived_path_edges:
-                source_type = str(spec.get("source_type", "") or "")
-                via_type = str(spec.get("via_type", "") or "")
-                target_type = str(spec.get("target_type", "") or "")
-                first_rel_type = str(spec.get("first_rel_type", "") or "")
-                second_rel_type = str(spec.get("second_rel_type", "") or "")
                 path_edge_type = str(spec.get("edge_type", "") or derived_edge_type or "RELATED")
-                if not source_type or not target_type or not first_rel_type or not second_rel_type:
+                node_types = [str(item or "") for item in list(spec.get("node_types", []) or []) if str(item or "")]
+                rel_types = [str(item or "") for item in list(spec.get("rel_types", []) or []) if str(item or "")]
+
+                if not node_types or not rel_types:
+                    source_type = str(spec.get("source_type", "") or "")
+                    via_type = str(spec.get("via_type", "") or "")
+                    target_type = str(spec.get("target_type", "") or "")
+                    first_rel_type = str(spec.get("first_rel_type", "") or "")
+                    second_rel_type = str(spec.get("second_rel_type", "") or "")
+                    if source_type and via_type and target_type and first_rel_type and second_rel_type:
+                        node_types = [source_type, via_type, target_type]
+                        rel_types = [first_rel_type, second_rel_type]
+
+                if len(node_types) < 2 or len(rel_types) != len(node_types) - 1:
                     continue
 
-                source_to_via: dict[str, set[str]] = {}
-                via_to_target: dict[str, set[str]] = {}
-
-                for edge in all_edges_by_rel.get(first_rel_type, []):
-                    src_id, tgt_id = edge["source"], edge["target"]
-                    src_type = node_by_id.get(src_id, {}).get("type", "")
-                    tgt_type = node_by_id.get(tgt_id, {}).get("type", "")
-                    if src_type == source_type and tgt_type == via_type:
-                        source_to_via.setdefault(src_id, set()).add(tgt_id)
-                    elif tgt_type == source_type and src_type == via_type:
-                        source_to_via.setdefault(tgt_id, set()).add(src_id)
-
-                for edge in all_edges_by_rel.get(second_rel_type, []):
-                    src_id, tgt_id = edge["source"], edge["target"]
-                    src_type = node_by_id.get(src_id, {}).get("type", "")
-                    tgt_type = node_by_id.get(tgt_id, {}).get("type", "")
-                    if src_type == via_type and tgt_type == target_type:
-                        via_to_target.setdefault(src_id, set()).add(tgt_id)
-                    elif tgt_type == via_type and src_type == target_type:
-                        via_to_target.setdefault(tgt_id, set()).add(src_id)
-
                 path_weights: dict[tuple[str, str], int] = {}
-                for source_id, via_ids in source_to_via.items():
+                first_type = node_types[0]
+                last_type = node_types[-1]
+                source_ids = [
+                    node_id for node_id, node in node_by_id.items()
+                    if str(node.get("type", "")) == first_type
+                ]
+
+                for source_id in source_ids:
                     if source_id not in node_id_set:
                         continue
-                    for via_id in via_ids:
-                        for target_id in via_to_target.get(via_id, set()):
-                            if target_id not in node_id_set or source_id == target_id:
-                                continue
-                            key = (source_id, target_id)
-                            path_weights[key] = path_weights.get(key, 0) + 1
+                    frontier: dict[str, int] = {source_id: 1}
+                    for step_idx, rel_type in enumerate(rel_types):
+                        expected_src_type = node_types[step_idx]
+                        expected_tgt_type = node_types[step_idx + 1]
+                        next_frontier: dict[str, int] = {}
+                        for current_id, current_weight in frontier.items():
+                            for edge in all_edges_by_rel.get(rel_type, []):
+                                src_id, tgt_id = edge["source"], edge["target"]
+                                src_type = str(node_by_id.get(src_id, {}).get("type", ""))
+                                tgt_type = str(node_by_id.get(tgt_id, {}).get("type", ""))
+                                neighbor_id = None
+                                if current_id == src_id and src_type == expected_src_type and tgt_type == expected_tgt_type:
+                                    neighbor_id = tgt_id
+                                elif current_id == tgt_id and tgt_type == expected_src_type and src_type == expected_tgt_type:
+                                    neighbor_id = src_id
+                                if neighbor_id is None:
+                                    continue
+                                next_frontier[neighbor_id] = next_frontier.get(neighbor_id, 0) + current_weight
+                        frontier = next_frontier
+                        if not frontier:
+                            break
+
+                    for target_id, weight in frontier.items():
+                        if target_id not in node_id_set or source_id == target_id:
+                            continue
+                        if str(node_by_id.get(target_id, {}).get("type", "")) != last_type:
+                            continue
+                        key = (source_id, target_id)
+                        path_weights[key] = path_weights.get(key, 0) + weight
 
                 for (source_id, target_id), weight in path_weights.items():
                     edge_payload = {
@@ -713,11 +730,12 @@ class KnowledgeGraphDB:
                         "rel_type": path_edge_type,
                         "weight": weight,
                     }
-                    if via_type:
+                    if len(node_types) > 2:
                         edge_payload["metadata"] = {
                             "derived": True,
-                            "via_type": via_type,
-                            "path": [first_rel_type, second_rel_type],
+                            "via_type": node_types[1] if len(node_types) == 3 else None,
+                            "via_types": node_types[1:-1],
+                            "path": rel_types,
                         }
                     edges.append(edge_payload)
 

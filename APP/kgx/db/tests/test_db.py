@@ -343,6 +343,31 @@ class TestGraphQueries:
         assert projection["preserved_types"] == ["organization"]
         assert projection["derived_path_edges"] == 1
 
+    def test_graph_explore_derives_multi_hop_path_edges(self, db):
+        db.upsert_entity("person", "gene-1", name="Gene 1")
+        db.upsert_entity("publication", "tx-1", name="Transcript 1")
+        db.upsert_entity("event", "prot-1", name="Protein 1")
+        db.upsert_entity("organization", "og-1", name="Orthogroup 1")
+        db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+        db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+        db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "og-1")
+
+        graph = db.graph_explore({
+            "include_node_types": ["person", "event", "organization"],
+            "include_rel_types": ["BELONGS_TO_ORTHOGROUP"],
+            "skipped_rel_types": ["HAS_TRANSCRIPT", "TRANSLATED_TO"],
+            "derived_path_edges": [
+                {
+                    "node_types": ["event", "publication", "person", "organization"],
+                    "rel_types": ["TRANSLATED_TO", "HAS_TRANSCRIPT", "BELONGS_TO_ORTHOGROUP"],
+                    "edge_type": "PROTEIN_ORTHOGROUP",
+                }
+            ],
+        })
+
+        edge_types = {(edge["source"], edge["rel_type"], edge["target"]) for edge in graph["edges"]}
+        assert ("prot-1", "PROTEIN_ORTHOGROUP", "og-1") in edge_types
+
     def test_graph_explore_can_include_relationships_by_typed_pattern(self, db):
         db.upsert_entity("organization", "organism:local", name="Local organism")
         db.upsert_entity("organization", "organism:external", name="External organism")
