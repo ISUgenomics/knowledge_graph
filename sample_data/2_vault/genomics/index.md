@@ -14,6 +14,7 @@ Source DB: `/workspace/KnowledgeGraph/sample_data/3_db/genomics_scn.db`
 | dataset | 1 | `datasets/` |
 | expression_measure | 7 | `expression/` |
 | gene | 8 | `genes/` |
+| hgt_donor | 2 | `hgt_donors/` |
 | localization_call | 5 | `localizations/` |
 | organism | 2 | `organisms/` |
 | orthogroup | 6 | `orthogroups/` |

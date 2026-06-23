@@ -195,6 +195,17 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             ],
             "parser": "term_list",
         }
+    if "hgt_donor_id" in header_set:
+        entities["hgt_donor"] = {
+            "source_column": "hgt_donor_id",
+            "entity_type": "hgt_donor",
+            "id_template": "hgt_donor:{value}",
+            "name_template": "{value}",
+            "attach_from": "protein",
+            "relationship_type": "HAS_HGT_DONOR",
+            "excluded_values": ["No"],
+            "parser": "term_list",
+        }
     return entities
 
 

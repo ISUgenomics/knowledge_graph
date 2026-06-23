@@ -44,6 +44,7 @@ ui:
         orthogroup: comparative
         bcn_gene: comparative
         comparative_hit: comparative
+        hgt_donor: comparative
         annotation_term: ontology
         localization_call: measurement
         prediction_call: measurement
@@ -60,6 +61,7 @@ ui:
         protein: -1.6
         bcn_gene: -0.4
         comparative_hit: -1.6
+        hgt_donor: -1.6
         orthogroup: -1.2
         expression_measure: -1.8
         contrast_definition: -2.5
@@ -105,6 +107,8 @@ ui:
           z: 180
         comparative_hit:
           z: 140
+        hgt_donor:
+          z: 145
         annotation_term:
           z: 95
         localization_call:
@@ -197,10 +201,10 @@ explore:
       skipped_rel_types: []
     comparative:
       label: Comparative
-      description: Comparative scaffold combining orthogroup ortholog genes with protein homology hits and homology-scope ontology.
-      required_node_types_any: [orthogroup, bcn_gene, comparative_hit]
-      include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, tag]
-      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, TAGGED, BROADER]
+      description: Comparative scaffold combining orthogroup ortholog genes with protein homology, optional HGT donor evidence, and homology-scope ontology.
+      required_node_types_any: [orthogroup, bcn_gene, comparative_hit, hgt_donor]
+      include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, hgt_donor, tag]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, HAS_HGT_DONOR, TAGGED, BROADER]
       include_rel_patterns:
         - rel_type: FROM_ORGANISM
           source_type: bcn_gene

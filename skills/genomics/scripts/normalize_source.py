@@ -466,6 +466,16 @@ def normalize_source_package(
                 ],
                 "parser": "term_list",
             },
+            "hgt_donor": {
+                "source_column": "hgt_donor_id",
+                "entity_type": "hgt_donor",
+                "id_template": "hgt_donor:{value}",
+                "name_template": "{value}",
+                "attach_from": "protein",
+                "relationship_type": "HAS_HGT_DONOR",
+                "excluded_values": ["No"],
+                "parser": "term_list",
+            },
         }.items()
         if value["source_column"] in header_set
     }

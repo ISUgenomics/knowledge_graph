@@ -117,14 +117,27 @@ export function initDetail(container, eventBus, apiClient) {
             </section>`;
     }
 
+    function normalizeDetailField(field) {
+        if (typeof field === 'string') {
+            return { key: field, label: field };
+        }
+        if (field && typeof field === 'object' && field.key) {
+            return { key: String(field.key), label: String(field.label || field.key) };
+        }
+        return null;
+    }
+
     function renderMetaFields(meta, fields, title, exclude = new Set()) {
         if (!meta || typeof meta !== 'object') return '';
-        const rows = fields
-            .filter(field => !exclude.has(field) && meta[field] !== null && meta[field] !== '' && meta[field] !== 'N/A' && meta[field] !== undefined)
+        const normalizedFields = fields
+            .map(normalizeDetailField)
+            .filter(Boolean);
+        const rows = normalizedFields
+            .filter(field => !exclude.has(field.key) && meta[field.key] !== null && meta[field.key] !== '' && meta[field.key] !== 'N/A' && meta[field.key] !== undefined)
             .map(field => {
-                const value = meta[field];
+                const value = meta[field.key];
                 const display = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                return `<tr><td class="detail-key">${esc(field)}</td><td class="detail-val">${linkVal(display)}</td></tr>`;
+                return `<tr><td class="detail-key">${esc(field.label)}</td><td class="detail-val">${linkVal(display)}</td></tr>`;
             }).join('');
         if (!rows) return '';
         return `
@@ -322,7 +335,8 @@ export function initDetail(container, eventBus, apiClient) {
         ],
         protein: [
             { title: 'Localization And Secretion', fields: ['secretion', 'dl_signals', 'dl_localizations', 'localizer', 'l_nucleus_peptide', 'l_mitochondria_peptide', 'l_mitochondria_score', 'l_chloroplast_peptide', 'l_chloroplast_score', 'signal_peptide', 'signalp5', 'signalp6', 'tm_domain_sp5', 'tm_domain_sp6', 'dl_nucleus', 'dl_mitochondrion', 'dl_plastid', 'dl_cytoplasm', 'dl_endoplasmic_reticulum', 'dl_lysosome_vacuole', 'dl_golgi_apparatus', 'dl_peroxisome', 'dl_cell_membrane', 'dl_extracellular'] },
-            { title: 'Functional Annotation', fields: ['orthogroup', 'glycines_gene_count', 'schachtii_gene_count', 'schachtii_genes', 'schachtii_hits', 'celegans_hits', 'sp_best_hit', 'nr_best_hit', 'hgt_donor_id', 'hgt_alien_index', 't_factor', 'go_consensus', 'deepgoplus', 'interpro', 'smart', 'pfam', 'funfam', 'panther', 'glycines_effectors_dna', 'glycines_effectors_prot', 'schachtii_effectors_known', 'schachtii_effectors_putative', 'effector_islands'] },
+            { title: 'Comparative And HGT', fields: ['orthogroup', 'glycines_gene_count', 'schachtii_gene_count', 'schachtii_genes', 'schachtii_hits', 'celegans_hits', 'sp_best_hit', 'nr_best_hit', { key: 'hgt_donor_id', label: 'hgt donor' }, { key: 'hgt_alien_index', label: 'hgt index' }] },
+            { title: 'Functional Annotation', fields: ['t_factor', 'go_consensus', 'deepgoplus', 'interpro', 'smart', 'pfam', 'funfam', 'panther', 'glycines_effectors_dna', 'glycines_effectors_prot', 'schachtii_effectors_known', 'schachtii_effectors_putative', 'effector_islands'] },
             { title: 'Structure', fields: ['disorder', 'diso_regions', 'num_globular', 'domains', 'pdb_hit', 'hit_class'] },
             { title: 'Biophysics', fields: ['inclusion_body', 'mol_weight', 'isoel_point', 'charge', 'charged', 'aromatic', 'polar', 'non_polar', 'basic', 'acidic', 'small'] },
             { title: 'Composition', fields: ['alanine', 'asparagine', 'aspartate', 'cysteine', 'glutamate', 'glutamine', 'glycine', 'histidine', 'isoleucine', 'leucine', 'lysine', 'methionine', 'phenylalanine', 'proline', 'arginine', 'serine', 'threonine', 'valine', 'tryptophan', 'tyrosine', 'unknown'] },
@@ -354,7 +368,10 @@ export function initDetail(container, eventBus, apiClient) {
             const section = renderMetaFields(meta, group.fields, group.title, consumed);
             if (section) {
                 sections.push(section);
-                group.fields.forEach(field => consumed.add(field));
+                group.fields.forEach(field => {
+                    const normalizedField = normalizeDetailField(field);
+                    if (normalizedField) consumed.add(normalizedField.key);
+                });
             }
         }
         if (entity.type === 'transcript') {
@@ -448,10 +465,8 @@ export function initDetail(container, eventBus, apiClient) {
                     loadEntity(entity.id);
                     return;
                 }
-                const ids = neighbors.map(n => n.id);
-                ids.push(entity.id);
                 highlightedEntityId = entity.id;
-                eventBus.emit('node:highlight', { ids });
+                eventBus.emit('node:highlight-neighbors', { id: entity.id });
                 loadEntity(entity.id);
             });
 

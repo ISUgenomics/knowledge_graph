@@ -14,6 +14,7 @@ contract:
   - orthogroup
   - bcn_gene
   - comparative_hit
+  - hgt_donor
   - annotation_term
   - localization_call
   - prediction_call
@@ -437,6 +438,16 @@ comparative_entities:
         id_template: homology-hit-organism:{value_slug}
         name_template: '{value}'
         rel_type: TAGGED
+      parser: term_list
+    hgt_donor:
+      source_column: hgt_donor_id
+      entity_type: hgt_donor
+      id_template: hgt_donor:{value}
+      name_template: '{value}'
+      attach_from: protein
+      relationship_type: HAS_HGT_DONOR
+      excluded_values:
+      - 'No'
       parser: term_list
 annotation_bins:
   shared:

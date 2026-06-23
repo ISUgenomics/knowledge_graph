@@ -152,6 +152,10 @@ name: "Hg_chrom1_TN10gene_957 protein"
 - [[comparative_hits/comparative_hit-broad_parasitism-o04353-1-acyl-lipid-9-3-desaturase-borago-officinalis|O04353.1]] (source_column=sp_best_hit)
 - [[comparative_hits/comparative_hit-broad_parasitism-ejw86009-1-fatty-acid-hydroxylase-wuchereria-bancrofti|EJW86009.1]] (source_column=nr_best_hit)
 
+### HAS_HGT_DONOR
+
+- [[hgt_donors/hgt_donor-xp_002784278|XP_002784278]] (source_column=hgt_donor_id)
+
 ### HAS_LOCALIZATION
 
 - [[localizations/localization-extracellular|extracellular]]

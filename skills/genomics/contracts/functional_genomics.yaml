@@ -14,6 +14,7 @@ contract:
   - orthogroup
   - bcn_gene
   - comparative_hit
+  - hgt_donor
   - annotation_term
   - localization_call
   - prediction_call
@@ -65,6 +66,9 @@ contract:
       required: false
     comparative_hit:
       description: Optional comparative hit entity promoted from protein homology evidence columns.
+      required: false
+    hgt_donor:
+      description: Optional HGT donor entity promoted from donor-hit columns when a donor accession is present.
       required: false
   annotation_bins:
   - column: go_consensus

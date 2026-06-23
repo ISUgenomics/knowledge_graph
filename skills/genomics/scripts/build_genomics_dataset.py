@@ -43,6 +43,8 @@ def _metadata_from_row(row: dict[str, str], columns: list[str]) -> dict[str, Any
     metadata: dict[str, Any] = {}
     for column in columns:
         value = _clean_value(row.get(column))
+        if column == "hgt_donor_id" and isinstance(value, str) and value.strip().lower() == "no":
+            value = None
         if value is not None:
             metadata[column] = value
     return metadata
@@ -129,6 +131,7 @@ def _comparative_relation_label(rel_type: str) -> str:
         "HAS_BCN_HIT": "bcn_homology",
         "HAS_NEMATODE_HIT": "nematode_homology",
         "HAS_BROAD_HOMOLOGY_HIT": "broad_homology",
+        "HAS_HGT_DONOR": "hgt_donor",
     }
     return mapping.get(str(rel_type or "").strip().upper(), _slugify(str(rel_type or "")).replace("-", "_"))
 
@@ -171,6 +174,18 @@ def _parse_comparative_entity_value(value: str, spec: dict[str, Any]) -> dict[st
 
     parsed["display_name"] = raw_text
     return parsed
+
+
+def _skip_comparative_value(value: str, spec: dict[str, Any]) -> bool:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return True
+    excluded_values = {
+        str(item).strip().lower()
+        for item in list(spec.get("excluded_values", []) or [])
+        if str(item).strip()
+    }
+    return normalized in excluded_values
 
 
 def _promote_comparative_parsed_fields(
@@ -646,6 +661,8 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                 if not attach_id:
                     continue
                 for item_value in _parse_term_values(source_value):
+                    if _skip_comparative_value(item_value, spec):
+                        continue
                     parsed_item = _parse_comparative_entity_value(item_value, spec)
                     target_organism = str(spec.get("target_organism", "") or "").strip()
                     identity_key = (target_organism.lower(), item_value.strip().lower()) if target_organism else ("", item_value.strip().lower())

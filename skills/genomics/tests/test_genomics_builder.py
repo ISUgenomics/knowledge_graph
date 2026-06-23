@@ -49,6 +49,7 @@ def test_normalize_source_package_emits_machine_readable_metadata(tmp_path: Path
     assert "nematode_hit" in comparative_entities
     assert "sp_best_hit" in comparative_entities
     assert "nr_best_hit" in comparative_entities
+    assert "hgt_donor" in comparative_entities
     contrast_specs = schema["expression_entities"]["contrasts"]["dataset_specific"]
     egg_vs_ppj2 = next(spec for spec in contrast_specs if spec["column"] == "dge_egg_ppj2")
     assert egg_vs_ppj2["source_summary_column"] == "avg_egg"
@@ -77,6 +78,7 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert stats["entities"]["protein"] == 9
         assert stats["entities"]["bcn_gene"] > 0
         assert stats["entities"]["comparative_hit"] > 0
+        assert stats["entities"]["hgt_donor"] > 0
         assert stats["entities"]["annotation_term"] > 0
         assert stats["entities"]["localization_call"] > 0
         assert stats["entities"]["prediction_call"] > 0
@@ -90,6 +92,7 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert stats["relationships"]["HAS_BCN_HIT"] > 0
         assert stats["relationships"].get("HAS_NEMATODE_HIT", 0) >= 0
         assert stats["relationships"]["HAS_BROAD_HOMOLOGY_HIT"] > 0
+        assert stats["relationships"]["HAS_HGT_DONOR"] > 0
         assert stats["relationships"]["HAS_TRANSCRIPT"] == 9
         assert stats["relationships"]["TRANSLATED_TO"] == 9
         assert stats["relationships"]["IN_DATASET"] == 8
@@ -178,6 +181,20 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert any(rel["target_id"] == "homology-scope-cyst-nematode" for rel in scope_rels)
         assert db.get_entity("homology-scope-cyst-nematode") is not None
         assert db.get_entity("homology-scope-broad-parasitism") is not None
+        protein = db.get_entity("hg_chrom1_tn10mrna_10:protein")
+        assert protein is not None
+        assert protein["metadata"]["hgt_alien_index"] == "0.56"
+        assert protein["metadata"]["hgt_donor_id"] == "WP_194067917"
+        donor = db.get_entity("hgt_donor:wp_194067917")
+        assert donor is not None
+        assert donor["name"] == "WP_194067917"
+        assert donor["metadata"]["identifier"] == "WP_194067917"
+        assert donor["metadata"]["relations"] == ["hgt_donor"]
+        donor_rels = db.get_relationships("hg_chrom1_tn10mrna_10:protein", "HAS_HGT_DONOR", direction="outgoing")
+        assert any(rel["target_id"] == "hgt_donor:wp_194067917" for rel in donor_rels)
+        no_donor_protein = db.get_entity("hg_chrom1_tn10mrna_1:protein")
+        assert no_donor_protein is not None
+        assert "hgt_donor_id" not in no_donor_protein["metadata"]
 
     assert (vault_dir / "index.md").exists()
     assert (vault_dir / "organisms").exists()
@@ -186,6 +203,7 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
     assert (vault_dir / "genes").exists()
     assert (vault_dir / "bcn_genes").exists()
     assert (vault_dir / "comparative_hits").exists()
+    assert (vault_dir / "hgt_donors").exists()
     assert (vault_dir / "tags").exists()
 
 
@@ -218,6 +236,7 @@ def test_infer_source_package_from_arbitrary_local_table_and_notes(tmp_path: Pat
     assert "glycines_gene_count" in schema_text
     assert "bcn_gene" in schema_text
     assert "comparative_hit" in schema_text
+    assert "hgt_donor" in schema_text
     assert "homology-scope-cyst-nematode" in schema_text
     assert "data_path: raw_export.tsv" in schema_text
     assert "dataset_specific: []" in schema_text

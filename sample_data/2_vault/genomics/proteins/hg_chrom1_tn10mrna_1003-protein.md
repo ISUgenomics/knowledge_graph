@@ -39,7 +39,6 @@ name: "Hg_chrom1_TN10gene_959 protein"
 | glycine | 0.711 |
 | glycines_gene_count | 1 |
 | hgt_alien_index | 0 |
-| hgt_donor_id | No |
 | histidine | 1.195 |
 | inclusion_body | 0.876 |
 | interpro | IPR002018+29-550+|IPR019819+110-120+|IPR019826+226-241+|IPR029058+28-579_29-541+|IPR050309+24-573+ |

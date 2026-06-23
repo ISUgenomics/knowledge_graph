@@ -102,6 +102,10 @@ name: "Hg_chrom1_TN10gene_10 protein"
 - [[comparative_hits/comparative_hit-broad_parasitism-a1r990-1-demethylmenaquinone-methyltransferase-paenarthrobacter-aurescens-tc1|A1R990.1]] (source_column=sp_best_hit)
 - [[comparative_hits/comparative_hit-broad_parasitism-wp-052435921-1-class-i-sam-dependent-methyltransferase-neochlamydia-sp-eps4|WP_052435921.1]] (source_column=nr_best_hit)
 
+### HAS_HGT_DONOR
+
+- [[hgt_donors/hgt_donor-wp_194067917|WP_194067917]] (source_column=hgt_donor_id)
+
 ### HAS_LOCALIZATION
 
 - [[localizations/localization-cytoplasm|cytoplasm]]

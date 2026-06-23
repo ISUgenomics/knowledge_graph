@@ -24,6 +24,7 @@ TYPE_FOLDERS = {
     "orthogroup": "orthogroups",
     "bcn_gene": "bcn_genes",
     "comparative_hit": "comparative_hits",
+    "hgt_donor": "hgt_donors",
     "annotation_term": "annotations",
     "localization_call": "localizations",
     "prediction_call": "predictions",

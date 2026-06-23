@@ -51,6 +51,7 @@ const PRIMARY_TYPE_COLOR_HINTS = {
 const DERIVED_TYPE_COLOR_RULES = {
     bcn_gene: { from: 'gene', accent: '#f19a3e', accentMix: 0.24, whiteMix: 0.22 },
     comparative_hit: { from: 'protein', accent: '#f14e63', accentMix: 0.26, whiteMix: 0.2 },
+    hgt_donor: { from: 'protein', accent: '#f19a3e', accentMix: 0.3, whiteMix: 0.18 },
     annotation_term: { from: 'protein', accent: '#a45cff', accentMix: 0.38, whiteMix: 0.28 },
     localization_call: { from: 'protein', accent: '#23b7d6', accentMix: 0.32, whiteMix: 0.14 },
     prediction_call: { from: 'protein', accent: '#d4b13f', accentMix: 0.36, whiteMix: 0.16 },
@@ -211,6 +212,7 @@ const COMMUNITY_COLORS = [
         orthogroup: 1.05,
         bcn_gene: 0.95,
         comparative_hit: 0.9,
+        hgt_donor: 0.88,
         annotation_term: 0.85,
         localization_call: 0.88,
         prediction_call: 0.9,
@@ -227,6 +229,7 @@ const COMMUNITY_COLORS = [
             orthogroup: 1.55,
             bcn_gene: 0.82,
             comparative_hit: 0.8,
+            hgt_donor: 0.84,
         },
     };
 
@@ -489,6 +492,13 @@ const COMMUNITY_COLORS = [
                 meta.organism,
                 Array.isArray(meta.scopes) ? meta.scopes.join(', ') : '',
                 Array.isArray(meta.relations) ? meta.relations.join(', ') : '',
+            ].filter(Boolean).join(' • ');
+            return extras ? `${base}\n${extras}` : base;
+        }
+        if (graphPreset === 'comparative' && n.type === 'hgt_donor') {
+            const extras = [
+                Array.isArray(meta.relations) ? meta.relations.join(', ') : '',
+                Array.isArray(meta.sources) ? meta.sources.join(', ') : '',
             ].filter(Boolean).join(' • ');
             return extras ? `${base}\n${extras}` : base;
         }

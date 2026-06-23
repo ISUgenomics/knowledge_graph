@@ -38,7 +38,6 @@ name: "Hg_chrom1_TN10gene_1 protein"
 | glutamine | 1.211 |
 | glycine | 0.937 |
 | hgt_alien_index | -0.04 |
-| hgt_donor_id | No |
 | histidine | 1.575 |
 | hit_class | PARTIAL_DOMAIN |
 | inclusion_body | 0.537 |
