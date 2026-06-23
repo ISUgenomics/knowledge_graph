@@ -20,5 +20,5 @@ Source DB: `/workspace/KnowledgeGraph/sample_data/3_db/genomics_scn.db`
 | orthogroup | 6 | `orthogroups/` |
 | prediction_call | 4 | `predictions/` |
 | protein | 9 | `proteins/` |
-| tag | 43 | `tags/` |
+| tag | 44 | `tags/` |
 | transcript | 9 | `transcripts/` |

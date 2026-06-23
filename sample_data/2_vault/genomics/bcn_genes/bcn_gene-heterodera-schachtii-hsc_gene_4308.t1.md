@@ -32,4 +32,4 @@ name: "Hsc_gene_4308.t1"
 
 ### TAGGED
 
-- [[tags/homology-scope-cyst-nematode|Cyst Nematode]] (source_column=schachtii_genes)
+- [[tags/homology-scope-bcn-ortholog|BCN Ortholog]] (source_column=schachtii_genes)

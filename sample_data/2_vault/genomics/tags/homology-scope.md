@@ -17,6 +17,5 @@ name: "Homology Scope"
 ### BROADER
 
 - [[tags/homology|Homology]]
-- [[tags/homology-scope-cyst-nematode|Cyst Nematode]]
-- [[tags/homology-scope-nematode|Nematode]]
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]]
+- [[tags/homology-scope-nematode|Nematode]]
