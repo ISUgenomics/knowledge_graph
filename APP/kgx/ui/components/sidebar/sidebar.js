@@ -447,8 +447,10 @@ export function initSidebar(container, eventBus, apiClient) {
 
     function tagGroupItems(tagIds) {
         const tagNodes = graphVisibleNodesByType.tag || [];
-        const wanted = new Set((tagIds || []).map(String));
-        return tagNodes.filter(item => wanted.has(String(item.id)));
+        const tagById = new Map(tagNodes.map(item => [String(item.id), item]));
+        return (tagIds || [])
+            .map(id => tagById.get(String(id)))
+            .filter(Boolean);
     }
 
     function displayGroupName(group) {

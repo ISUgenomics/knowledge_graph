@@ -449,11 +449,11 @@ class KnowledgeGraphDB:
             visible_node_ids = {n["id"] for n in projected_nodes if not n["hidden"]}
             for root_id in [str(tag_id).strip() for tag_id in (included_tag_roots or []) if str(tag_id).strip()]:
                 normalized_root = _normalize_id(root_id)
-                descendant_ids = self._descendant_ids(normalized_root, hierarchy_edge=hierarchy_edge)
-                group_node_ids = sorted(
-                    tag_id for tag_id in ({normalized_root} | descendant_ids)
+                ordered_branch_ids = self._ordered_branch_ids(normalized_root, hierarchy_edge=hierarchy_edge)
+                group_node_ids = [
+                    tag_id for tag_id in ordered_branch_ids
                     if tag_id in visible_node_ids
-                )
+                ]
                 if not group_node_ids:
                     continue
                 visible_tag_groups.append({
@@ -777,11 +777,11 @@ class KnowledgeGraphDB:
             }
             for root_id in included_tag_roots:
                 normalized_root = _normalize_id(root_id)
-                descendant_ids = self._descendant_ids(normalized_root, hierarchy_edge=hierarchy_edge)
-                group_node_ids = sorted(
-                    tag_id for tag_id in ({normalized_root} | descendant_ids)
+                ordered_branch_ids = self._ordered_branch_ids(normalized_root, hierarchy_edge=hierarchy_edge)
+                group_node_ids = [
+                    tag_id for tag_id in ordered_branch_ids
                     if tag_id in final_node_ids
-                )
+                ]
                 if not group_node_ids:
                     continue
                 visible_tag_groups.append({
@@ -1023,6 +1023,35 @@ class KnowledgeGraphDB:
             descendants |= new
             frontier = new
         return descendants
+
+    def _ordered_branch_ids(self, entity_id: str, hierarchy_edge: str = "BROADER") -> list[str]:
+        """Return a hierarchy branch in broad-to-narrow preorder.
+
+        This preserves a readable ontology sequence for UI consumers instead of
+        flattening descendants into lexicographic order.
+        """
+        if not hierarchy_edge:
+            return [entity_id]
+
+        ordered: list[str] = []
+        visited: set[str] = set()
+        stack: list[str] = [entity_id]
+
+        while stack:
+            current = stack.pop()
+            if current in visited:
+                continue
+            visited.add(current)
+            ordered.append(current)
+            children = sorted(
+                r[0] for r in self._exec(
+                    "SELECT source_id FROM relationships WHERE rel_type = ? AND target_id = ?",
+                    (hierarchy_edge, current),
+                ).fetchall()
+            )
+            stack.extend(reversed(children))
+
+        return ordered
 
     def neighbors(self, entity_id: str, rel_type: str = "") -> list[dict]:
         """Return all directly connected entities."""
