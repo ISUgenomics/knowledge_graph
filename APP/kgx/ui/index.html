@@ -551,17 +551,33 @@
             </div>
             <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
                 <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Edges</div>
-                <div class="fs-group">
-                    <label>Edge Width <span id="fs-edge-width-val" class="fs-val"></span></label>
-                    <input type="range" id="fs-edge-width" min="1" max="50" value="5" class="fs-slider" step="1" title="Adjust edge thickness">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">Edge</div>
+                        <div class="fs-group">
+                            <label>Width <span id="fs-edge-width-val" class="fs-val"></span></label>
+                            <input type="range" id="fs-edge-width" min="1" max="50" value="5" class="fs-slider" step="1" title="Adjust edge thickness">
+                        </div>
+                        <div class="fs-group">
+                            <label>Color <span id="fs-edge-color-val" class="fs-val"></span></label>
+                            <input type="color" id="fs-edge-color" title="Choose the default edge color" value="#555566" style="width:100%;height:24px;border:1px solid var(--border);border-radius:3px;background:var(--bg-primary);cursor:pointer;">
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--text-secondary);">Derived Edge</div>
+                        <div class="fs-group">
+                            <label>Width <span id="fs-derived-edge-width-val" class="fs-val"></span></label>
+                            <input type="range" id="fs-derived-edge-width" min="1" max="50" value="10" class="fs-slider" step="1" title="Adjust derived edge thickness">
+                        </div>
+                        <div class="fs-group">
+                            <label>Color <span id="fs-derived-edge-color-val" class="fs-val"></span></label>
+                            <input type="color" id="fs-derived-edge-color" title="Choose the derived edge color" value="#d8a35c" style="width:100%;height:24px;border:1px solid var(--border);border-radius:3px;background:var(--bg-primary);cursor:pointer;">
+                        </div>
+                    </div>
                 </div>
-                <div class="fs-group" style="margin-top:6px;">
+                <div class="fs-group" style="margin-top:10px;">
                     <label>Edge Opacity <span id="fs-edge-opacity-val" class="fs-val"></span></label>
                     <input type="range" id="fs-edge-opacity" min="0" max="100" value="40" class="fs-slider" step="1" title="Adjust edge transparency">
-                </div>
-                <div class="fs-group" style="margin-top:6px;">
-                    <label>Edge Color <span id="fs-edge-color-val" class="fs-val"></span></label>
-                    <input type="color" id="fs-edge-color" title="Choose the default edge color" value="#555566" style="width:100%;height:24px;border:1px solid var(--border);border-radius:3px;background:var(--bg-primary);cursor:pointer;">
                 </div>
                 <div class="fs-group" style="margin-top:6px;">
                     <label>Particles <span id="fs-particles-val" class="fs-val"></span></label>
@@ -1400,7 +1416,7 @@
     const fsTimelineOuterDensity = document.getElementById('fs-timeline-outer-density');
     const fsTimelineOuterDensityVal = document.getElementById('fs-timeline-outer-density-val');
     const GRAPH_DEFAULTS = {
-        edgeWidth: 5, edgeOpacity: 40, edgeColor: '#555566', particles: 1,
+        edgeWidth: 5, derivedEdgeWidth: 10, edgeOpacity: 40, edgeColor: '#555566', derivedEdgeColor: '#d8a35c', particles: 1,
     };
     const HIERARCHY_LAYOUT_DEFAULTS = {
         levelSpacing: 180,
@@ -1501,8 +1517,10 @@
         settingsState = {
             graphSettings: {
                 edgeWidth: window.forceState.edgeWidth,
+                derivedEdgeWidth: window.forceState.derivedEdgeWidth,
                 edgeOpacity: window.forceState.edgeOpacity,
                 edgeColor: window.forceState.edgeColor,
+                derivedEdgeColor: window.forceState.derivedEdgeColor,
                 particles: window.forceState.particles,
             },
             layoutSettings: {
@@ -1761,10 +1779,14 @@
         document.getElementById('fs-decay-val').textContent = (forceState.decay / 1000).toFixed(3);
         document.getElementById('fs-edge-width').value = forceState.edgeWidth;
         document.getElementById('fs-edge-width-val').textContent = (forceState.edgeWidth / 10).toFixed(1);
+        document.getElementById('fs-derived-edge-width').value = forceState.derivedEdgeWidth;
+        document.getElementById('fs-derived-edge-width-val').textContent = (forceState.derivedEdgeWidth / 10).toFixed(1);
         document.getElementById('fs-edge-opacity').value = forceState.edgeOpacity;
         document.getElementById('fs-edge-opacity-val').textContent = (forceState.edgeOpacity / 100).toFixed(2);
         document.getElementById('fs-edge-color').value = forceState.edgeColor;
         document.getElementById('fs-edge-color-val').textContent = forceState.edgeColor;
+        document.getElementById('fs-derived-edge-color').value = forceState.derivedEdgeColor;
+        document.getElementById('fs-derived-edge-color-val').textContent = forceState.derivedEdgeColor;
         document.getElementById('fs-particles').value = forceState.particles;
         document.getElementById('fs-particles-val').textContent = forceState.particles;
     }
@@ -1815,7 +1837,7 @@
     });
 
     // Edge sliders
-    ['edge-width', 'edge-opacity', 'particles'].forEach(key => {
+    ['edge-width', 'derived-edge-width', 'edge-opacity', 'particles'].forEach(key => {
         const el = document.getElementById(`fs-${key}`);
         const camel = key.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
         el.addEventListener('input', () => {
@@ -1828,6 +1850,13 @@
     });
     document.getElementById('fs-edge-color').addEventListener('input', () => {
         forceState.edgeColor = document.getElementById('fs-edge-color').value;
+        persistSettingsState();
+        fsSync();
+        fsApply();
+        emitGraphSettingsUpdate();
+    });
+    document.getElementById('fs-derived-edge-color').addEventListener('input', () => {
+        forceState.derivedEdgeColor = document.getElementById('fs-derived-edge-color').value;
         persistSettingsState();
         fsSync();
         fsApply();
