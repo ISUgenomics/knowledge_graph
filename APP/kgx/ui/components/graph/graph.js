@@ -22,31 +22,49 @@
  *   node:right-clicked {id, type, name, x, y}
  */
 
-// Color palette for entity types (auto-assigned for unknown types)
-const TYPE_COLORS = [
-    '#4e9af1', // blue
-    '#f1a34e', // orange
-    '#4ef17a', // green
-    '#f14e4e', // red
-    '#c34ef1', // purple
-    '#f1e24e', // yellow
-    '#4ef1e8', // cyan
-    '#f14eb5', // pink
+// Primary palette for core/primary entity families and distinct type roots.
+const PRIMARY_TYPE_COLORS = [
+    '#4e9af1', '#f14e63', '#4ecf68', '#d4b13f', '#a45cff',
+    '#23b7d6', '#f19a3e', '#f05ba6', '#6d6cff', '#91c94a',
+    '#cc6c46', '#35b59c', '#d85fd7', '#5e7fe0', '#b78833',
+    '#db6546', '#4ba6c9', '#b3a63a', '#6c8f4c', '#9f6dcb',
 ];
 
-const FIXED_TYPE_COLORS = {
-    gene: '#4e9af1',
-    transcript: '#f1a34e',
-    protein: '#4ef17a',
-    orthogroup: '#f14e4e',
-    bcn_gene: '#ff7a7a',
-    comparative_hit: '#ffb347',
-    annotation_term: '#c34ef1',
-    localization_call: '#4ef1e8',
-    prediction_call: '#f1e24e',
-    expression_measure: '#ff8fc7',
-    contrast_definition: '#6fd3a0',
-    tag: '#9aa4b2',
+const PRIMARY_TYPE_COLOR_HINTS = {
+    organism: 0,
+    chromosome: 1,
+    gene: 2,
+    transcript: 3,
+    protein: 4,
+    orthogroup: 5,
+    person: 6,
+    organization: 7,
+    publication: 8,
+    artifact: 9,
+    event: 10,
+    award: 11,
+    signal: 12,
+    center: 13,
+    dataset: 14,
+};
+
+const DERIVED_TYPE_COLOR_RULES = {
+    bcn_gene: { from: 'gene', accent: '#f19a3e', accentMix: 0.24, whiteMix: 0.22 },
+    comparative_hit: { from: 'protein', accent: '#f14e63', accentMix: 0.26, whiteMix: 0.2 },
+    annotation_term: { from: 'protein', accent: '#a45cff', accentMix: 0.38, whiteMix: 0.28 },
+    localization_call: { from: 'protein', accent: '#23b7d6', accentMix: 0.32, whiteMix: 0.14 },
+    prediction_call: { from: 'protein', accent: '#d4b13f', accentMix: 0.36, whiteMix: 0.16 },
+    expression_measure: { from: 'transcript', accent: '#f05ba6', accentMix: 0.32, whiteMix: 0.16 },
+    contrast_definition: { from: 'transcript', accent: '#4ecf68', accentMix: 0.34, whiteMix: 0.22 },
+    dataset: { from: 'organism', whiteMix: 0.62 },
+};
+
+const TAG_CATEGORY_COLORS = {
+    broad: '#9aa4b2',
+    core: '#9aa4b2',
+    domain: '#b2bac5',
+    field: '#c8cfd7',
+    topic: '#dde2e8',
 };
 
 const REL_COLORS = {
@@ -106,6 +124,7 @@ export function initGraph(container, eventBus, apiClient) {
     let forceShownIds = new Set();
     let typeColorMap = {};
     let colorIndex = 0;
+    let primaryColorAssignments = {};
     let communityMode = false;  // toggle: type colors vs community colors
     let communityColorMap = {}; // node_id -> color
     let communityResolution = 1.0; // <1 = fewer/larger communities, >1 = more/smaller
@@ -211,16 +230,111 @@ const COMMUNITY_COLORS = [
         },
     };
 
+    function normalizeColorTypeKey(type) {
+        return String(type || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s*\(.*?\)\s*$/g, '')
+            .replace(/\s+/g, '_');
+    }
+
+    function hexToRgb(hex) {
+        const normalized = String(hex || '').replace('#', '').trim();
+        const value = normalized.length === 3
+            ? normalized.split('').map(ch => ch + ch).join('')
+            : normalized.padStart(6, '0').slice(0, 6);
+        return {
+            r: parseInt(value.slice(0, 2), 16),
+            g: parseInt(value.slice(2, 4), 16),
+            b: parseInt(value.slice(4, 6), 16),
+        };
+    }
+
+    function rgbToHex({ r, g, b }) {
+        return `#${[r, g, b].map(value => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    function mixHex(colorA, colorB, ratio = 0.5) {
+        const a = hexToRgb(colorA);
+        const b = hexToRgb(colorB);
+        const mix = Math.max(0, Math.min(1, Number(ratio)));
+        return rgbToHex({
+            r: a.r + ((b.r - a.r) * mix),
+            g: a.g + ((b.g - a.g) * mix),
+            b: a.b + ((b.b - a.b) * mix),
+        });
+    }
+
+    function lightenHex(color, ratio) {
+        return mixHex(color, '#ffffff', ratio);
+    }
+
+    function deriveTypeColor(rule) {
+        let color = getPrimaryColorForKey(rule.from);
+        if (rule.accent) {
+            color = mixHex(color, rule.accent, rule.accentMix ?? 0.3);
+        }
+        if (rule.whiteMix) {
+            color = lightenHex(color, rule.whiteMix);
+        }
+        return color;
+    }
+
+    function getPrimaryColorForKey(key) {
+        const normalizedKey = normalizeColorTypeKey(key);
+        if (primaryColorAssignments[normalizedKey]) return primaryColorAssignments[normalizedKey];
+        const hintedIndex = PRIMARY_TYPE_COLOR_HINTS[normalizedKey];
+        if (Number.isInteger(hintedIndex)) {
+            primaryColorAssignments[normalizedKey] = PRIMARY_TYPE_COLORS[hintedIndex % PRIMARY_TYPE_COLORS.length];
+            return primaryColorAssignments[normalizedKey];
+        }
+        const color = PRIMARY_TYPE_COLORS[colorIndex % PRIMARY_TYPE_COLORS.length];
+        primaryColorAssignments[normalizedKey] = color;
+        colorIndex++;
+        return color;
+    }
+
+    function getTagCategoryColor(category = '') {
+        const normalized = String(category || '').trim().toLowerCase();
+        if (normalized === 'core') return TAG_CATEGORY_COLORS.core;
+        if (normalized === 'domain') return TAG_CATEGORY_COLORS.domain;
+        if (normalized === 'field') return TAG_CATEGORY_COLORS.field;
+        if (normalized === 'broad') return TAG_CATEGORY_COLORS.broad;
+        return TAG_CATEGORY_COLORS.topic;
+    }
+
+    function resolveBaseTypeColor(typeOrNode, tagCategory = '') {
+        const node = typeof typeOrNode === 'object' && typeOrNode !== null ? typeOrNode : null;
+        const rawType = node?.type || typeOrNode;
+        const type = normalizeColorTypeKey(rawType);
+        const category = String(tagCategory || (node ? getTimelineTagCategory(node) : '')).trim().toLowerCase();
+
+        if (type === 'tag') {
+            return getTagCategoryColor(category);
+        }
+
+        const derivedRule = DERIVED_TYPE_COLOR_RULES[type];
+        if (derivedRule) {
+            return deriveTypeColor(derivedRule);
+        }
+
+        if (node) {
+            const family = getHierarchyTypeFamily(node, category);
+            if (family === 'tag-domain') return getTagCategoryColor('domain');
+            if (family === 'tag-field') return getTagCategoryColor('field');
+            if (family === 'tag-topic') return getTagCategoryColor('topic');
+            if (family === 'tag-core' || family === 'ontology') return getTagCategoryColor(category || 'core');
+        }
+
+        return getPrimaryColorForKey(type);
+    }
+
     function getTypeColor(type) {
-        if (FIXED_TYPE_COLORS[type]) {
-            typeColorMap[type] = FIXED_TYPE_COLORS[type];
-            return FIXED_TYPE_COLORS[type];
+        const normalizedType = normalizeColorTypeKey(type);
+        if (!typeColorMap[normalizedType]) {
+            typeColorMap[normalizedType] = resolveBaseTypeColor(normalizedType);
         }
-        if (!typeColorMap[type]) {
-            typeColorMap[type] = TYPE_COLORS[colorIndex % TYPE_COLORS.length];
-            colorIndex++;
-        }
-        return typeColorMap[type];
+        return typeColorMap[normalizedType];
     }
 
     function computeDegrees(nodes, edges) {
@@ -3350,15 +3464,20 @@ const COMMUNITY_COLORS = [
                 weight: e.weight || 1,
             }));
             const deg = computeDegrees(data.nodes, rawEdges);
-            allNodes = data.nodes.map(n => ({
-                ...n,
-                _group: n.group || n.type,
-                _color: getTypeColor(n.group || n.type),
-                _degree: deg[n.id] || 0,
-                _filteredDegree: deg[n.id] || 0,
-                __baseHidden: !!n.hidden,
-                __hidden: !!n.hidden,
-            }));
+            allNodes = data.nodes.map(n => {
+                const typeKey = normalizeColorTypeKey(n.type);
+                const baseColor = resolveBaseTypeColor(n);
+                if (!typeColorMap[typeKey]) typeColorMap[typeKey] = baseColor;
+                return {
+                    ...n,
+                    _group: n.group || n.type,
+                    _color: baseColor,
+                    _degree: deg[n.id] || 0,
+                    _filteredDegree: deg[n.id] || 0,
+                    __baseHidden: !!n.hidden,
+                    __hidden: !!n.hidden,
+                };
+            });
             allEdges = data.edges.map(e => ({
                 source: e.source,
                 target: e.target,
