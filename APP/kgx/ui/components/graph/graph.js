@@ -72,6 +72,40 @@ const REL_COLORS = {
     default: '#555566',
 };
 
+function isDerivedLink(link) {
+    return Boolean(link?.metadata?.derived);
+}
+
+function getLinkBaseColor(link) {
+    if (isDerivedLink(link)) {
+        return currentEdgeRenderSettings.derivedEdgeColor || '#d8a35c';
+    }
+    return currentEdgeRenderSettings.edgeColor || REL_COLORS[link?.rel_type] || REL_COLORS.default;
+}
+
+function getLinkWidth(link) {
+    if (isDerivedLink(link)) return currentEdgeRenderSettings.derivedWidthScale;
+    const baseWidth = link?.weight > 1 ? Math.min(link.weight, 8) : 0.5;
+    return baseWidth * currentEdgeRenderSettings.widthScale;
+}
+
+function getLinkOpacity(link) {
+    return currentEdgeRenderSettings.opacity;
+}
+
+function getLinkParticles(link) {
+    return isDerivedLink(link) ? 0 : currentEdgeRenderSettings.particles;
+}
+
+const currentEdgeRenderSettings = {
+    widthScale: 1,
+    derivedWidthScale: 1,
+    opacity: 0.4,
+    edgeColor: '',
+    derivedEdgeColor: '',
+    particles: 1,
+};
+
 const LIVE_NODE_RESOLUTION = 8;
 const EXPORT_NODE_RESOLUTION = 96;
 const EXPORT_RENDER_PIXEL_RATIO = 3;
@@ -3472,6 +3506,7 @@ const COMMUNITY_COLORS = [
                 target: e.target,
                 rel_type: e.rel_type,
                 weight: e.weight || 1,
+                metadata: e.metadata || null,
             }));
             const deg = computeDegrees(data.nodes, rawEdges);
             allNodes = data.nodes.map(n => {
@@ -3493,6 +3528,7 @@ const COMMUNITY_COLORS = [
                 target: e.target,
                 rel_type: e.rel_type,
                 weight: e.weight || 1,
+                metadata: e.metadata || null,
                 __baseHidden: !!e.hidden,
                 __hidden: !!e.hidden,
             }));
@@ -3595,10 +3631,10 @@ const COMMUNITY_COLORS = [
             // Visibility — initial callbacks; refreshVisibility() re-sets them to trigger updates
             .nodeVisibility(n => !n.__hidden)
             .linkVisibility(l => !l.__hidden)
-            .linkColor(l => REL_COLORS[l.rel_type] || REL_COLORS.default)
-            .linkOpacity(0.4)
-            .linkWidth(l => l.weight > 1 ? Math.min(l.weight, 8) : 0.5)
-            .linkDirectionalParticles(1)
+            .linkColor(l => getLinkBaseColor(l))
+            .linkOpacity(l => getLinkOpacity(l))
+            .linkWidth(l => getLinkWidth(l))
+            .linkDirectionalParticles(l => getLinkParticles(l))
             .linkDirectionalParticleWidth(l => highlightedIds.size > 0 ? 0 : 1)
             .onNodeClick(node => {
                 eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
@@ -4106,16 +4142,28 @@ const COMMUNITY_COLORS = [
         if (!graphInstance) return;
 
         if (settings.edgeWidth !== undefined) {
-            graphInstance.linkWidth(settings.edgeWidth / 10);
+            currentEdgeRenderSettings.widthScale = settings.edgeWidth / 10;
+            graphInstance.linkWidth(l => getLinkWidth(l));
+        }
+        if (settings.derivedEdgeWidth !== undefined) {
+            currentEdgeRenderSettings.derivedWidthScale = settings.derivedEdgeWidth / 10;
+            graphInstance.linkWidth(l => getLinkWidth(l));
         }
         if (settings.edgeOpacity !== undefined) {
-            graphInstance.linkOpacity(settings.edgeOpacity / 100);
+            currentEdgeRenderSettings.opacity = settings.edgeOpacity / 100;
+            graphInstance.linkOpacity(l => getLinkOpacity(l));
         }
         if (settings.edgeColor !== undefined) {
-            graphInstance.linkColor(() => settings.edgeColor);
+            currentEdgeRenderSettings.edgeColor = settings.edgeColor || '';
+            graphInstance.linkColor(l => getLinkBaseColor(l));
+        }
+        if (settings.derivedEdgeColor !== undefined) {
+            currentEdgeRenderSettings.derivedEdgeColor = settings.derivedEdgeColor || '';
+            graphInstance.linkColor(l => getLinkBaseColor(l));
         }
         if (settings.particles !== undefined) {
-            graphInstance.linkDirectionalParticles(settings.particles);
+            currentEdgeRenderSettings.particles = settings.particles;
+            graphInstance.linkDirectionalParticles(l => getLinkParticles(l));
         }
 
         graphInstance.refresh();
