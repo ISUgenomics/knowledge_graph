@@ -263,6 +263,11 @@ class ChatToSQL:
             types = [row["type"] for row in self.db.entity_types()]
         except Exception:
             types = []
+        if self.module:
+            try:
+                requested.extend(self.module.preferred_result_types(self, message, types))
+            except Exception:
+                pass
         for entity_type in types:
             for variant in self._type_name_variants(entity_type):
                 if f" {variant} " in low:

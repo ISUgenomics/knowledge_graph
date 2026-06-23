@@ -67,6 +67,21 @@ WHERE e.type = 'protein'
 ```"""
 
 
+class _HgtRetryLLM:
+    def __init__(self):
+        self.calls = 0
+
+    def chat(self, messages):
+        self.calls += 1
+        return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'HAS_HGT_DONOR'
+AND e.type = 'gene'
+```"""
+
+
 def test_schema_context_includes_typed_patterns_and_tag_hierarchy(tmp_path: Path):
     db_path = tmp_path / "chat.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -113,6 +128,22 @@ def test_requested_result_types_detects_plural_entity_names(tmp_path: Path):
     assert chat._requested_result_types("show proteins with broad homology hits") == ["protein"]
     assert set(chat._requested_result_types("list comparative hits for this protein")) == {"protein", "comparative_hit"}
     db.close()
+
+
+def test_requested_result_types_prefers_hgt_donor_alias_over_gene_word(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-type.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    requested = chat._requested_result_types("select horizontal gene transfer donors")
+    db.close()
+
+    assert requested[0] == "hgt_donor"
+    assert "gene" in requested
 
 
 def test_ask_retries_when_direct_relationship_origin_conflicts_with_selected_type(tmp_path: Path):
@@ -491,3 +522,52 @@ AND (
     assert "Wrong metadata owner" in err
     assert "orthogroup" in err
     assert "gene -BELONGS_TO_ORTHOGROUP-> orthogroup" in err
+
+
+def test_ask_synthesizes_gene_bridge_query_for_hgt_donor(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    llm = _HgtRetryLLM()
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select all genes that have HGT donor")
+    db.close()
+
+    assert result.results
+    assert result.results[0]["id"] == "gene-1"
+    assert "HAS_TRANSCRIPT" in (result.sql or "")
+    assert "TRANSLATED_TO" in (result.sql or "")
+    assert "HAS_HGT_DONOR" in (result.sql or "")
+    assert "e.type = 'gene'" in (result.sql or "")
+
+
+def test_ask_synthesizes_gene_bridge_query_for_horizontal_gene_transfer(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-alt.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    llm = _HgtRetryLLM()
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select all genes with horizontal gene transfer")
+    db.close()
+
+    assert result.results
+    assert result.results[0]["id"] == "gene-1"
+    assert "HAS_HGT_DONOR" in (result.sql or "")
