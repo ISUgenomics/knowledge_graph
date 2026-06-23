@@ -311,18 +311,22 @@ contract:
       name: Homology Scope
       category: topic
       parent: homology
-    homology-scope-cyst-nematode:
-      name: Cyst Nematode
+    homology-scope-broad-parasitism:
+      name: Broad Parasitism
       category: topic
       parent: homology-scope
     homology-scope-nematode:
       name: Nematode
       category: topic
       parent: homology-scope
-    homology-scope-broad-parasitism:
-      name: Broad Parasitism
+    homology-scope-cyst-nematode:
+      name: Cyst Nematode
       category: topic
-      parent: homology-scope
+      parent: homology-scope-nematode
+    homology-scope-bcn-ortholog:
+      name: BCN Ortholog
+      category: topic
+      parent: homology-scope-cyst-nematode
     effectors:
       name: Effectors
       category: field

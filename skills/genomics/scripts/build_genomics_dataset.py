@@ -146,6 +146,29 @@ def _comparative_scope_label(tag_id: str) -> str:
     return text
 
 
+def _scope_ancestor_chain(tag_id: str, parent_map: dict[str, str]) -> list[str]:
+    ancestors: list[str] = []
+    current = str(tag_id or "").strip()
+    seen: set[str] = set()
+    while current and current not in seen:
+        seen.add(current)
+        parent = str(parent_map.get(current, "") or "").strip()
+        if not parent:
+            break
+        ancestors.append(parent)
+        current = parent
+    return ancestors
+
+
+def _prune_descendant_scopes(scope_ids: set[str], parent_map: dict[str, str]) -> set[str]:
+    retained = set(scope_ids)
+    for scope_id in list(scope_ids):
+        for ancestor in _scope_ancestor_chain(scope_id, parent_map):
+            if ancestor in retained:
+                retained.discard(ancestor)
+    return retained
+
+
 def _parse_comparative_entity_value(value: str, spec: dict[str, Any]) -> dict[str, str]:
     raw_text = str(value or "").strip()
     if not raw_text:
@@ -512,6 +535,11 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
         str(label): str(column)
         for label, column in (ui_cfg.get("expression_fields", {}) or {}).items()
     }
+    tag_hierarchy_cfg = combine_section(schema.get("tag_hierarchy", {}))
+    scope_parent_map = {
+        str(tag_id): str(info.get("parent", "") or "")
+        for tag_id, info in tag_hierarchy_cfg.items()
+    }
     contrast_field_lookup = {
         str(label): str(column)
         for label, column in (ui_cfg.get("log2fc_fields", {}) or {}).items()
@@ -526,7 +554,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
     comparative_state: dict[str, dict[str, Any]] = {}
 
     with KnowledgeGraphDB(db_path) as db:
-        seeded_tags = _seed_tag_hierarchy(db, combine_section(schema.get("tag_hierarchy", {})))
+        seeded_tags = _seed_tag_hierarchy(db, tag_hierarchy_cfg)
         linked_contrast_edges: set[tuple[str, str, str]] = set()
         comparative_organism_ids: dict[str, str] = {}
         comparative_identity_index: dict[tuple[str, str], str] = {}
@@ -919,6 +947,9 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             )
 
         for comparative_id, state in comparative_state.items():
+            pruned_scope_ids = _prune_descendant_scopes(set(state["scope_tag_ids"]), scope_parent_map)
+            for redundant_scope in sorted(set(state["scope_tag_ids"]) - pruned_scope_ids):
+                db.delete_relationship(comparative_id, "TAGGED", redundant_scope)
             metadata = {
                 "category": "comparative",
                 "organism": state["organism"],
@@ -932,10 +963,10 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             for key in ("identifier", "description", "matched_organism", "raw_value"):
                 if state.get(key):
                     metadata[key] = state[key]
-            if state["scope_tag_ids"]:
+            if pruned_scope_ids:
                 metadata["scopes"] = sorted(
                     _comparative_scope_label(scope_id)
-                    for scope_id in state["scope_tag_ids"]
+                    for scope_id in pruned_scope_ids
                     if scope_id
                 )
             db.upsert_entity(

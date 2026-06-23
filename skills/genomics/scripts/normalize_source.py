@@ -387,7 +387,7 @@ def normalize_source_package(
                 "attach_from": "orthogroup",
                 "relationship_type": "HAS_BCN_MEMBER",
                 "target_organism": "Heterodera schachtii",
-                "scope_tag_id": "homology-scope-cyst-nematode",
+                "scope_tag_id": "homology-scope-bcn-ortholog",
                 "parser": "term_list",
             },
             "bcn_hit": {

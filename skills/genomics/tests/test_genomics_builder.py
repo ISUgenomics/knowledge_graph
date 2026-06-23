@@ -147,7 +147,7 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert bcn_gene["metadata"]["organism"] == "Heterodera schachtii"
         assert bcn_gene["metadata"]["sources"] == ["schachtii_genes", "schachtii_hits"]
         assert bcn_gene["metadata"]["relations"] == ["bcn_homology", "ortholog_member"]
-        assert bcn_gene["metadata"]["scopes"] == ["cyst-nematode"]
+        assert bcn_gene["metadata"]["scopes"] == ["bcn-ortholog"]
         schachtii = db.get_entity("organism:heterodera-schachtii")
         assert schachtii is not None
         bcn_org_rels = db.get_relationships("bcn_gene:heterodera-schachtii:hsc_gene_14957.t1", "FROM_ORGANISM", direction="outgoing")
@@ -180,7 +180,16 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         scope_rels = db.get_relationships("comparative_hit:cyst_nematode:hsc-gene-4672-t1", "TAGGED", direction="outgoing")
         assert any(rel["target_id"] == "homology-scope-cyst-nematode" for rel in scope_rels)
         assert db.get_entity("homology-scope-cyst-nematode") is not None
+        assert db.get_entity("homology-scope-bcn-ortholog") is not None
         assert db.get_entity("homology-scope-broad-parasitism") is not None
+        broad_scope_parent = db.get_relationships("homology-scope-broad-parasitism", "BROADER", direction="outgoing")
+        assert any(rel["target_id"] == "homology-scope" for rel in broad_scope_parent)
+        nem_scope_parent = db.get_relationships("homology-scope-nematode", "BROADER", direction="outgoing")
+        assert any(rel["target_id"] == "homology-scope" for rel in nem_scope_parent)
+        cyst_scope_parent = db.get_relationships("homology-scope-cyst-nematode", "BROADER", direction="outgoing")
+        assert any(rel["target_id"] == "homology-scope-nematode" for rel in cyst_scope_parent)
+        bcn_scope_parent = db.get_relationships("homology-scope-bcn-ortholog", "BROADER", direction="outgoing")
+        assert any(rel["target_id"] == "homology-scope-cyst-nematode" for rel in bcn_scope_parent)
         protein = db.get_entity("hg_chrom1_tn10mrna_10:protein")
         assert protein is not None
         assert protein["metadata"]["hgt_donor_id"] == "WP_194067917"

@@ -112,7 +112,7 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "attach_from": "orthogroup",
             "relationship_type": "HAS_BCN_MEMBER",
             "target_organism": "Heterodera schachtii",
-            "scope_tag_id": "homology-scope-cyst-nematode",
+            "scope_tag_id": "homology-scope-bcn-ortholog",
             "parser": "term_list",
         }
     if "schachtii_hits" in header_set:
