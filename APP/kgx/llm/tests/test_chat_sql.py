@@ -605,6 +605,168 @@ def test_ask_synthesizes_protein_hgt_query_with_orthogroup_filter(tmp_path: Path
 
     assert result.results
     assert result.results[0]["id"] == "prot-1"
-    assert "JOIN relationships t1 ON t1.target_id = e.id AND t1.rel_type = 'TRANSLATED_TO'" in (result.sql or "")
-    assert "JOIN relationships og ON og.source_id = g1.source_id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'" in (result.sql or "")
-    assert "upper(owner.name) = 'OG0005830'" in (result.sql or "")
+    assert "TRANSLATED_TO" in (result.sql or "")
+    assert "BELONGS_TO_ORTHOGROUP" in (result.sql or "")
+    assert "OG0005830" in (result.sql or "")
+
+
+def test_ask_synthesizes_protein_query_for_hgt_and_broad_parasitism(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-broad.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.upsert_entity("comparative_hit", "hit-1", name="Q04456.1")
+    db.upsert_entity("tag", "homology-scope-broad-parasitism", name="Broad Parasitism")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-broad-parasitism")
+    db.close()
+
+    class _HgtBroadLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'HAS_HGT_DONOR'
+AND e.type = 'protein'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _HgtBroadLLM(), module=GenomicsChatModule())
+    result = chat.ask("select proteins with HGT donor and broad parasitism")
+    db.close()
+
+    assert result.results
+    assert result.results[0]["id"] == "prot-1"
+    assert "HAS_HGT_DONOR" in (result.sql or "")
+    assert "HAS_BROAD_HOMOLOGY_HIT" in (result.sql or "")
+    assert "homology-scope-broad-parasitism" in (result.sql or "")
+
+
+def test_validation_error_rejects_unrequested_extra_semantic_conditions(tmp_path: Path):
+    db_path = tmp_path / "chat-extra-semantics.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og0005830", name="OG0005830")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.upsert_entity("comparative_hit", "hit-1", name="Q04456.1")
+    db.upsert_entity("tag", "homology-scope-nematode", name="Nematode")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og0005830")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-nematode")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-cyst-nematode")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ev1 ON ev1.source_id = e.id AND ev1.rel_type = 'HAS_HGT_DONOR'
+JOIN entities t2 ON t2.id = ev1.target_id AND t2.type = 'hgt_donor'
+JOIN relationships p3 ON p3.target_id = e.id AND p3.rel_type = 'TRANSLATED_TO'
+JOIN relationships p4 ON p4.target_id = p3.source_id AND p4.rel_type = 'HAS_TRANSCRIPT'
+JOIN relationships og5 ON og5.source_id = p4.source_id AND og5.rel_type = 'BELONGS_TO_ORTHOGROUP'
+JOIN entities owner6 ON owner6.id = og5.target_id AND owner6.type = 'orthogroup'
+JOIN relationships sev7 ON sev7.source_id = e.id AND sev7.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN entities shit8 ON shit8.id = sev7.target_id AND shit8.type = 'comparative_hit'
+JOIN relationships stg9 ON stg9.source_id = shit8.id AND stg9.rel_type = 'TAGGED'
+JOIN entities stag10 ON stag10.id = stg9.target_id AND stag10.type = 'tag'
+WHERE e.type = 'protein'
+  AND (upper(owner6.name) = 'OG0005830' OR upper(owner6.id) = 'ORTHOGROUP:OG0005830')
+  AND stag10.id = 'homology-scope-nematode'
+""",
+        ["protein"],
+        "select protein with HGT donor in orthogroup OG0005830",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected evidence condition" in err or "Unexpected scope filter" in err
+
+
+def test_ask_synthesizes_gene_query_for_hgt_and_ortholog_gene(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-ortholog.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.close()
+
+    class _HgtOrthologLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'HAS_HGT_DONOR'
+AND e.type = 'gene'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _HgtOrthologLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with HGT donor and ortholog gene")
+    db.close()
+
+    assert result.results
+    assert result.results[0]["id"] == "gene-1"
+    assert "HAS_HGT_DONOR" in (result.sql or "")
+    assert "HAS_BCN_MEMBER" in (result.sql or "")
+
+
+def test_semantic_query_for_bcn_homology_and_bcn_orthologs(tmp_path: Path):
+    db_path = tmp_path / "chat-bcn-combo.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("transcript", "tx-2", name="Transcript 2")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("orthogroup", "orthogroup:og2", name="OG2")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hsc_gene_14957.t1")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn-1")
+    db.add_relationship("prot-1", "HAS_BCN_HIT", "hit-1")
+    db.add_relationship("gene-2", "HAS_TRANSCRIPT", "tx-2")
+    db.add_relationship("tx-2", "TRANSLATED_TO", "prot-2")
+    db.add_relationship("gene-2", "BELONGS_TO_ORTHOGROUP", "orthogroup:og2")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert sql is not None
+    assert "HAS_BCN_HIT" in sql
+    assert "HAS_BCN_MEMBER" in sql
+    assert "HAS_NEMATODE_HIT" not in sql
+    assert "homology-scope-nematode" not in sql
+    assert rows
+    assert rows[0]["id"] == "gene-1"

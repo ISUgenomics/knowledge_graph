@@ -320,6 +320,31 @@ class ChatToSQL:
                 queue.append((dst, new_path))
         return []
 
+    def _shortest_type_path_any_direction(self, start_type: str, end_type: str) -> list[tuple[str, str, str, str]]:
+        if not start_type or not end_type:
+            return []
+        if start_type == end_type:
+            return []
+        patterns = self._typed_rel_patterns()
+        neighbors: dict[str, list[tuple[str, str, str, str]]] = {}
+        for src, rel, dst in patterns:
+            neighbors.setdefault(src, []).append((src, rel, dst, "forward"))
+            neighbors.setdefault(dst, []).append((dst, rel, src, "reverse"))
+        queue: deque[tuple[str, list[tuple[str, str, str, str]]]] = deque([(start_type, [])])
+        seen = {start_type}
+        while queue:
+            current, path = queue.popleft()
+            for edge in neighbors.get(current, []):
+                _, _, nxt, _ = edge
+                if nxt in seen:
+                    continue
+                new_path = path + [edge]
+                if nxt == end_type:
+                    return new_path
+                seen.add(nxt)
+                queue.append((nxt, new_path))
+        return []
+
     def _entity_name_matches(self, name: str) -> list[tuple[str, str, str]]:
         rows = self.db.conn.execute(
             """
@@ -459,6 +484,14 @@ class ChatToSQL:
                     f"that owns '{field_name}' before filtering on that metadata.{bridge_text}"
                 )
 
+        if self.module:
+            try:
+                module_error = self.module.validation_error(self, sql, requested_types, message)
+            except Exception:
+                module_error = None
+            if module_error:
+                return module_error
+
         if not (rel_match and join_match):
             rel_match = re.search(r"r\.rel_type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
             if not rel_match:
@@ -504,13 +537,6 @@ class ChatToSQL:
                         f"Keep the requested result type, but bridge through the typed path instead of joining "
                         f"that relationship directly to '{selected_type}'.{bridge_text}"
                     )
-        if self.module:
-            try:
-                module_error = self.module.validation_error(self, sql, requested_types, message)
-            except Exception:
-                module_error = None
-            if module_error:
-                return module_error
         return None
 
     @staticmethod
