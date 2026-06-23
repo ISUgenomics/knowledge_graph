@@ -116,6 +116,7 @@ const DEFAULT_TIMELINE_ANCHOR_LABEL_Z = -25;
 const DEFAULT_HIERARCHY_LEVEL_SPACING = 180;
 const DEFAULT_HIERARCHY_TYPE_SEPARATION = 140;
 const DEFAULT_HIERARCHY_STRUCTURE_PULL = 100;
+const DEFAULT_HIERARCHY_DAG_LEVEL_DISTANCE = 96;
 const DEFAULT_HIERARCHY_RELATION_CLASSES = {
     hierarchy: ['BROADER', 'PARENT_OF', 'NARROWER', 'CHILD_OF'],
     structural: ['AUTHORED', 'CREATED', 'WROTE', 'PUBLISHED', 'PRODUCED', 'PRESENTED', 'ISSUED', 'FILED', 'FUNDED', 'GRANTED', 'WON'],
@@ -2870,6 +2871,33 @@ const COMMUNITY_COLORS = [
         const bandCfg = hierarchySettings.profile?.bands || {};
         const relationSets = buildHierarchyRelationClassSets(hierarchyProfile);
         const driverDirectionOverrides = hierarchySettings.profile?.driver_direction_overrides || {};
+        const tagDepthCache = new Map();
+
+        function getTagHierarchyDepth(nodeId, tagCategory = '', stack = new Set()) {
+            const normalizedId = String(nodeId || '');
+            if (!normalizedId || stack.has(normalizedId)) return 0;
+            const cacheKey = `${normalizedId}::${String(tagCategory || '').toLowerCase()}`;
+            if (tagDepthCache.has(cacheKey)) return tagDepthCache.get(cacheKey);
+            stack.add(normalizedId);
+            const normalizedCategory = String(tagCategory || '').toLowerCase();
+            const parentIds = [...(tagParentsById.get(normalizedId) || [])];
+            let depth = 0;
+            for (const parentId of parentIds) {
+                const parentNode = nodeById.get(parentId);
+                const parentCategory = String(
+                    tagCategoryById.get(parentId) || getTimelineTagCategory(parentNode)
+                ).toLowerCase();
+                const parentDepth = getTagHierarchyDepth(parentId, parentCategory, stack);
+                if (!normalizedCategory || parentCategory === normalizedCategory) {
+                    depth = Math.max(depth, parentDepth + 1);
+                } else {
+                    depth = Math.max(depth, 0);
+                }
+            }
+            stack.delete(normalizedId);
+            tagDepthCache.set(cacheKey, depth);
+            return depth;
+        }
 
         const visibleEdges = allEdges
             .filter(edge => !edge.__hidden)
@@ -2985,14 +3013,30 @@ const COMMUNITY_COLORS = [
 
         function getHierarchyTargetY(node, family, tagCategory = '') {
             const explicitTypeLevel = getHierarchyExplicitTypeLevel(node);
-            if (explicitTypeLevel != null) return explicitTypeLevel;
+            if (explicitTypeLevel != null) {
+                let targetY = explicitTypeLevel;
+                if (structureMode === 'linearized' && isTimelineTagLike(node?.type)) {
+                    const hierarchyDepth = getTagHierarchyDepth(node.id, tagCategory);
+                    if (hierarchyDepth > 0) {
+                        targetY += hierarchyDepth * tagBandStep;
+                    }
+                }
+                return targetY;
+            }
             if (isPromotedHierarchyRootTag(node, tagCategory)) {
                 const domainBand = Number(bandCfg.tag_domain_y ?? -2.6);
                 const fieldBand = Number(bandCfg.tag_field_y ?? -1.95);
                 const domainStep = domainBand - fieldBand;
                 return levelSpacing * (domainBand + domainStep);
             }
-            return getHierarchyTargetYForFamily(family);
+            let targetY = getHierarchyTargetYForFamily(family);
+            if (structureMode === 'linearized' && isTimelineTagLike(node?.type)) {
+                const hierarchyDepth = getTagHierarchyDepth(node.id, tagCategory);
+                if (hierarchyDepth > 0) {
+                    targetY += hierarchyDepth * tagBandStep;
+                }
+            }
+            return targetY;
         }
 
         function getHierarchyReversedTagTargetY(node, family, tagCategory = '') {
@@ -3008,7 +3052,14 @@ const COMMUNITY_COLORS = [
             if (family === 'tag-domain') return levelSpacing * topicBand;
             if (family === 'tag-topic') return levelSpacing * domainBand;
             if (family === 'tag-field') return levelSpacing * fieldBand;
-            return levelSpacing * promotedRootBand;
+            let targetY = levelSpacing * promotedRootBand;
+            if (isTimelineTagLike(node?.type)) {
+                const hierarchyDepth = getTagHierarchyDepth(node.id, tagCategory);
+                if (hierarchyDepth > 0) {
+                    targetY -= hierarchyDepth * tagBandStep;
+                }
+            }
+            return targetY;
         }
 
         function getHierarchyTargetZForFamily(node, family) {
@@ -3037,30 +3088,21 @@ const COMMUNITY_COLORS = [
         refreshVisibility();
         emitProjectionSnapshot();
 
-        // Cold-start Hierarchical from deterministic seeds so its shape does not
-        // inherit coordinates or momentum from Force, Timeline, or a prior mode.
-        for (const node of visibleNodes) {
-            const seed = stableHash(node.id);
-            const tagCategory = tagCategoryById.get(node.id) || getTimelineTagCategory(node);
-            const family = getHierarchyTypeFamily(node, tagCategory);
-            const yJitter = ((seed % 7) - 3) * 3;
-            const zJitter = (((Math.floor(seed / 7)) % 7) - 3) * 2;
-            delete node.fx;
-            delete node.fy;
-            delete node.fz;
-            node.x = 0;
-            node.y = getHierarchyTargetY(node, family, tagCategory) + yJitter;
-            node.z = getHierarchyTargetZForFamily(node, family) + zJitter;
-            node.vx = 0;
-            node.vy = 0;
-            node.vz = 0;
-        }
-
-        if (typeof graphInstance.dagLevelDistance === 'function') {
-            graphInstance.dagLevelDistance(Math.max(80, levelSpacing));
-        }
-
         if (structureMode === 'linear') {
+            if (typeof graphInstance.dagLevelDistance === 'function') {
+                graphInstance.dagLevelDistance(DEFAULT_HIERARCHY_DAG_LEVEL_DISTANCE);
+            }
+            for (const node of visibleNodes) {
+                delete node.fx;
+                delete node.fy;
+                delete node.fz;
+                node.x = 0;
+                node.y = 0;
+                node.z = 0;
+                node.vx = 0;
+                node.vy = 0;
+                node.vz = 0;
+            }
             graphInstance.d3Force('hierarchy', null);
             graphInstance.d3Force('hierarchyPeers', null);
             graphInstance.d3Force('hierarchySparseHold', null);
@@ -3079,8 +3121,30 @@ const COMMUNITY_COLORS = [
             return;
         }
 
+        // Cold-start custom normalized hierarchy from deterministic seeds so its shape does not
+        // inherit coordinates or momentum from Force, Timeline, or a prior mode.
+        for (const node of visibleNodes) {
+            const seed = stableHash(node.id);
+            const tagCategory = tagCategoryById.get(node.id) || getTimelineTagCategory(node);
+            const family = getHierarchyTypeFamily(node, tagCategory);
+            const yJitter = ((seed % 7) - 3) * 3;
+            const zJitter = (((Math.floor(seed / 7)) % 7) - 3) * 2;
+            delete node.fx;
+            delete node.fy;
+            delete node.fz;
+            node.x = 0;
+            node.y = getHierarchyTargetY(node, family, tagCategory) + yJitter;
+            node.z = getHierarchyTargetZForFamily(node, family) + zJitter;
+            node.vx = 0;
+            node.vy = 0;
+            node.vz = 0;
+        }
+
         graphInstance.d3Force('hierarchyPeers', null);
         graphInstance.d3Force('hierarchySparseHold', null);
+        if (typeof graphInstance.dagLevelDistance === 'function') {
+            graphInstance.dagLevelDistance(Math.max(80, levelSpacing));
+        }
         graphInstance.graphData({
             nodes: allNodes,
             links: sparseDriverEdges.length ? sparseDriverEdges : allEdges,
@@ -3112,7 +3176,7 @@ const COMMUNITY_COLORS = [
                 const explicitTypeLevel = getHierarchyExplicitTypeLevel(node);
                 const baselineX = dagBaselineXById.get(node.id) ?? 0;
                 const baselineZ = dagBaselineZById.get(node.id) ?? 0;
-                let targetY = explicitTypeLevel != null ? explicitTypeLevel : getHierarchyTargetY(node, family, tagCategory);
+                let targetY = getHierarchyTargetY(node, family, tagCategory);
                 let targetZ = baselineZ;
                 const yStrength = graphMode === 'display' ? 0.85 : 0.72;
                 const zStrength = isTimelineTagLike(node.type)
