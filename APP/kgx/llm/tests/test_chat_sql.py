@@ -82,6 +82,17 @@ AND e.type = 'gene'
 ```"""
 
 
+class _HgtOrthogroupRetryLLM:
+    def chat(self, messages):
+        return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'HAS_HGT_DONOR'
+AND e.type = 'protein'
+```"""
+
+
 def test_schema_context_includes_typed_patterns_and_tag_hierarchy(tmp_path: Path):
     db_path = tmp_path / "chat.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -571,3 +582,29 @@ def test_ask_synthesizes_gene_bridge_query_for_horizontal_gene_transfer(tmp_path
     assert result.results
     assert result.results[0]["id"] == "gene-1"
     assert "HAS_HGT_DONOR" in (result.sql or "")
+
+
+def test_ask_synthesizes_protein_hgt_query_with_orthogroup_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-og.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og0005830", name="OG0005830")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og0005830")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _HgtOrthogroupRetryLLM(), module=GenomicsChatModule())
+    result = chat.ask("does any protein has HGT donor and belongs to orthogroup OG0005830?")
+    db.close()
+
+    assert result.results
+    assert result.results[0]["id"] == "prot-1"
+    assert "JOIN relationships t1 ON t1.target_id = e.id AND t1.rel_type = 'TRANSLATED_TO'" in (result.sql or "")
+    assert "JOIN relationships og ON og.source_id = g1.source_id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'" in (result.sql or "")
+    assert "upper(owner.name) = 'OG0005830'" in (result.sql or "")

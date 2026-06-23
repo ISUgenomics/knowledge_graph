@@ -19,12 +19,21 @@ class GenomicsChatModule(ChatModule):
         low = f" {str(message or '').lower()} "
         return any(alias in low for alias in aliases)
 
+    @staticmethod
+    def _requested_orthogroup_label(message: str) -> str:
+        match = re.search(r"\b(?:orthogroup\s+)?(og\d{4,})\b", str(message or ""), re.IGNORECASE)
+        return match.group(1).upper() if match else ""
+
     def preferred_result_types(self, chat, message: str, available_types: list[str]) -> list[str]:
         low = f" {str(message or '').lower()} "
         preferred: list[str] = []
-        explicit_gene_like = any(token in low for token in [" genes ", " transcript ", " transcripts ", " protein ", " proteins "])
-        if " gene " in low and " gene transfer " not in low:
-            explicit_gene_like = True
+        if "protein" in available_types and re.search(r"\bproteins?\b", low):
+            preferred.append("protein")
+        if "transcript" in available_types and re.search(r"\btranscripts?\b", low):
+            preferred.append("transcript")
+        if "gene" in available_types and re.search(r"\bgenes?\b", low) and " gene transfer " not in low:
+            preferred.append("gene")
+        explicit_gene_like = bool(preferred)
         if "hgt_donor" in available_types and (
             " hgt donor " in low
             or " hgt donors " in low
@@ -35,10 +44,11 @@ class GenomicsChatModule(ChatModule):
         return preferred
 
     def _protein_evidence_bridge(self, chat, message: str, requested_types: list[str]) -> str | None:
-        requested_type = requested_types[0] if requested_types else ""
+        requested_type = next((item for item in requested_types if item in {"gene", "transcript", "protein"}), "")
         if requested_type not in {"gene", "transcript", "protein"}:
             return None
         patterns = chat._typed_rel_patterns()
+        orthogroup_label = self._requested_orthogroup_label(message)
         for spec in self._PROTEIN_EVIDENCE_BRIDGES:
             if not self._message_matches_aliases(message, spec["aliases"]):
                 continue
@@ -66,11 +76,34 @@ class GenomicsChatModule(ChatModule):
             joins.append(
                 f"JOIN relationships ev ON ev.source_id = {current_node_ref} AND ev.rel_type = '{rel_type}'"
             )
+            where_lines = [f"WHERE e.type = '{requested_type}'"]
+            if orthogroup_label:
+                if requested_type == "gene":
+                    joins.extend([
+                        "JOIN relationships og ON og.source_id = e.id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'",
+                        "JOIN entities owner ON owner.id = og.target_id AND owner.type = 'orthogroup'",
+                    ])
+                elif requested_type == "transcript":
+                    joins.extend([
+                        "JOIN relationships g1 ON g1.target_id = e.id AND g1.rel_type = 'HAS_TRANSCRIPT'",
+                        "JOIN relationships og ON og.source_id = g1.source_id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'",
+                        "JOIN entities owner ON owner.id = og.target_id AND owner.type = 'orthogroup'",
+                    ])
+                elif requested_type == "protein":
+                    joins.extend([
+                        "JOIN relationships t1 ON t1.target_id = e.id AND t1.rel_type = 'TRANSLATED_TO'",
+                        "JOIN relationships g1 ON g1.target_id = t1.source_id AND g1.rel_type = 'HAS_TRANSCRIPT'",
+                        "JOIN relationships og ON og.source_id = g1.source_id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'",
+                        "JOIN entities owner ON owner.id = og.target_id AND owner.type = 'orthogroup'",
+                    ])
+                where_lines.append(
+                    f"  AND (upper(owner.name) = '{orthogroup_label}' OR upper(owner.id) = 'ORTHOGROUP:{orthogroup_label}')"
+                )
             return "\n".join([
                 "SELECT DISTINCT e.id, e.name, e.type",
                 "FROM entities e",
                 *joins,
-                f"WHERE e.type = '{requested_type}'",
+                *where_lines,
             ])
         return None
 
@@ -104,6 +137,13 @@ class GenomicsChatModule(ChatModule):
     def validation_error(self, chat, sql: str, requested_types: list[str], message: str) -> str | None:
         if not sql or not requested_types:
             return None
+        orthogroup_label = self._requested_orthogroup_label(message)
+        if orthogroup_label and self._message_matches_aliases(message, ["hgt donor", "horizontal gene transfer", " hgt "]):
+            if "BELONGS_TO_ORTHOGROUP" not in sql.upper() and "ORTHOGROUP" not in sql.upper():
+                return (
+                    f"Missing orthogroup filter: the user requested orthogroup '{orthogroup_label}' together with HGT evidence. "
+                    "Keep the requested result type, but also bridge through the gene-to-orthogroup path and filter on the requested orthogroup."
+                )
         type_match = re.search(r"e\.type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
         rel_match = re.search(r"r\.rel_type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
         if not (type_match and rel_match):
