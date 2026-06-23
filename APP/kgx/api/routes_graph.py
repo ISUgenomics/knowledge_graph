@@ -13,13 +13,44 @@ def make_graph_router(db: KnowledgeGraphDB, explore_config: dict | None = None) 
     router = APIRouter(tags=["graph"])
     _explore_cfg = explore_config or {}
 
+    def _available_schema_sets() -> tuple[set[str], set[str]]:
+        entity_types = {str(item.get("type") or "") for item in db.entity_types()}
+        relationship_types = {str(item.get("rel_type") or "") for item in db.relationship_types()}
+        return entity_types, relationship_types
+
+    def _preset_is_available(cfg: dict, available_entity_types: set[str], available_rel_types: set[str]) -> bool:
+        required_node_types_all = [str(item) for item in (cfg.get("required_node_types_all") or []) if str(item)]
+        required_node_types_any = [str(item) for item in (cfg.get("required_node_types_any") or []) if str(item)]
+        required_rel_types_all = [str(item) for item in (cfg.get("required_rel_types_all") or []) if str(item)]
+        required_rel_types_any = [str(item) for item in (cfg.get("required_rel_types_any") or []) if str(item)]
+
+        if required_node_types_all and not all(item in available_entity_types for item in required_node_types_all):
+            return False
+        if required_node_types_any and not any(item in available_entity_types for item in required_node_types_any):
+            return False
+        if required_rel_types_all and not all(item in available_rel_types for item in required_rel_types_all):
+            return False
+        if required_rel_types_any and not any(item in available_rel_types for item in required_rel_types_any):
+            return False
+        return True
+
     def _resolved_explore_config(preset: str = "") -> tuple[dict, dict]:
         resolved = dict(_explore_cfg)
         presets = dict(resolved.get("presets", {}) or {})
-        active_preset = preset or resolved.get("active_preset", "")
+        available_entity_types, available_rel_types = _available_schema_sets()
+        available_presets = [
+            (preset_id, cfg)
+            for preset_id, cfg in presets.items()
+            if _preset_is_available(dict(cfg or {}), available_entity_types, available_rel_types)
+        ]
+        available_preset_ids = {preset_id for preset_id, _ in available_presets}
+        requested_preset = preset or resolved.get("active_preset", "")
+        active_preset = requested_preset if requested_preset in available_preset_ids else (
+            available_presets[0][0] if available_presets else ""
+        )
         preset_cfg = dict(presets.get(active_preset, {}) or {}) if active_preset else {}
         for key, value in preset_cfg.items():
-            if key in {"label", "description"}:
+            if key in {"label", "description", "required_node_types_all", "required_node_types_any", "required_rel_types_all", "required_rel_types_any"}:
                 continue
             if value is not None:
                 resolved[key] = value
@@ -32,7 +63,7 @@ def make_graph_router(db: KnowledgeGraphDB, explore_config: dict | None = None) 
                     "label": cfg.get("label") or preset_id,
                     "description": cfg.get("description", ""),
                 }
-                for preset_id, cfg in presets.items()
+                for preset_id, cfg in available_presets
             ],
         }
         return resolved, meta

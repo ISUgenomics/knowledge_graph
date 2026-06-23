@@ -215,8 +215,9 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         data = resp.json()
         node_ids = {n["id"] for n in data["nodes"]}
         rel_types = {e["rel_type"] for e in data["edges"]}
+        preset_ids = {p["id"] for p in data["projection"]["available_presets"]}
         assert data["projection"]["active_preset"] == "protein_centric"
-        assert any(p["id"] == "expression_centric" for p in data["projection"]["available_presets"])
+        assert "expression_centric" not in preset_ids
         assert "prot-1" in node_ids
         assert "gene-1" in node_ids
         assert "tx-1" not in node_ids
@@ -257,3 +258,43 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         assert "TAGGED" in rel_types
         assert "BROADER" in rel_types
         assert "FROM_ORGANISM" in rel_types
+
+
+@pytest.mark.asyncio
+async def test_graph_explore_presets_hide_optional_genomics_modes_when_layers_absent(tmp_path):
+    db_path = tmp_path / "genomics-minimal.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("chromosome:heterodera-glycines:chr1", "HAS_GENE", "gene-1")
+    db.close()
+
+    cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/genomics.yaml"))
+    app_config = {
+        "db_path": str(db_path),
+        "server": cfg.server.model_dump(),
+        "ui": cfg.ui.model_dump(),
+        "llm": cfg.llm.model_dump(),
+        "skills": cfg.skills.model_dump(),
+        "explore": cfg.explore.model_dump(),
+        "embedding": cfg.embedding.model_dump(),
+        "domain": cfg.domain.model_dump(),
+        "db_build": cfg.db_build.model_dump(),
+    }
+    app = create_app(app_config)
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.get("/api/graph", params={"mode": "explore"})
+        assert resp.status_code == 200
+        data = resp.json()
+        preset_ids = {item["id"] for item in data["projection"]["available_presets"]}
+        assert data["projection"]["active_preset"] == "structure"
+        assert "structure" in preset_ids
+        assert "gene_centric" in preset_ids
+        assert "transcript_centric" not in preset_ids
+        assert "protein_centric" not in preset_ids
+        assert "comparative" not in preset_ids
+        assert "expression_centric" not in preset_ids

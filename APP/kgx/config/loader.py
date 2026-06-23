@@ -260,6 +260,10 @@ class ExploreConfig(BaseModel):
     annotation_edge: str = ""
     default_hidden_rel_types: list[str] = Field(default_factory=list)
     skipped_rel_types: list[str] = Field(default_factory=list)
+    required_node_types_all: list[str] = Field(default_factory=list)
+    required_node_types_any: list[str] = Field(default_factory=list)
+    required_rel_types_all: list[str] = Field(default_factory=list)
+    required_rel_types_any: list[str] = Field(default_factory=list)
 
 
 class ExplorePresetConfig(BaseModel):
@@ -281,6 +285,10 @@ class ExplorePresetConfig(BaseModel):
     annotation_edge: str | None = None
     default_hidden_rel_types: list[str] | None = None
     skipped_rel_types: list[str] | None = None
+    required_node_types_all: list[str] | None = None
+    required_node_types_any: list[str] | None = None
+    required_rel_types_all: list[str] | None = None
+    required_rel_types_any: list[str] | None = None
 
 
 class ExploreModuleConfig(ExploreConfig):

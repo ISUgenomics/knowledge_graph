@@ -139,18 +139,20 @@ explore:
   annotation_edge: TAGGED
   default_hidden_rel_types: []
   skipped_rel_types: []
-  active_preset: backbone
+  active_preset: structure
   presets:
-    backbone:
-      label: Backbone
+    structure:
+      label: Structure
       description: Biological scaffold rooted in organism and flowing through gene, transcript, and protein.
+      required_node_types_any: [gene]
       include_node_types: [organism, chromosome, gene, transcript, protein]
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO]
       preserve_node_types: [organism]
       skipped_rel_types: []
     gene_centric:
-      label: Gene-Centric
+      label: Gene
       description: Gene-anchored view that collapses transcript mediation into direct gene-to-protein focus while keeping family context.
+      required_node_types_any: [gene]
       include_node_types: [organism, chromosome, gene, protein, orthogroup]
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP]
       preserve_node_types: [organism]
@@ -166,35 +168,17 @@ explore:
           edge_type: GENE_PRODUCT
       skipped_rel_types: []
     transcript_centric:
-      label: Transcript-Centric
+      label: Transcript
       description: Transcript and isoform view with direct expression summary and contrast semantics preserved.
+      required_node_types_any: [transcript]
       include_node_types: [organism, chromosome, gene, transcript, protein, expression_measure, contrast_definition]
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO, HAS_EXPRESSION_SUMMARY, HAS_EXPRESSION_CONTRAST, CONTRAST_SOURCE, CONTRAST_TARGET]
       preserve_node_types: [organism]
       skipped_rel_types: []
-    expression_centric:
-      label: Expression-Centric
-      description: Expression-focused view centered on genes, ordered summaries, and directed contrasts with transcript mediation collapsed.
-      include_node_types: [organism, gene, expression_measure, contrast_definition]
-      include_rel_types: [FROM_ORGANISM, CONTRAST_SOURCE, CONTRAST_TARGET]
-      preserve_node_types: [organism]
-      derived_path_edges:
-        - source_type: gene
-          via_type: transcript
-          target_type: expression_measure
-          first_rel_type: HAS_TRANSCRIPT
-          second_rel_type: HAS_EXPRESSION_SUMMARY
-          edge_type: GENE_EXPRESSION_MEASURE
-        - source_type: gene
-          via_type: transcript
-          target_type: contrast_definition
-          first_rel_type: HAS_TRANSCRIPT
-          second_rel_type: HAS_EXPRESSION_CONTRAST
-          edge_type: GENE_EXPRESSION_CONTRAST
-      skipped_rel_types: []
     protein_centric:
-      label: Protein-Centric
+      label: Protein
       description: Protein function view with transcript mediation collapsed and functional overlays preserved.
+      required_node_types_any: [protein]
       include_node_types: [organism, gene, protein, annotation_term, localization_call, prediction_call, tag]
       include_rel_types: [FROM_ORGANISM, HAS_ANNOTATION, HAS_LOCALIZATION, HAS_PREDICTION, TAGGED, BROADER]
       preserve_node_types: [organism]
@@ -214,6 +198,7 @@ explore:
     comparative:
       label: Comparative
       description: Comparative scaffold combining orthogroup ortholog genes with protein homology hits and homology-scope ontology.
+      required_node_types_any: [orthogroup, bcn_gene, comparative_hit]
       include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, tag]
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, TAGGED, BROADER]
       include_rel_patterns:
@@ -234,14 +219,27 @@ explore:
           edge_type: GENE_PRODUCT
       default_hidden_rel_types: []
       skipped_rel_types: []
-    provenance:
-      label: Provenance
-      description: Sample and organism lineage view for tracing what records belong to a dataset without scientific overlays.
-      include_node_types: [organism, dataset, gene]
-      include_rel_types: [IN_DATASET, ABOUT_ORGANISM, FROM_ORGANISM]
-      preserve_node_types: [organism, dataset]
+    expression_centric:
+      label: Expression
+      description: Expression-focused view centered on genes, ordered summaries, and directed contrasts with transcript mediation collapsed.
+      required_node_types_any: [expression_measure, contrast_definition]
+      include_node_types: [organism, gene, expression_measure, contrast_definition]
+      include_rel_types: [FROM_ORGANISM, CONTRAST_SOURCE, CONTRAST_TARGET]
+      preserve_node_types: [organism]
+      derived_path_edges:
+        - source_type: gene
+          via_type: transcript
+          target_type: expression_measure
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: HAS_EXPRESSION_SUMMARY
+          edge_type: GENE_EXPRESSION_MEASURE
+        - source_type: gene
+          via_type: transcript
+          target_type: contrast_definition
+          first_rel_type: HAS_TRANSCRIPT
+          second_rel_type: HAS_EXPRESSION_CONTRAST
+          edge_type: GENE_EXPRESSION_CONTRAST
       skipped_rel_types: []
-
 embedding:
   type_fields:
     gene: [genome_location, nested_genes]
