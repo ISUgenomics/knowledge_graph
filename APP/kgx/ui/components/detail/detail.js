@@ -271,6 +271,9 @@ export function initDetail(container, eventBus, apiClient) {
             if (relType === 'HAS_EXPRESSION_CONTRAST' && metadata.log2_fold_change !== undefined) {
                 return `log2fc ${metadata.log2_fold_change}`;
             }
+            if (relType === 'HAS_HGT_DONOR' && metadata.hgt_alien_index !== undefined) {
+                return `hgt index ${metadata.hgt_alien_index}`;
+            }
             return '';
         }
 
@@ -335,7 +338,7 @@ export function initDetail(container, eventBus, apiClient) {
         ],
         protein: [
             { title: 'Localization And Secretion', fields: ['secretion', 'dl_signals', 'dl_localizations', 'localizer', 'l_nucleus_peptide', 'l_mitochondria_peptide', 'l_mitochondria_score', 'l_chloroplast_peptide', 'l_chloroplast_score', 'signal_peptide', 'signalp5', 'signalp6', 'tm_domain_sp5', 'tm_domain_sp6', 'dl_nucleus', 'dl_mitochondrion', 'dl_plastid', 'dl_cytoplasm', 'dl_endoplasmic_reticulum', 'dl_lysosome_vacuole', 'dl_golgi_apparatus', 'dl_peroxisome', 'dl_cell_membrane', 'dl_extracellular'] },
-            { title: 'Comparative And HGT', fields: ['orthogroup', 'glycines_gene_count', 'schachtii_gene_count', 'schachtii_genes', 'schachtii_hits', 'celegans_hits', 'sp_best_hit', 'nr_best_hit', { key: 'hgt_donor_id', label: 'hgt donor' }, { key: 'hgt_alien_index', label: 'hgt index' }] },
+            { title: 'Comparative And HGT', fields: ['orthogroup', 'glycines_gene_count', 'schachtii_gene_count', 'schachtii_genes', 'schachtii_hits', 'celegans_hits', 'sp_best_hit', 'nr_best_hit', { key: 'hgt_donor_id', label: 'hgt donor' }] },
             { title: 'Functional Annotation', fields: ['t_factor', 'go_consensus', 'deepgoplus', 'interpro', 'smart', 'pfam', 'funfam', 'panther', 'glycines_effectors_dna', 'glycines_effectors_prot', 'schachtii_effectors_known', 'schachtii_effectors_putative', 'effector_islands'] },
             { title: 'Structure', fields: ['disorder', 'diso_regions', 'num_globular', 'domains', 'pdb_hit', 'hit_class'] },
             { title: 'Biophysics', fields: ['inclusion_body', 'mol_weight', 'isoel_point', 'charge', 'charged', 'aromatic', 'polar', 'non_polar', 'basic', 'acidic', 'small'] },

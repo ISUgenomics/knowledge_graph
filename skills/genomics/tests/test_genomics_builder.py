@@ -183,15 +183,20 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert db.get_entity("homology-scope-broad-parasitism") is not None
         protein = db.get_entity("hg_chrom1_tn10mrna_10:protein")
         assert protein is not None
-        assert protein["metadata"]["hgt_alien_index"] == "0.56"
         assert protein["metadata"]["hgt_donor_id"] == "WP_194067917"
+        assert "hgt_alien_index" not in protein["metadata"]
         donor = db.get_entity("hgt_donor:wp_194067917")
         assert donor is not None
         assert donor["name"] == "WP_194067917"
         assert donor["metadata"]["identifier"] == "WP_194067917"
+        assert "hgt_alien_index" not in donor["metadata"]
         assert donor["metadata"]["relations"] == ["hgt_donor"]
         donor_rels = db.get_relationships("hg_chrom1_tn10mrna_10:protein", "HAS_HGT_DONOR", direction="outgoing")
-        assert any(rel["target_id"] == "hgt_donor:wp_194067917" for rel in donor_rels)
+        assert any(
+            rel["target_id"] == "hgt_donor:wp_194067917"
+            and rel["metadata"].get("hgt_alien_index") == "0.56"
+            for rel in donor_rels
+        )
         no_donor_protein = db.get_entity("hg_chrom1_tn10mrna_1:protein")
         assert no_donor_protein is not None
         assert "hgt_donor_id" not in no_donor_protein["metadata"]

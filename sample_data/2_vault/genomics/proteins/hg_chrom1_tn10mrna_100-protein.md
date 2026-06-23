@@ -39,7 +39,6 @@ name: "Hg_chrom1_TN10gene_96 protein"
 | glutamine | 0.924 |
 | glycine | 0.504 |
 | glycines_gene_count | 1 |
-| hgt_alien_index | -0.15 |
 | histidine | 1.803 |
 | inclusion_body | 0.837 |
 | isoel_point | 10.2672 |

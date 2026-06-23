@@ -446,6 +446,8 @@ comparative_entities:
       name_template: '{value}'
       attach_from: protein
       relationship_type: HAS_HGT_DONOR
+      edge_metadata_columns:
+      - hgt_alien_index
       excluded_values:
       - 'No'
       parser: term_list

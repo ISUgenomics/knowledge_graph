@@ -35,7 +35,6 @@ name: "Hg_chrom1_TN10gene_958 protein"
 | glutamate | 0.704 |
 | glutamine | 0.241 |
 | glycine | 0.447 |
-| hgt_alien_index | -0.13 |
 | histidine | 1.408 |
 | inclusion_body | 0.767 |
 | isoel_point | 8.8289 |

@@ -38,7 +38,6 @@ name: "Hg_chrom1_TN10gene_956 protein"
 | glycine | 0.363 |
 | glycines_gene_count | 1 |
 | go_consensus | GO:0004930|GO:0007186|GO:0016020 |
-| hgt_alien_index | -0.24 |
 | histidine | 0.457 |
 | inclusion_body | 0.882 |
 | interpro | IPR000276+42-309+|IPR017452+48-295+|IPR019424+44-307+|IPR047130+34-307+ |

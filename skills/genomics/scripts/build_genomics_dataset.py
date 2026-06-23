@@ -45,6 +45,8 @@ def _metadata_from_row(row: dict[str, str], columns: list[str]) -> dict[str, Any
         value = _clean_value(row.get(column))
         if column == "hgt_donor_id" and isinstance(value, str) and value.strip().lower() == "no":
             value = None
+        if column == "hgt_alien_index":
+            value = None
         if value is not None:
             metadata[column] = value
     return metadata
@@ -712,11 +714,19 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                     })
                     state["source_columns"].add(str(spec.get("source_column", "") or ""))
                     state["relationship_types"].add(str(spec.get("relationship_type", "") or ""))
+                    edge_metadata: dict[str, Any] = {
+                        "source_column": str(spec.get("source_column", "") or ""),
+                    }
+                    for column in list(spec.get("edge_metadata_columns", []) or []):
+                        value = _clean_value(row.get(column))
+                        if value is None:
+                            continue
+                        edge_metadata[str(column)] = str(value)
                     db.add_relationship(
                         attach_id,
                         str(spec.get("relationship_type", "RELATED") or "RELATED"),
                         comparative_id,
-                        metadata={"source_column": str(spec.get("source_column", "") or "")},
+                        metadata=edge_metadata,
                     )
                     if comparative_organism_id:
                         db.add_relationship(comparative_id, "FROM_ORGANISM", comparative_organism_id)

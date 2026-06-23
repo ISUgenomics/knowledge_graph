@@ -41,7 +41,6 @@ name: "Hg_chrom1_TN10gene_957 protein"
 | glycine | 0.968 |
 | glycines_gene_count | 1 |
 | go_consensus | GO:0020037 |
-| hgt_alien_index | 0.14 |
 | hgt_donor_id | XP_002784278 |
 | histidine | 1.601 |
 | inclusion_body | 0.776 |
@@ -154,7 +153,7 @@ name: "Hg_chrom1_TN10gene_957 protein"
 
 ### HAS_HGT_DONOR
 
-- [[hgt_donors/hgt_donor-xp_002784278|XP_002784278]] (source_column=hgt_donor_id)
+- [[hgt_donors/hgt_donor-xp_002784278|XP_002784278]] (hgt_alien_index=0.14, source_column=hgt_donor_id)
 
 ### HAS_LOCALIZATION
 

@@ -203,6 +203,12 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
             "name_template": "{value}",
             "attach_from": "protein",
             "relationship_type": "HAS_HGT_DONOR",
+            "edge_metadata_columns": [
+                column for column in [
+                    "hgt_alien_index",
+                ]
+                if column in header_set
+            ],
             "excluded_values": ["No"],
             "parser": "term_list",
         }

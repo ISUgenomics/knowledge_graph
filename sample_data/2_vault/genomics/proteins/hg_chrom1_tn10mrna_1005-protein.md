@@ -40,7 +40,6 @@ name: "Hg_chrom1_TN10gene_960 protein"
 | glycine | 0.454 |
 | glycines_gene_count | 2 |
 | go_consensus | GO:0016973 |
-| hgt_alien_index | 0 |
 | histidine | 1.905 |
 | hit_class | PARTIAL_DOMAIN |
 | inclusion_body | 0.558 |
