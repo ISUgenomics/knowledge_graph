@@ -210,6 +210,30 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
     transport = httpx.ASGITransport(app=app)
 
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.get("/api/config")
+        assert resp.status_code == 200
+        cfg_data = resp.json()
+        detail_layouts = cfg_data["ui"].get("detail_layouts", {})
+        assert "genomics_source_groups" in detail_layouts
+        genomics_layout = detail_layouts["genomics_source_groups"]
+        assert "protein" in genomics_layout["entity_types"]
+        assert genomics_layout["groups"][0]["id"] == "core"
+        assert genomics_layout["groups"][0]["label"] == "Core"
+        assert genomics_layout["groups"][1]["id"] == "genomics"
+        assert any(field["key"] == "glycines_effectors_dna" and field["label"] == "SCN known (N)" for field in next(group for group in genomics_layout["groups"] if group["id"] == "effectors")["fields"])
+        semantic_schema = cfg_data["ui"].get("semantic_schema", {})
+        assert semantic_schema["group_order"][0] == "core"
+        assert "effectors" in semantic_schema["groups"]
+        assert "homology" in semantic_schema["groups"]
+        assert "effectors" in semantic_schema["groups"]["effectors"]["aliases"]
+        assert any(field["key"] == "schachtii_effectors_known" for field in semantic_schema["groups"]["effectors"]["fields"])
+        semantic_registry = cfg_data["ui"].get("semantic_registry", {})
+        assert semantic_registry["domain"] == "genomics"
+        assert semantic_registry["schema"]["group_order"][0] == "core"
+        assert semantic_registry["relation_families"]["protein_evidence"][0]["rel_type"] == "HAS_HGT_DONOR"
+        assert semantic_registry["operators"]["condition_handlers"]["protein_evidence"] == "protein_evidence"
+        assert "bcn" in semantic_registry["organisms"]["alias_overrides"]["heterodera schachtii"]
+
         resp = await client.get("/api/graph", params={"mode": "explore", "preset": "protein_centric"})
         assert resp.status_code == 200
         data = resp.json()

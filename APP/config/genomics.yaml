@@ -32,6 +32,7 @@ ui:
   node_size_by_degree: true
   show_labels: true
   max_visible_nodes: 5000
+  detail_layout_source: ../sample_data/1_source/genomics_scn/config.py
   layouts:
     hierarchical:
       type_families:
@@ -213,7 +214,7 @@ explore:
           source_type: bcn_gene
           target_type: organism
       preserve_node_types: [organism]
-      included_tag_roots: [homology-scope]
+      included_tag_roots: [homology-scope, homology-organism]
       mediator_type: orthogroup
       mediator_edge: BELONGS_TO_ORTHOGROUP
       derived_edge_type: SHARES_ORTHOGROUP

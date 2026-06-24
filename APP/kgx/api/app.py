@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from kgx.db import KnowledgeGraphDB
+from kgx.genomics_source import load_detail_layouts, load_semantic_registry, load_semantic_schema
 from kgx.skills import SkillRegistry, SkillRunner
 
 from .routes_graph import make_graph_router
@@ -41,7 +42,10 @@ def create_app(config: dict) -> FastAPI:
     db = KnowledgeGraphDB(config["db_path"])
     llm_config = config.get("llm", {})
     domain_name = (config.get("domain") or {}).get("name")
-    chat_router, llm_client = make_chat_router(db, llm_config, domain_name=domain_name)
+    ui_config = config.get("ui", {})
+    semantic_schema = load_semantic_schema(ui_config)
+    semantic_registry = load_semantic_registry(ui_config)
+    chat_router, llm_client = make_chat_router(db, llm_config, ui_config=ui_config, domain_name=domain_name)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -69,16 +73,26 @@ def create_app(config: dict) -> FastAPI:
         )
 
     # Store config subsets in app.state for routes that need it
-    app.state.ui_config = config.get("ui", {})
+    app.state.ui_config = ui_config
+    app.state.detail_layouts = load_detail_layouts(app.state.ui_config)
+    app.state.semantic_schema = semantic_schema
+    app.state.semantic_registry = semantic_registry
     explore_config = config.get("explore", {})
     embedding_config = config.get("embedding", {})
     db_build_config = config.get("db_build", {})
 
     @app.get("/api/config")
     def get_config():
+        ui_config = dict(app.state.ui_config)
+        if app.state.detail_layouts:
+            ui_config["detail_layouts"] = app.state.detail_layouts
+        if app.state.semantic_schema:
+            ui_config["semantic_schema"] = app.state.semantic_schema
+        if app.state.semantic_registry:
+            ui_config["semantic_registry"] = app.state.semantic_registry
         return {
             "db_path": config["db_path"],
-            "ui": app.state.ui_config,
+            "ui": ui_config,
             "explore": explore_config,
             "embedding": embedding_config,
         }

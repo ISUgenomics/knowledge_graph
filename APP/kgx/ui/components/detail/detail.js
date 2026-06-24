@@ -12,6 +12,8 @@ export function initDetail(container, eventBus, apiClient) {
 
     let currentId = null;
     let highlightedEntityId = null;
+    let detailLayouts = {};
+    let detailLayoutsPromise = null;
     const defaultPlaceholder = `
         <div id="detail-placeholder" style="padding:24px;color:var(--text-muted);font-size:13px;">
             Click a node to view details.
@@ -149,12 +151,15 @@ export function initDetail(container, eventBus, apiClient) {
 
     function renderSequenceSection(meta, fields, title, exclude = new Set()) {
         if (!meta || typeof meta !== 'object') return '';
-        const blocks = fields
-            .filter(field => !exclude.has(field) && meta[field])
+        const normalizedFields = fields
+            .map(normalizeDetailField)
+            .filter(Boolean);
+        const blocks = normalizedFields
+            .filter(field => !exclude.has(field.key) && meta[field.key])
             .map(field => `
                 <div class="detail-sequence-block">
-                    <div class="detail-sequence-label">${esc(field)}</div>
-                    <pre class="detail-sequence">${esc(meta[field])}</pre>
+                    <div class="detail-sequence-label">${esc(field.label)}</div>
+                    <pre class="detail-sequence">${esc(meta[field.key])}</pre>
                 </div>
             `).join('');
         if (!blocks) return '';
@@ -327,23 +332,50 @@ export function initDetail(container, eventBus, apiClient) {
         return rendered.join('');
     }
 
+    function getConfiguredDetailLayout(entity) {
+        const layouts = detailLayouts || {};
+        for (const layout of Object.values(layouts)) {
+            if (!layout || typeof layout !== 'object') continue;
+            const entityTypes = Array.isArray(layout.entity_types) ? layout.entity_types : [];
+            if (entityTypes.includes(entity.type)) return layout;
+        }
+        return null;
+    }
+
+    function renderConfiguredMeta(entity, meta, excludeFromMeta) {
+        const layout = getConfiguredDetailLayout(entity);
+        if (!layout || !Array.isArray(layout.groups)) return null;
+
+        const consumed = new Set(excludeFromMeta);
+        const sections = [];
+        for (const group of layout.groups) {
+            const fields = Array.isArray(group.fields) ? group.fields : [];
+            const section = renderMetaFields(meta, fields, group.label || group.id || 'Properties', consumed);
+            if (!section) continue;
+            sections.push(section);
+            fields.forEach(field => {
+                const normalizedField = normalizeDetailField(field);
+                if (normalizedField) consumed.add(normalizedField.key);
+            });
+        }
+
+        const sequenceFields = Array.isArray(layout.sequence_fields) ? layout.sequence_fields : [];
+        const sequenceSection = renderSequenceSection(meta, sequenceFields, 'Sequence', consumed);
+        if (sequenceSection) {
+            sections.push(sequenceSection);
+            sequenceFields.forEach(field => {
+                const normalizedField = normalizeDetailField(field);
+                if (normalizedField) consumed.add(normalizedField.key);
+            });
+        }
+
+        return {
+            sections: sections.join(''),
+            consumed,
+        };
+    }
+
     const GENOMICS_GROUPS = {
-        gene: [
-            { title: 'Genomic Context', fields: ['genome_location', 'nested_genes', 'nest_genes'] },
-            { title: 'Copy Number', fields: ['average_copy_number', 'tn7_copy_number', 'tn8_copy_number', 'tn10_copy_number', 'tn20_copy_number', 'tn22_copy_number', 'mm26_copy_number', 'op50_copy_number', 'pa3_copy_number', 'x12_copy_number'] },
-        ],
-        transcript: [
-            { title: 'Expression Summary', fields: ['cluster_name', 'cluster_score', 'expression_bin_13', 'expression_bin_38', 'avg_counts', 'avg_egg', 'avg_ppj2', 'avg_pj2', 'avg_j3', 'avg_j4', 'avg_female', 'avg_male', 'avg_j2g', 'avg_j3g', 'avg_glands'] },
-            { title: 'Differential Expression', fields: ['dge_egg_ppj2', 'dge_egg_pj2', 'dge_ppj2_pj2', 'dge_pj2_j3', 'dge_j3_j4', 'dge_j4_female', 'dge_j4_male', 'dge_female_male', 'dge_j3g_j2g', 'dge_j2g_pj2b', 'dge_j3g_j3b', 'dge_j2g_mm10_pa3', 'dge_j3g_mm10_pa3'] },
-        ],
-        protein: [
-            { title: 'Localization And Secretion', fields: ['secretion', 'dl_signals', 'dl_localizations', 'localizer', 'l_nucleus_peptide', 'l_mitochondria_peptide', 'l_mitochondria_score', 'l_chloroplast_peptide', 'l_chloroplast_score', 'signal_peptide', 'signalp5', 'signalp6', 'tm_domain_sp5', 'tm_domain_sp6', 'dl_nucleus', 'dl_mitochondrion', 'dl_plastid', 'dl_cytoplasm', 'dl_endoplasmic_reticulum', 'dl_lysosome_vacuole', 'dl_golgi_apparatus', 'dl_peroxisome', 'dl_cell_membrane', 'dl_extracellular'] },
-            { title: 'Comparative And HGT', fields: ['orthogroup', 'glycines_gene_count', 'schachtii_gene_count', 'schachtii_genes', 'schachtii_hits', 'celegans_hits', 'sp_best_hit', 'nr_best_hit', { key: 'hgt_donor_id', label: 'hgt donor' }] },
-            { title: 'Functional Annotation', fields: ['t_factor', 'go_consensus', 'deepgoplus', 'interpro', 'smart', 'pfam', 'funfam', 'panther', 'glycines_effectors_dna', 'glycines_effectors_prot', 'schachtii_effectors_known', 'schachtii_effectors_putative', 'effector_islands'] },
-            { title: 'Structure', fields: ['disorder', 'diso_regions', 'num_globular', 'domains', 'pdb_hit', 'hit_class'] },
-            { title: 'Biophysics', fields: ['inclusion_body', 'mol_weight', 'isoel_point', 'charge', 'charged', 'aromatic', 'polar', 'non_polar', 'basic', 'acidic', 'small'] },
-            { title: 'Composition', fields: ['alanine', 'asparagine', 'aspartate', 'cysteine', 'glutamate', 'glutamine', 'glycine', 'histidine', 'isoleucine', 'leucine', 'lysine', 'methionine', 'phenylalanine', 'proline', 'arginine', 'serine', 'threonine', 'valine', 'tryptophan', 'tyrosine', 'unknown'] },
-        ],
         annotation_term: [
             { title: 'Annotation', fields: ['namespace', 'category', 'source_column', 'source_entity_type', 'score'] },
         ],
@@ -362,6 +394,9 @@ export function initDetail(container, eventBus, apiClient) {
     };
 
     function renderTypeSpecificMeta(entity, meta, excludeFromMeta) {
+        const configured = renderConfiguredMeta(entity, meta, excludeFromMeta);
+        if (configured) return configured;
+
         const groups = GENOMICS_GROUPS[entity.type] || [];
         if (!groups.length) return { sections: '', consumed: new Set(excludeFromMeta) };
 
@@ -397,6 +432,20 @@ export function initDetail(container, eventBus, apiClient) {
         };
     }
 
+    async function ensureDetailLayouts() {
+        if (detailLayoutsPromise) return detailLayoutsPromise;
+        detailLayoutsPromise = (async () => {
+            try {
+                const cfg = await apiClient.get('/api/config');
+                detailLayouts = cfg?.ui?.detail_layouts || {};
+            } catch (_err) {
+                detailLayouts = {};
+            }
+            return detailLayouts;
+        })();
+        return detailLayoutsPromise;
+    }
+
     function renderBody(entity, relationships, rich) {
         const meta = entity.metadata || {};
         const r = rich || {};
@@ -429,6 +478,7 @@ export function initDetail(container, eventBus, apiClient) {
         container.innerHTML = `<div class="detail-loading">Loading…</div>`;
 
         try {
+            await ensureDetailLayouts();
             const data = await apiClient.get(`/api/entity/${encodeURIComponent(id)}`);
             const { entity, relationships, neighbors, degree, rich } = data;
             const color = typeColor(entity.type);
