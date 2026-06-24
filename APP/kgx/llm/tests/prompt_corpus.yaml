@@ -55,24 +55,6 @@ general:
     expect_ids: [prot-1]
     expect_sql_contains: ["t.type = 'tag'", "HAS_BROAD_HOMOLOGY_HIT"]
 
-  - id: people_metadata_mix
-    dataset: people_metadata
-    prompt: select people with title PI and department Biology
-    few_shot_sql: |
-      SELECT e.id, e.name, e.type
-      FROM entities e
-      WHERE e.type = 'person'
-        AND json_extract(e.metadata, '$.title') = 'PI'
-        AND json_extract(e.metadata, '$.department') = 'Biology'
-    responses:
-      - |
-        SELECT e.id, e.name, e.type
-        FROM entities e
-        WHERE e.type = 'person'
-          AND json_extract(e.metadata, '$.title') = 'PI'
-          AND json_extract(e.metadata, '$.department') = 'Biology'
-    expect_ids: [alice]
-
 modules:
   genomics:
     - id: ortholog_gene_copies
@@ -264,3 +246,55 @@ modules:
             AND json_extract(owner.metadata, '$.pfam') = 'PF00001'
             AND json_extract(owner.metadata, '$.secretion') = 'secreted'
       expect_ids: [gene-1]
+
+  people:
+    - id: people_metadata_mix
+      dataset: people_metadata
+      prompt: select people with title PI and department Biology
+      few_shot_sql: |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        WHERE e.type = 'person'
+          AND json_extract(e.metadata, '$.title') = 'PI'
+          AND json_extract(e.metadata, '$.department') = 'Biology'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'person'
+            AND json_extract(e.metadata, '$.title') = 'PI'
+            AND json_extract(e.metadata, '$.department') = 'Biology'
+      expect_ids: [alice]
+
+    - id: people_department_filter
+      dataset: people_metadata
+      prompt: select people in department Chemistry
+      few_shot_sql: |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        WHERE e.type = 'person'
+          AND json_extract(e.metadata, '$.department') = 'Chemistry'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'person'
+            AND json_extract(e.metadata, '$.department') = 'Chemistry'
+      expect_ids: [bob]
+
+    - id: people_with_publications
+      dataset: people_publications
+      prompt: select people with publications
+      few_shot_sql: |
+        SELECT DISTINCT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships r1 ON r1.source_id = e.id AND r1.rel_type = 'AUTHORED'
+        JOIN entities t1 ON t1.id = r1.target_id AND t1.type = 'publication'
+        WHERE e.type = 'person'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'person'
+      expect_ids: [alice, bob]
+      expect_sql_contains: [AUTHORED]

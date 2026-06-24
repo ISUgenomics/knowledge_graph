@@ -5,7 +5,9 @@ from pathlib import Path
 from kgx.db import KnowledgeGraphDB
 from kgx.llm import ChatToSQL
 from kgx.llm.modules.genomics import GenomicsChatModule
+from kgx.llm.modules.people import PeopleChatModule
 from kgx.llm.prompt_corpus import flattened_prompt_corpus, prompt_corpus_few_shots
+from kgx.people_source import load_semantic_registry
 
 
 GENOMICS_SAMPLE_DB = Path("/workspace/KnowledgeGraph/sample_data/3_db/genomics_scn.db")
@@ -41,8 +43,32 @@ def test_prompt_corpus_few_shots_include_general_and_module_sections():
 
     assert "general" in sections
     assert "modules.genomics" in sections
-    assert "people_metadata_mix" in ids
     assert "genes_with_hgt_donor" in ids
+
+
+def test_prompt_corpus_few_shots_include_people_module_section():
+    people = prompt_corpus_few_shots("people", general_limit=4, module_limit=8)
+    sections = {entry["section"] for entry in people}
+    ids = {entry["id"] for entry in people}
+
+    assert "general" in sections
+    assert "modules.people" in sections
+    assert "people_metadata_mix" in ids
+    assert "people_department_filter" in ids
+    assert "people_with_publications" in ids
+
+
+def test_people_prompt_corpus_aligns_with_people_registry_specs():
+    people = prompt_corpus_few_shots("people", general_limit=4, module_limit=8)
+    ids = {entry["id"] for entry in people}
+    registry = load_semantic_registry(None)
+    rel_spec = registry["operators"]["specs"]["relationship_filters"]["authored_publication"]
+    parser = registry["operators"]["parsers"]["field_value"]
+
+    assert "people_with_publications" in ids
+    assert rel_spec["rel_type"] == "AUTHORED"
+    assert rel_spec["target_type"] == "publication"
+    assert parser["mode"] == "field_value"
 
 
 def _build_dataset(dataset: str, tmp_path: Path) -> str:
@@ -134,6 +160,12 @@ def _build_dataset(dataset: str, tmp_path: Path) -> str:
     elif dataset == "people_metadata":
         db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
         db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff", "department": "Chemistry"})
+    elif dataset == "people_publications":
+        db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI"})
+        db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff"})
+        db.upsert_entity("publication", "paper-1", name="Paper 1", metadata={"title": "Paper 1"})
+        db.add_relationship("alice", "AUTHORED", "paper-1")
+        db.add_relationship("bob", "AUTHORED", "paper-1")
     elif dataset == "gene_protein_metadata":
         db.upsert_entity("gene", "gene-1", name="Gene 1")
         db.upsert_entity("transcript", "tx-1", name="Transcript 1")
@@ -151,6 +183,8 @@ def _build_dataset(dataset: str, tmp_path: Path) -> str:
 def _module_for(name: str):
     if name == "genomics":
         return GenomicsChatModule()
+    if name == "people":
+        return PeopleChatModule()
     return None
 
 

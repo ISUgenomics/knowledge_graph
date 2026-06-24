@@ -65,6 +65,12 @@ async def test_app_smoke(app_config):
         assert config["ui"]["layouts"] is not None
         assert config["ui"]["layouts"]["timeline"]["enabled"] is True
         assert config["ui"]["layouts"]["hierarchical"]["enabled"] is True
+        assert config["ui"]["semantic_schema"]["group_order"] == ["identity", "affiliation"]
+        assert config["ui"]["semantic_registry"]["domain"] == "people"
+        assert config["ui"]["semantic_registry"]["metadata_hints"]["person"]["preferred_fields"][0] == "title"
+        assert config["ui"]["semantic_registry"]["operators"]["parsers"]["field_value"]["mode"] == "field_value"
+        assert config["ui"]["semantic_registry"]["operators"]["renderers"]["relationship"]["validation_signatures"][0] == "{rel_type}"
+        assert config["ui"]["semantic_registry"]["operators"]["specs"]["relationship_filters"]["authored_publication"]["rel_type"] == "AUTHORED"
 
         cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/people.yaml"))
         assert cfg.domain.name == "people"
@@ -232,6 +238,8 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         assert semantic_registry["schema"]["group_order"][0] == "core"
         assert semantic_registry["relation_families"]["protein_evidence"][0]["rel_type"] == "HAS_HGT_DONOR"
         assert semantic_registry["operators"]["condition_handlers"]["protein_evidence"] == "protein_evidence"
+        assert semantic_registry["operators"]["specs"]["orthogroup_filter"]["steps"][0]["rel_type"] == "BELONGS_TO_ORTHOGROUP"
+        assert semantic_registry["operators"]["specs"]["ortholog_member"]["steps"][1]["rel_type"] == "HAS_BCN_MEMBER"
         assert "bcn" in semantic_registry["organisms"]["alias_overrides"]["heterodera schachtii"]
 
         resp = await client.get("/api/graph", params={"mode": "explore", "preset": "protein_centric"})

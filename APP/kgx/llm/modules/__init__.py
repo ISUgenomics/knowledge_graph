@@ -1,4 +1,4 @@
-from kgx.genomics_source import load_semantic_registry, load_semantic_schema
+from kgx.domain_sources import load_domain_semantic_registry, load_domain_semantic_schema
 
 from .base import ChatModule
 from .default import DefaultChatModule
@@ -10,11 +10,14 @@ def get_chat_module(domain_name: str | None, ui_config: dict | None = None) -> C
     name = str(domain_name or "").strip().lower()
     if name == "genomics":
         return GenomicsChatModule(
-            semantic_schema=load_semantic_schema(ui_config),
-            semantic_registry=load_semantic_registry(ui_config),
+            semantic_schema=load_domain_semantic_schema(name, ui_config),
+            semantic_registry=load_domain_semantic_registry(name, ui_config),
         )
     if name == "people":
-        return PeopleChatModule()
+        return PeopleChatModule(
+            semantic_schema=load_domain_semantic_schema(name, ui_config),
+            semantic_registry=load_domain_semantic_registry(name, ui_config),
+        )
     return DefaultChatModule()
 
 
