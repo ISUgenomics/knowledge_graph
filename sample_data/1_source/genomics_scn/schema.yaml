@@ -256,6 +256,14 @@ entity_model:
       entity_type: protein
       id_template: '{uniquename}:protein'
       name_template: '{gene_name} protein'
+      naming:
+        priority_labels:
+        - column: glycines_effectors_dna
+          label: SCN known (N)
+        - column: glycines_effectors_prot
+          label: SCN known (P)
+        fallback_column: uniquename
+        fallback_prefix: Unknown
       metadata_columns:
       - secretion
       - dl_signals
@@ -400,8 +408,8 @@ comparative_entities:
       parsed_field_promotions:
       - field: matched_organism
         kind: tag
-        parent_tag: homology-hit-organism
-        id_template: homology-hit-organism:{value_slug}
+        parent_tag: homology-organism
+        id_template: homology-organism:{value_slug}
         name_template: '{value}'
         rel_type: TAGGED
       parser: term_list
@@ -417,8 +425,8 @@ comparative_entities:
       parsed_field_promotions:
       - field: matched_organism
         kind: tag
-        parent_tag: homology-hit-organism
-        id_template: homology-hit-organism:{value_slug}
+        parent_tag: homology-organism
+        id_template: homology-organism:{value_slug}
         name_template: '{value}'
         rel_type: TAGGED
       parser: term_list
@@ -434,8 +442,8 @@ comparative_entities:
       parsed_field_promotions:
       - field: matched_organism
         kind: tag
-        parent_tag: homology-hit-organism
-        id_template: homology-hit-organism:{value_slug}
+        parent_tag: homology-organism
+        id_template: homology-organism:{value_slug}
         name_template: '{value}'
         rel_type: TAGGED
       parser: term_list
@@ -667,8 +675,8 @@ tag_hierarchy:
       name: Homology
       category: field
       parent: genomics
-    homology-hit-organism:
-      name: Hit Organism
+    homology-organism:
+      name: Homology Organism
       category: topic
       parent: homology
     homology-scope:

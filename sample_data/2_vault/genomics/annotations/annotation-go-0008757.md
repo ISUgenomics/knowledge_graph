@@ -19,7 +19,7 @@ name: "GO:0008757"
 
 ### HAS_ANNOTATION
 
-- [[proteins/hg_chrom1_tn10mrna_10-protein|Hg_chrom1_TN10gene_10 protein]]
+- [[proteins/hg_chrom1_tn10mrna_10-protein|Unknown_Hg_chrom1_TN10mRNA_10]]
 
 ### TAGGED
 

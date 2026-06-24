@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:caenorhabditis-elegans"
+id: "homology-organism:caenorhabditis-elegans"
 type: "tag"
 name: "Caenorhabditis elegans"
 ---
@@ -17,7 +17,7 @@ name: "Caenorhabditis elegans"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

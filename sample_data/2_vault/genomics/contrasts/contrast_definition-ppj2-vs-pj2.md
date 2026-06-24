@@ -38,6 +38,9 @@ name: "ppJ2 vs pJ2"
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (log2_fold_change=-0.368, source_column=dge_ppj2_pj2)
 - [[transcripts/hg_chrom1_tn10mrna_1004|Hg_chrom1_TN10mRNA_1004]] (log2_fold_change=-0.2995, source_column=dge_ppj2_pj2)
 - [[transcripts/hg_chrom1_tn10mrna_1005|Hg_chrom1_TN10mRNA_1005]] (log2_fold_change=-0.2995, source_column=dge_ppj2_pj2)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (log2_fold_change=2.7822, source_column=dge_ppj2_pj2)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (log2_fold_change=4.2289, source_column=dge_ppj2_pj2)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (log2_fold_change=6.6851, source_column=dge_ppj2_pj2)
 
 ### TAGGED
 

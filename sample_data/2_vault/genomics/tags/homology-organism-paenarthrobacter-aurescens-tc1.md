@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:paenarthrobacter-aurescens-tc1"
+id: "homology-organism:paenarthrobacter-aurescens-tc1"
 type: "tag"
 name: "Paenarthrobacter aurescens TC1"
 ---
@@ -17,7 +17,7 @@ name: "Paenarthrobacter aurescens TC1"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

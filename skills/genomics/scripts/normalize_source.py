@@ -416,8 +416,8 @@ def normalize_source_package(
                     {
                         "field": "matched_organism",
                         "kind": "tag",
-                        "parent_tag": "homology-hit-organism",
-                        "id_template": "homology-hit-organism:{value_slug}",
+                        "parent_tag": "homology-organism",
+                        "id_template": "homology-organism:{value_slug}",
                         "name_template": "{value}",
                         "rel_type": "TAGGED",
                     }
@@ -437,8 +437,8 @@ def normalize_source_package(
                     {
                         "field": "matched_organism",
                         "kind": "tag",
-                        "parent_tag": "homology-hit-organism",
-                        "id_template": "homology-hit-organism:{value_slug}",
+                        "parent_tag": "homology-organism",
+                        "id_template": "homology-organism:{value_slug}",
                         "name_template": "{value}",
                         "rel_type": "TAGGED",
                     }
@@ -458,8 +458,8 @@ def normalize_source_package(
                     {
                         "field": "matched_organism",
                         "kind": "tag",
-                        "parent_tag": "homology-hit-organism",
-                        "id_template": "homology-hit-organism:{value_slug}",
+                        "parent_tag": "homology-organism",
+                        "id_template": "homology-organism:{value_slug}",
                         "name_template": "{value}",
                         "rel_type": "TAGGED",
                     }
@@ -543,6 +543,14 @@ def normalize_source_package(
                     "entity_type": "protein",
                     "id_template": "{uniquename}:protein",
                     "name_template": "{gene_name} protein",
+                    "naming": {
+                        "priority_labels": [
+                            {"column": "glycines_effectors_dna", "label": "SCN known (N)"},
+                            {"column": "glycines_effectors_prot", "label": "SCN known (P)"},
+                        ],
+                        "fallback_column": "uniquename",
+                        "fallback_prefix": "Unknown",
+                    },
                     "metadata_columns": [c for c in PROTEIN_COLUMNS if c in header_set and c != "protein_sequence"],
                     "sequence_column": "protein_sequence" if "protein_sequence" in header_set else "",
                 },

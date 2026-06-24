@@ -143,8 +143,8 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
                 {
                     "field": "matched_organism",
                     "kind": "tag",
-                    "parent_tag": "homology-hit-organism",
-                    "id_template": "homology-hit-organism:{value_slug}",
+                    "parent_tag": "homology-organism",
+                    "id_template": "homology-organism:{value_slug}",
                     "name_template": "{value}",
                     "rel_type": "TAGGED",
                 }
@@ -165,8 +165,8 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
                 {
                     "field": "matched_organism",
                     "kind": "tag",
-                    "parent_tag": "homology-hit-organism",
-                    "id_template": "homology-hit-organism:{value_slug}",
+                    "parent_tag": "homology-organism",
+                    "id_template": "homology-organism:{value_slug}",
                     "name_template": "{value}",
                     "rel_type": "TAGGED",
                 }
@@ -187,8 +187,8 @@ def _infer_comparative_entities(header: list[str]) -> dict[str, Any]:
                 {
                     "field": "matched_organism",
                     "kind": "tag",
-                    "parent_tag": "homology-hit-organism",
-                    "id_template": "homology-hit-organism:{value_slug}",
+                    "parent_tag": "homology-organism",
+                    "id_template": "homology-organism:{value_slug}",
                     "name_template": "{value}",
                     "rel_type": "TAGGED",
                 }
@@ -506,6 +506,14 @@ def infer_source_package(
                     "entity_type": "protein",
                     "id_template": f"{{{id_column}}}:protein",
                     "name_template": f"{{{gene_column or id_column}}} protein",
+                    "naming": {
+                        "priority_labels": [
+                            {"column": "glycines_effectors_dna", "label": "SCN known (N)"},
+                            {"column": "glycines_effectors_prot", "label": "SCN known (P)"},
+                        ],
+                        "fallback_column": id_column,
+                        "fallback_prefix": "Unknown",
+                    },
                     "metadata_columns": [col for col in groups["protein"] if col != protein_sequence_column],
                     "sequence_column": protein_sequence_column,
                 },

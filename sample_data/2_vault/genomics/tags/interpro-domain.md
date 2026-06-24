@@ -38,3 +38,6 @@ name: "InterPro Domain"
 - [[annotations/annotation-interpro-ipr000717|IPR000717]] (source_column=interpro)
 - [[annotations/annotation-interpro-ipr036388|IPR036388]] (source_column=interpro)
 - [[annotations/annotation-interpro-ipr045114|IPR045114]] (source_column=interpro)
+- [[annotations/annotation-interpro-ipr001841|IPR001841]] (source_column=interpro)
+- [[annotations/annotation-interpro-ipr013083|IPR013083]] (source_column=interpro)
+- [[annotations/annotation-interpro-ipr045899|IPR045899]] (source_column=interpro)

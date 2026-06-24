@@ -18,8 +18,8 @@ name: "cell_membrane"
 
 ### HAS_LOCALIZATION
 
-- [[proteins/hg_chrom1_tn10mrna_100-protein|Hg_chrom1_TN10gene_96 protein]]
-- [[proteins/hg_chrom1_tn10mrna_1000-protein|Hg_chrom1_TN10gene_956 protein]]
+- [[proteins/hg_chrom1_tn10mrna_100-protein|Unknown_Hg_chrom1_TN10mRNA_100]]
+- [[proteins/hg_chrom1_tn10mrna_1000-protein|Unknown_Hg_chrom1_TN10mRNA_1000]]
 
 ### TAGGED
 

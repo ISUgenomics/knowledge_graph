@@ -67,4 +67,4 @@ name: "Hg_chrom1_TN10mRNA_1000"
 
 ### TRANSLATED_TO
 
-- [[proteins/hg_chrom1_tn10mrna_1000-protein|Hg_chrom1_TN10gene_956 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1000-protein|Unknown_Hg_chrom1_TN10mRNA_1000]]

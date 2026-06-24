@@ -37,6 +37,9 @@ name: "Female"
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (expression_value=2350.6527, source_column=avg_female)
 - [[transcripts/hg_chrom1_tn10mrna_1004|Hg_chrom1_TN10mRNA_1004]] (expression_value=1163.0151, source_column=avg_female)
 - [[transcripts/hg_chrom1_tn10mrna_1005|Hg_chrom1_TN10mRNA_1005]] (expression_value=1163.0151, source_column=avg_female)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (expression_value=21.0771, source_column=avg_female)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (expression_value=296.221, source_column=avg_female)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (expression_value=436.364, source_column=avg_female)
 
 ### TAGGED
 

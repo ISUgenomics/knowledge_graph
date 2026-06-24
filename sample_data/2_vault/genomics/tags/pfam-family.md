@@ -25,3 +25,4 @@ name: "Pfam Family"
 - [[annotations/annotation-pfam-pf00173|PF00173]] (source_column=pfam)
 - [[annotations/annotation-pfam-pf00135|PF00135]] (source_column=pfam)
 - [[annotations/annotation-pfam-pf01399|PF01399]] (source_column=pfam)
+- [[annotations/annotation-pfam-pf13639|PF13639]] (source_column=pfam)

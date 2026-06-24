@@ -18,9 +18,10 @@ name: "extracellular"
 
 ### HAS_LOCALIZATION
 
-- [[proteins/hg_chrom1_tn10mrna_1001-protein|Hg_chrom1_TN10gene_957 protein]]
-- [[proteins/hg_chrom1_tn10mrna_1002-protein|Hg_chrom1_TN10gene_958 protein]]
-- [[proteins/hg_chrom1_tn10mrna_1003-protein|Hg_chrom1_TN10gene_959 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1001-protein|Unknown_Hg_chrom1_TN10mRNA_1001]]
+- [[proteins/hg_chrom1_tn10mrna_1002-protein|Unknown_Hg_chrom1_TN10mRNA_1002]]
+- [[proteins/hg_chrom1_tn10mrna_1003-protein|Unknown_Hg_chrom1_TN10mRNA_1003]]
+- [[proteins/hg_chrom2_tn10mrna_3439-protein|10C01]]
 
 ### TAGGED
 

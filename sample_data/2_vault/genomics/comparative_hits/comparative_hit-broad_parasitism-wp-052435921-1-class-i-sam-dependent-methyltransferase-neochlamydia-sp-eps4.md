@@ -21,9 +21,9 @@ name: "WP_052435921.1"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_10-protein|Hg_chrom1_TN10gene_10 protein]] (source_column=nr_best_hit)
+- [[proteins/hg_chrom1_tn10mrna_10-protein|Unknown_Hg_chrom1_TN10mRNA_10]] (source_column=nr_best_hit)
 
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=nr_best_hit)
-- [[tags/homology-hit-organism-neochlamydia-sp-eps4|Neochlamydia sp. EPS4]] (field=matched_organism)
+- [[tags/homology-organism-neochlamydia-sp-eps4|Neochlamydia sp. EPS4]] (field=matched_organism)

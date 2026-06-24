@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:caenorhabditis-briggsae"
+id: "homology-organism:caenorhabditis-briggsae"
 type: "tag"
 name: "Caenorhabditis briggsae"
 ---
@@ -17,7 +17,7 @@ name: "Caenorhabditis briggsae"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

@@ -37,6 +37,9 @@ name: "Egg vs pJ2"
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (log2_fold_change=0.2818, source_column=dge_egg_pj2)
 - [[transcripts/hg_chrom1_tn10mrna_1004|Hg_chrom1_TN10mRNA_1004]] (log2_fold_change=-1.3855, source_column=dge_egg_pj2)
 - [[transcripts/hg_chrom1_tn10mrna_1005|Hg_chrom1_TN10mRNA_1005]] (log2_fold_change=-1.3855, source_column=dge_egg_pj2)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (log2_fold_change=9.3714, source_column=dge_egg_pj2)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (log2_fold_change=5.8613, source_column=dge_egg_pj2)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (log2_fold_change=8.3849, source_column=dge_egg_pj2)
 
 ### TAGGED
 

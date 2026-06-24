@@ -34,6 +34,7 @@ name: "G(J3 vs J2)"
 
 - [[transcripts/hg_chrom1_tn10mrna_10|Hg_chrom1_TN10mRNA_10]] (log2_fold_change=-7.1967, source_column=dge_j3g_j2g)
 - [[transcripts/hg_chrom1_tn10mrna_100|Hg_chrom1_TN10mRNA_100]] (log2_fold_change=-5.5265, source_column=dge_j3g_j2g)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (log2_fold_change=-3.8652, source_column=dge_j3g_j2g)
 
 ### TAGGED
 

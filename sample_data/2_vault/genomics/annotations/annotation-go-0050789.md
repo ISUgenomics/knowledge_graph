@@ -12,7 +12,7 @@ name: "GO:0050789"
 |---|---|
 | category | functional_annotation |
 | namespace | go |
-| score | 0.514 |
+| score | 0.521 |
 | source_column | deepgoplus |
 | source_entity_type | protein |
 
@@ -20,9 +20,10 @@ name: "GO:0050789"
 
 ### HAS_ANNOTATION
 
-- [[proteins/hg_chrom1_tn10mrna_1-protein|Hg_chrom1_TN10gene_1 protein]]
-- [[proteins/hg_chrom1_tn10mrna_1004-protein|Hg_chrom1_TN10gene_960 protein]]
-- [[proteins/hg_chrom1_tn10mrna_1005-protein|Hg_chrom1_TN10gene_960 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1-protein|Unknown_Hg_chrom1_TN10mRNA_1]]
+- [[proteins/hg_chrom1_tn10mrna_1004-protein|Unknown_Hg_chrom1_TN10mRNA_1004]]
+- [[proteins/hg_chrom1_tn10mrna_1005-protein|Unknown_Hg_chrom1_TN10mRNA_1005]]
+- [[proteins/hg_chrom4_tn10mrna_7223-protein|10A06]]
 
 ### TAGGED
 

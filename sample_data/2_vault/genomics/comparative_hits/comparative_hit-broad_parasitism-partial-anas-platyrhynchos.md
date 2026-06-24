@@ -20,7 +20,7 @@ name: "partial"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_1-protein|Hg_chrom1_TN10gene_1 protein]] (source_column=nr_best_hit)
+- [[proteins/hg_chrom1_tn10mrna_1-protein|Unknown_Hg_chrom1_TN10mRNA_1]] (source_column=nr_best_hit)
 
 ### TAGGED
 

@@ -18,7 +18,9 @@ name: "nuclear_localization_signal"
 
 ### HAS_PREDICTION
 
-- [[proteins/hg_chrom1_tn10mrna_1-protein|Hg_chrom1_TN10gene_1 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1-protein|Unknown_Hg_chrom1_TN10mRNA_1]]
+- [[proteins/hg_chrom4_tn10mrna_7223-protein|10A06]]
+- [[proteins/hg_chrom2_tn10mrna_2403-protein|16B09]]
 
 ### TAGGED
 

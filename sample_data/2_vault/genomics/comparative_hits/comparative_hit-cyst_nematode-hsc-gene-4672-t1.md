@@ -19,7 +19,7 @@ name: "Hsc_gene_4672.t1"
 
 ### HAS_BCN_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_1-protein|Hg_chrom1_TN10gene_1 protein]] (source_column=schachtii_hits)
+- [[proteins/hg_chrom1_tn10mrna_1-protein|Unknown_Hg_chrom1_TN10mRNA_1]] (source_column=schachtii_hits)
 
 ### TAGGED
 

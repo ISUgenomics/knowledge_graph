@@ -19,7 +19,7 @@ name: "PF00173"
 
 ### HAS_ANNOTATION
 
-- [[proteins/hg_chrom1_tn10mrna_1001-protein|Hg_chrom1_TN10gene_957 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1001-protein|Unknown_Hg_chrom1_TN10mRNA_1001]]
 
 ### TAGGED
 

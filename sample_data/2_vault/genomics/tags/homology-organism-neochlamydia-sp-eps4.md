@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:neochlamydia-sp-eps4"
+id: "homology-organism:neochlamydia-sp-eps4"
 type: "tag"
 name: "Neochlamydia sp. EPS4"
 ---
@@ -17,7 +17,7 @@ name: "Neochlamydia sp. EPS4"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

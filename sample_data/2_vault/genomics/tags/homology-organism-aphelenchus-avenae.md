@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:aphelenchus-avenae"
+id: "homology-organism:aphelenchus-avenae"
 type: "tag"
 name: "Aphelenchus avenae"
 ---
@@ -17,7 +17,7 @@ name: "Aphelenchus avenae"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

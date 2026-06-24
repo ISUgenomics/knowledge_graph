@@ -303,8 +303,8 @@ contract:
       name: Homology
       category: field
       parent: genomics
-    homology-hit-organism:
-      name: Hit Organism
+    homology-organism:
+      name: Homology Organism
       category: topic
       parent: homology
     homology-scope:

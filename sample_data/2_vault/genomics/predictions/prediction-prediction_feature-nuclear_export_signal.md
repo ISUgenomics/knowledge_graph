@@ -18,7 +18,7 @@ name: "nuclear_export_signal"
 
 ### HAS_PREDICTION
 
-- [[proteins/hg_chrom1_tn10mrna_1005-protein|Hg_chrom1_TN10gene_960 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1005-protein|Unknown_Hg_chrom1_TN10mRNA_1005]]
 
 ### TAGGED
 

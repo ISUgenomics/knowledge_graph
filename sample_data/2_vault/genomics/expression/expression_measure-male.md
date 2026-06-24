@@ -34,6 +34,9 @@ name: "Male"
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (expression_value=920.7134, source_column=avg_male)
 - [[transcripts/hg_chrom1_tn10mrna_1004|Hg_chrom1_TN10mRNA_1004]] (expression_value=433.2653, source_column=avg_male)
 - [[transcripts/hg_chrom1_tn10mrna_1005|Hg_chrom1_TN10mRNA_1005]] (expression_value=433.2653, source_column=avg_male)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (expression_value=63.4159, source_column=avg_male)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (expression_value=865.7028, source_column=avg_male)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (expression_value=131.8069, source_column=avg_male)
 
 ### TAGGED
 

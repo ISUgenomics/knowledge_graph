@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:borago-officinalis"
+id: "homology-organism:borago-officinalis"
 type: "tag"
 name: "Borago officinalis"
 ---
@@ -17,7 +17,7 @@ name: "Borago officinalis"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

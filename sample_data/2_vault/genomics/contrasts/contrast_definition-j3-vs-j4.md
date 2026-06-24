@@ -37,6 +37,9 @@ name: "J3 vs J4"
 - [[transcripts/hg_chrom1_tn10mrna_100|Hg_chrom1_TN10mRNA_100]] (log2_fold_change=-1.0399, source_column=dge_j3_j4)
 - [[transcripts/hg_chrom1_tn10mrna_1001|Hg_chrom1_TN10mRNA_1001]] (log2_fold_change=1.4484, source_column=dge_j3_j4)
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (log2_fold_change=0.2368, source_column=dge_j3_j4)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (log2_fold_change=-3.1319, source_column=dge_j3_j4)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (log2_fold_change=-3.211, source_column=dge_j3_j4)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (log2_fold_change=-3.2766, source_column=dge_j3_j4)
 
 ### TAGGED
 

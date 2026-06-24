@@ -50,6 +50,10 @@ def test_normalize_source_package_emits_machine_readable_metadata(tmp_path: Path
     assert "sp_best_hit" in comparative_entities
     assert "nr_best_hit" in comparative_entities
     assert "hgt_donor" in comparative_entities
+    protein_cfg = schema["entity_model"]["entities"]["protein"]
+    assert protein_cfg["naming"]["priority_labels"][0]["label"] == "SCN known (N)"
+    assert protein_cfg["naming"]["priority_labels"][1]["label"] == "SCN known (P)"
+    assert protein_cfg["naming"]["fallback_column"] == "uniquename"
     contrast_specs = schema["expression_entities"]["contrasts"]["dataset_specific"]
     egg_vs_ppj2 = next(spec for spec in contrast_specs if spec["column"] == "dge_egg_ppj2")
     assert egg_vs_ppj2["source_summary_column"] == "avg_egg"
@@ -72,10 +76,10 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         stats = db.stats()
         assert stats["entities"]["organism"] == 2
         assert stats["entities"]["dataset"] == 1
-        assert stats["entities"]["chromosome"] == 1
-        assert stats["entities"]["gene"] == 8
-        assert stats["entities"]["transcript"] == 9
-        assert stats["entities"]["protein"] == 9
+        assert stats["entities"]["chromosome"] == 3
+        assert stats["entities"]["gene"] == 11
+        assert stats["entities"]["transcript"] == 12
+        assert stats["entities"]["protein"] == 12
         assert stats["entities"]["bcn_gene"] > 0
         assert stats["entities"]["comparative_hit"] > 0
         assert stats["entities"]["hgt_donor"] > 0
@@ -86,16 +90,16 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert stats["entities"]["contrast_definition"] > 0
         assert stats["relationships"]["ABOUT_ORGANISM"] == 1
         assert stats["relationships"]["FROM_ORGANISM"] > 0
-        assert stats["relationships"]["HAS_CHROMOSOME"] == 1
-        assert stats["relationships"]["HAS_GENE"] == 8
+        assert stats["relationships"]["HAS_CHROMOSOME"] == 3
+        assert stats["relationships"]["HAS_GENE"] == 11
         assert stats["relationships"]["HAS_BCN_MEMBER"] > 0
         assert stats["relationships"]["HAS_BCN_HIT"] > 0
         assert stats["relationships"].get("HAS_NEMATODE_HIT", 0) >= 0
         assert stats["relationships"]["HAS_BROAD_HOMOLOGY_HIT"] > 0
         assert stats["relationships"]["HAS_HGT_DONOR"] > 0
-        assert stats["relationships"]["HAS_TRANSCRIPT"] == 9
-        assert stats["relationships"]["TRANSLATED_TO"] == 9
-        assert stats["relationships"]["IN_DATASET"] == 8
+        assert stats["relationships"]["HAS_TRANSCRIPT"] == 12
+        assert stats["relationships"]["TRANSLATED_TO"] == 12
+        assert stats["relationships"]["IN_DATASET"] == 11
         assert stats["relationships"]["HAS_ANNOTATION"] > 0
         assert stats["relationships"]["HAS_LOCALIZATION"] > 0
         assert stats["relationships"]["HAS_PREDICTION"] > 0
@@ -128,11 +132,15 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         gene_rels = db.get_relationships("hg_chrom1_tn10gene_960", "HAS_TRANSCRIPT", direction="outgoing")
         assert len(gene_rels) == 2
         chromosome_rels = db.get_relationships("organism:heterodera-glycines", "HAS_CHROMOSOME", direction="outgoing")
-        assert any(rel["target_id"] == "chromosome:heterodera-glycines:chr1" for rel in chromosome_rels)
+        assert {rel["target_id"] for rel in chromosome_rels} == {
+            "chromosome:heterodera-glycines:chr1",
+            "chromosome:heterodera-glycines:chr2",
+            "chromosome:heterodera-glycines:chr4",
+        }
         gene_chromosome_rels = db.get_relationships("chromosome:heterodera-glycines:chr1", "HAS_GENE", direction="outgoing")
         assert len(gene_chromosome_rels) == 8
         dataset_incoming = db.get_relationships("dataset:genomics_scn", "IN_DATASET", direction="incoming")
-        assert len(dataset_incoming) == 8
+        assert len(dataset_incoming) == 11
         assert all(":protein" not in rel["source_id"] and "mrna" not in rel["source_id"] for rel in dataset_incoming)
         orthogroup = db.get_entity("orthogroup:og0005552")
         assert orthogroup is not None
@@ -171,8 +179,8 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert broad_hit["metadata"]["matched_organism"] == "Caenorhabditis briggsae"
         assert broad_hit["metadata"]["raw_value"] == "Q04456.1 Gut esterase 1 [Caenorhabditis briggsae]"
         broad_hit_tag_rels = db.get_relationships("comparative_hit:broad_parasitism:q04456-1-gut-esterase-1-caenorhabditis-briggsae", "TAGGED", direction="outgoing")
-        assert any(rel["target_id"] == "homology-hit-organism:caenorhabditis-briggsae" for rel in broad_hit_tag_rels)
-        assert db.get_entity("homology-hit-organism:caenorhabditis-briggsae") is not None
+        assert any(rel["target_id"] == "homology-organism:caenorhabditis-briggsae" for rel in broad_hit_tag_rels)
+        assert db.get_entity("homology-organism:caenorhabditis-briggsae") is not None
         singleton_hit_rels = db.get_relationships("hg_chrom1_tn10mrna_1:protein", "HAS_BCN_HIT", direction="outgoing")
         assert any(rel["target_id"] == "comparative_hit:cyst_nematode:hsc-gene-4672-t1" for rel in singleton_hit_rels)
         broad_hits = db.get_relationships("hg_chrom1_tn10mrna_1:protein", "HAS_BROAD_HOMOLOGY_HIT", direction="outgoing")
@@ -192,6 +200,7 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert any(rel["target_id"] == "homology-scope-cyst-nematode" for rel in bcn_scope_parent)
         protein = db.get_entity("hg_chrom1_tn10mrna_10:protein")
         assert protein is not None
+        assert protein["name"] == "Unknown_Hg_chrom1_TN10mRNA_10"
         assert protein["metadata"]["hgt_donor_id"] == "WP_194067917"
         assert "hgt_alien_index" not in protein["metadata"]
         donor = db.get_entity("hgt_donor:wp_194067917")
@@ -208,7 +217,14 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         )
         no_donor_protein = db.get_entity("hg_chrom1_tn10mrna_1:protein")
         assert no_donor_protein is not None
+        assert no_donor_protein["name"] == "Unknown_Hg_chrom1_TN10mRNA_1"
         assert "hgt_donor_id" not in no_donor_protein["metadata"]
+        named_scn_protein = db.get_entity("hg_chrom2_tn10mrna_3439:protein")
+        assert named_scn_protein is not None
+        assert named_scn_protein["name"] == "10C01"
+        assert db.get_entity("comparative_hit:broad_parasitism:1-125") is None
+        assert db.get_entity("comparative_hit:cyst_nematode:0-21") is None
+        assert db.get_entity("comparative_hit:nematode:1") is None
 
     assert (vault_dir / "index.md").exists()
     assert (vault_dir / "organisms").exists()
@@ -262,9 +278,9 @@ def test_infer_source_package_from_arbitrary_local_table_and_notes(tmp_path: Pat
     with KnowledgeGraphDB(db_path) as db:
         stats = db.stats()
         assert stats["entities"]["organism"] == 2
-        assert stats["entities"]["chromosome"] == 1
-        assert stats["entities"]["transcript"] == 9
-        assert stats["entities"]["protein"] == 9
+        assert stats["entities"]["chromosome"] == 3
+        assert stats["entities"]["transcript"] == 12
+        assert stats["entities"]["protein"] == 12
         assert stats["relationships"]["CONTRAST_SOURCE"] > 0
 
 

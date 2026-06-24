@@ -52,7 +52,43 @@ def _metadata_from_row(row: dict[str, str], columns: list[str]) -> dict[str, Any
     return metadata
 
 
-def _protein_name(row: dict[str, str], name_template: str) -> str:
+def _protein_name(row: dict[str, str], protein_cfg: dict[str, Any]) -> str:
+    naming_cfg = protein_cfg.get("naming", {}) or {}
+    matched_values: list[str] = []
+    for rule in list(naming_cfg.get("priority_labels", []) or []):
+        column = str(rule.get("column", "") or "").strip()
+        if not column:
+            continue
+        value = _clean_value(row.get(column))
+        if value is None:
+            continue
+        value_text = str(value).strip()
+        if value_text and value_text not in matched_values:
+            matched_values.append(value_text)
+
+    if matched_values:
+        normalized_tokens: list[str] = []
+        for value_text in matched_values:
+            front = value_text.split("#", 1)[0].split("|", 1)[0].strip()
+            normalized_tokens.append(front or value_text)
+        unique_tokens: list[str] = []
+        for token in normalized_tokens:
+            if token not in unique_tokens:
+                unique_tokens.append(token)
+        if len(unique_tokens) == 1:
+            return unique_tokens[0]
+        if len(matched_values) == 1:
+            return matched_values[0]
+        return " / ".join(matched_values)
+
+    fallback_column = str(naming_cfg.get("fallback_column", "") or "").strip()
+    fallback_prefix = str(naming_cfg.get("fallback_prefix", "Unknown") or "Unknown").strip()
+    if fallback_column:
+        fallback_value = _clean_value(row.get(fallback_column))
+        if fallback_value is not None:
+            return f"{fallback_prefix}_{fallback_value}"
+
+    name_template = str(protein_cfg.get("name_template", "{uniquename} protein") or "{uniquename} protein")
     try:
         return name_template.format(**row)
     except KeyError:
@@ -202,7 +238,8 @@ def _parse_comparative_entity_value(value: str, spec: dict[str, Any]) -> dict[st
 
 
 def _skip_comparative_value(value: str, spec: dict[str, Any]) -> bool:
-    normalized = str(value or "").strip().lower()
+    raw_text = str(value or "").strip()
+    normalized = raw_text.lower()
     if not normalized:
         return True
     excluded_values = {
@@ -210,7 +247,18 @@ def _skip_comparative_value(value: str, spec: dict[str, Any]) -> bool:
         for item in list(spec.get("excluded_values", []) or [])
         if str(item).strip()
     }
-    return normalized in excluded_values
+    if normalized in excluded_values:
+        return True
+
+    parser_name = str(spec.get("value_parser", "") or "")
+    entity_type = str(spec.get("entity_type", "") or "")
+    if entity_type in {"comparative_hit", "bcn_gene", "hgt_donor"} or parser_name == "comparative_hit_label":
+        has_alpha = bool(re.search(r"[A-Za-z]", raw_text))
+        bracketed_label = bool(re.search(r"\[[^\]]+\]", raw_text))
+        if not has_alpha and not bracketed_label:
+            return True
+
+    return False
 
 
 def _promote_comparative_parsed_fields(
@@ -617,7 +665,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             protein_id = db.upsert_entity(
                 protein_cfg["entity_type"],
                 protein_id_value,
-                name=_protein_name(row, protein_cfg["name_template"]),
+                name=_protein_name(row, protein_cfg),
                 metadata=protein_metadata,
             )
 

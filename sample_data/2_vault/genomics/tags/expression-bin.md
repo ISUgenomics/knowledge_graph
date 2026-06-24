@@ -27,3 +27,4 @@ name: "Expression Bin"
 - [[tags/tag-purple|purple]]
 - [[tags/tag-orange|orange]]
 - [[tags/tag-darkgrey|darkgrey]]
+- [[tags/tag-pink|pink]]

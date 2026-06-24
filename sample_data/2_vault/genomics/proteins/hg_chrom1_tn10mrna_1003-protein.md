@@ -1,10 +1,10 @@
 ---
 id: "hg_chrom1_tn10mrna_1003:protein"
 type: "protein"
-name: "Hg_chrom1_TN10gene_959 protein"
+name: "Unknown_Hg_chrom1_TN10mRNA_1003"
 ---
 
-# Hg_chrom1_TN10gene_959 protein
+# Unknown_Hg_chrom1_TN10mRNA_1003
 
 ## Properties
 

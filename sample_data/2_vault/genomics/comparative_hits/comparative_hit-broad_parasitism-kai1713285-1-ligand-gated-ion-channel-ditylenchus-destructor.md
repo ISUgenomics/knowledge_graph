@@ -21,9 +21,9 @@ name: "KAI1713285.1"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_100-protein|Hg_chrom1_TN10gene_96 protein]] (source_column=nr_best_hit)
+- [[proteins/hg_chrom1_tn10mrna_100-protein|Unknown_Hg_chrom1_TN10mRNA_100]] (source_column=nr_best_hit)
 
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=nr_best_hit)
-- [[tags/homology-hit-organism-ditylenchus-destructor|Ditylenchus destructor]] (field=matched_organism)
+- [[tags/homology-organism-ditylenchus-destructor|Ditylenchus destructor]] (field=matched_organism)

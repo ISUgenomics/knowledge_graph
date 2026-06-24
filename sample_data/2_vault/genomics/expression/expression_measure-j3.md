@@ -39,6 +39,9 @@ name: "J3"
 - [[transcripts/hg_chrom1_tn10mrna_1003|Hg_chrom1_TN10mRNA_1003]] (expression_value=2622.3173, source_column=avg_j3)
 - [[transcripts/hg_chrom1_tn10mrna_1004|Hg_chrom1_TN10mRNA_1004]] (expression_value=543.5562, source_column=avg_j3)
 - [[transcripts/hg_chrom1_tn10mrna_1005|Hg_chrom1_TN10mRNA_1005]] (expression_value=543.5562, source_column=avg_j3)
+- [[transcripts/hg_chrom4_tn10mrna_7223|Hg_chrom4_TN10mRNA_7223]] (expression_value=233.3436, source_column=avg_j3)
+- [[transcripts/hg_chrom2_tn10mrna_3439|Hg_chrom2_TN10mRNA_3439]] (expression_value=2308.5427, source_column=avg_j3)
+- [[transcripts/hg_chrom2_tn10mrna_2403|Hg_chrom2_TN10mRNA_2403]] (expression_value=2376.4147, source_column=avg_j3)
 
 ### TAGGED
 

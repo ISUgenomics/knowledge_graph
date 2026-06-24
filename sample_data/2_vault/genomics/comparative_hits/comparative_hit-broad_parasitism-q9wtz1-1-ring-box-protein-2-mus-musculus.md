@@ -21,9 +21,9 @@ name: "Q9WTZ1.1"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_1-protein|Hg_chrom1_TN10gene_1 protein]] (source_column=sp_best_hit)
+- [[proteins/hg_chrom1_tn10mrna_1-protein|Unknown_Hg_chrom1_TN10mRNA_1]] (source_column=sp_best_hit)
 
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=sp_best_hit)
-- [[tags/homology-hit-organism-mus-musculus|Mus musculus]] (field=matched_organism)
+- [[tags/homology-organism-mus-musculus|Mus musculus]] (field=matched_organism)

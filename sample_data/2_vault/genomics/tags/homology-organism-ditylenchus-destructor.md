@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:ditylenchus-destructor"
+id: "homology-organism:ditylenchus-destructor"
 type: "tag"
 name: "Ditylenchus destructor"
 ---
@@ -17,7 +17,7 @@ name: "Ditylenchus destructor"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

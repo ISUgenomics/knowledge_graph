@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:wuchereria-bancrofti"
+id: "homology-organism:wuchereria-bancrofti"
 type: "tag"
 name: "Wuchereria bancrofti"
 ---
@@ -17,7 +17,7 @@ name: "Wuchereria bancrofti"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

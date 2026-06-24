@@ -21,9 +21,9 @@ name: "O04353.1"
 
 ### HAS_BROAD_HOMOLOGY_HIT
 
-- [[proteins/hg_chrom1_tn10mrna_1001-protein|Hg_chrom1_TN10gene_957 protein]] (source_column=sp_best_hit)
+- [[proteins/hg_chrom1_tn10mrna_1001-protein|Unknown_Hg_chrom1_TN10mRNA_1001]] (source_column=sp_best_hit)
 
 ### TAGGED
 
 - [[tags/homology-scope-broad-parasitism|Broad Parasitism]] (source_column=sp_best_hit)
-- [[tags/homology-hit-organism-borago-officinalis|Borago officinalis]] (field=matched_organism)
+- [[tags/homology-organism-borago-officinalis|Borago officinalis]] (field=matched_organism)

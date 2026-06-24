@@ -33,3 +33,6 @@ name: "Broad Parasitism"
 - [[comparative_hits/comparative_hit-broad_parasitism-kah7723845-1-cbn-ges-1-protein-aphelenchus-avenae|KAH7723845.1]] (source_column=nr_best_hit)
 - [[comparative_hits/comparative_hit-broad_parasitism-q95qu0-1-pci-domain-containing-protein-2-homolog-caenorhabditis-elegans|Q95QU0.1]] (source_column=sp_best_hit)
 - [[comparative_hits/comparative_hit-broad_parasitism-kai1724392-1-pci-domain-containing-protein-ditylenchus-destructor|KAI1724392.1]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-acu12489-1-10a06-effector-protein-isoform-1-heterodera-schachtii|ACU12489.1]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-aao33473-1-gland-specific-protein-g4e02-heterodera-glycines|AAO33473.1]] (source_column=nr_best_hit)
+- [[comparative_hits/comparative_hit-broad_parasitism-aao85454-1-putative-gland-protein-g16b09-heterodera-glycines|AAO85454.1]] (source_column=nr_best_hit)

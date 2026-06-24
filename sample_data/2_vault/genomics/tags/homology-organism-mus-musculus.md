@@ -1,5 +1,5 @@
 ---
-id: "homology-hit-organism:mus-musculus"
+id: "homology-organism:mus-musculus"
 type: "tag"
 name: "Mus musculus"
 ---
@@ -17,7 +17,7 @@ name: "Mus musculus"
 
 ### BROADER
 
-- [[tags/homology-hit-organism|Hit Organism]]
+- [[tags/homology-organism|Homology Organism]]
 
 ### TAGGED
 

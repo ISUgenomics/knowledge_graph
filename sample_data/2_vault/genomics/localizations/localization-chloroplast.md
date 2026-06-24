@@ -18,7 +18,8 @@ name: "chloroplast"
 
 ### HAS_LOCALIZATION
 
-- [[proteins/hg_chrom1_tn10mrna_1003-protein|Hg_chrom1_TN10gene_959 protein]]
+- [[proteins/hg_chrom1_tn10mrna_1003-protein|Unknown_Hg_chrom1_TN10mRNA_1003]]
+- [[proteins/hg_chrom2_tn10mrna_2403-protein|16B09]]
 
 ### TAGGED
 
