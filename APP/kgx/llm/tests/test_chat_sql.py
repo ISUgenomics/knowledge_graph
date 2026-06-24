@@ -93,6 +93,50 @@ AND e.type = 'protein'
 ```"""
 
 
+class _StaticSQLLLM:
+    def __init__(self, sql: str):
+        self.sql = sql
+
+    def chat(self, messages):
+        return f"```sql\n{self.sql}\n```"
+
+
+class _CaptureLLM:
+    def __init__(self, sql: str = "SELECT e.id, e.name, e.type FROM entities e WHERE 1 = 0"):
+        self.sql = sql
+        self.messages = None
+
+    def chat(self, messages):
+        self.messages = list(messages)
+        return f"```sql\n{self.sql}\n```"
+
+
+class _MetadataBridgeRetryLLM:
+    def __init__(self):
+        self.calls = 0
+
+    def chat(self, messages):
+        self.calls += 1
+        if self.calls == 1:
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+  AND json_extract(e.metadata, '$.pfam') = 'PF00001'
+  AND json_extract(e.metadata, '$.secretion') = 'secreted'
+```"""
+        return """```sql
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+JOIN entities owner ON owner.id = tp.target_id AND owner.type = 'protein'
+WHERE e.type = 'gene'
+  AND json_extract(owner.metadata, '$.pfam') = 'PF00001'
+  AND json_extract(owner.metadata, '$.secretion') = 'secreted'
+```"""
+
+
 def test_schema_context_includes_typed_patterns_and_tag_hierarchy(tmp_path: Path):
     db_path = tmp_path / "chat.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -153,8 +197,101 @@ def test_requested_result_types_prefers_hgt_donor_alias_over_gene_word(tmp_path:
     requested = chat._requested_result_types("select horizontal gene transfer donors")
     db.close()
 
-    assert requested[0] == "hgt_donor"
-    assert "gene" in requested
+    assert requested == ["hgt_donor"]
+
+
+def test_ask_includes_general_and_module_few_shot_examples(tmp_path: Path):
+    db_path = tmp_path / "chat-few-shot.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("person", "person-1", name="Alice")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    llm = _CaptureLLM()
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    chat.ask("select horizontal gene transfer donors")
+    db.close()
+
+    assert llm.messages is not None
+    contents = [str(item.get("content", "")) for item in llm.messages]
+    assert any("select all genes that have broad homology hits for Ditylenchus destructor /no_think" in content for content in contents)
+    assert any("select all genes that have HGT donor /no_think" in content for content in contents)
+
+
+def test_genomics_module_reads_organism_alias_override_from_registry(tmp_path: Path):
+    db_path = tmp_path / "chat-organism-alias.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-schachtii", name="Heterodera schachtii")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "organisms": {
+                "alias_overrides": {
+                    "heterodera schachtii": ["bcn"],
+                },
+            },
+        },
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    aliases = module._secondary_organism_aliases(chat)
+    db.close()
+
+    assert "bcn" in aliases
+
+
+def test_cross_db_people_prompt_can_mix_arbitrary_metadata_fields(tmp_path: Path):
+    db_path = tmp_path / "chat-people-metadata.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff", "department": "Chemistry"})
+    db.close()
+
+    sql = """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+  AND json_extract(e.metadata, '$.title') = 'PI'
+  AND json_extract(e.metadata, '$.department') = 'Biology'
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql))
+    result = chat.ask("select people with title PI and department Biology")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert result.results
+    assert [row["id"] for row in result.results] == ["alice"]
+
+
+def test_cross_db_genomics_prompt_bridges_to_downstream_metadata_owner(tmp_path: Path):
+    db_path = tmp_path / "chat-gene-protein-metadata.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1", metadata={"pfam": "PF00001", "secretion": "secreted"})
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    llm = _MetadataBridgeRetryLLM()
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select genes with pfam PF00001 and secretion secreted")
+    db.close()
+
+    assert llm.calls == 2
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_TRANSCRIPT" in result.sql
+    assert "TRANSLATED_TO" in result.sql
+    assert "json_extract(owner.metadata, '$.pfam')" in result.sql
+    assert result.results
+    assert [row["id"] for row in result.results] == ["gene-1"]
 
 
 def test_ask_retries_when_direct_relationship_origin_conflicts_with_selected_type(tmp_path: Path):
@@ -645,7 +782,169 @@ AND e.type = 'protein'
     assert result.results[0]["id"] == "prot-1"
     assert "HAS_HGT_DONOR" in (result.sql or "")
     assert "HAS_BROAD_HOMOLOGY_HIT" in (result.sql or "")
-    assert "homology-scope-broad-parasitism" in (result.sql or "")
+
+
+def test_synthesizes_protein_query_for_scn_known_effectors(tmp_path: Path):
+    db_path = tmp_path / "chat-scn-effectors.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("protein", "prot-1", name="10A06")
+    db.upsert_entity("protein", "prot-2", name="Unknown_X")
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-protein-effector-hit")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in H. glycines",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert sql is not None
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert "JOIN relationships etg" in sql
+    assert "TAGGED" in sql
+    assert "tag:scn-dna-effector-hit" in sql
+    assert "tag:scn-protein-effector-hit" in sql
+    assert rows
+    assert rows[0]["id"] == "prot-1"
+
+
+def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(tmp_path: Path):
+    db_path = tmp_path / "chat-known-effectors-specificity.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("organism", "organism:heterodera-schachtii", name="Heterodera schachtii")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("protein", "prot-1", name="10A06")
+    db.upsert_entity("protein", "prot-2", name="10C01")
+    db.upsert_entity("protein", "prot-3", name="16B09")
+    db.upsert_entity("protein", "prot-4", name="BCN_ONLY")
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:bcn-known-effector-hit", name="BCN Known Effector Hit")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:bcn-known-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-protein-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:bcn-known-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:scn-protein-effector-hit")
+    db.add_relationship("prot-3", "TAGGED", "tag:bcn-known-effector-hit")
+    db.add_relationship("prot-3", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-3", "TAGGED", "tag:scn-protein-effector-hit")
+    db.add_relationship("prot-4", "TAGGED", "tag:bcn-known-effector-hit")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+
+    generic_sql = chat.module.synthesize_query(chat, "select all known effectors", "SELECT 1", ["protein"])
+    assert generic_sql is not None
+    generic_rows = db.execute_read(generic_sql)
+    assert "tag:bcn-known-effector-hit" in generic_sql
+    assert "tag:scn-dna-effector-hit" in generic_sql
+    assert "tag:scn-protein-effector-hit" in generic_sql
+    assert len([line for line in generic_sql.splitlines() if "JOIN relationships etg" in line]) == 1
+    assert sorted(row["name"] for row in generic_rows) == ["10A06", "10C01", "16B09", "BCN_ONLY"]
+
+    scn_sql = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in H. glycines",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert scn_sql is not None
+    scn_rows = db.execute_read(scn_sql)
+    assert "tag:bcn-known-effector-hit" not in scn_sql
+    assert "tag:scn-dna-effector-hit" in scn_sql
+    assert "tag:scn-protein-effector-hit" in scn_sql
+    assert sorted(row["name"] for row in scn_rows) == ["10A06", "10C01", "16B09"]
+
+    full_scn_sql = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in Heterodera glycines",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert full_scn_sql is not None
+    full_scn_rows = db.execute_read(full_scn_sql)
+    assert "tag:bcn-known-effector-hit" not in full_scn_sql
+    assert sorted(row["name"] for row in full_scn_rows) == ["10A06", "10C01", "16B09"]
+
+    bcn_sql = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in Heterodera schachtii",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert bcn_sql is not None
+    bcn_rows = db.execute_read(bcn_sql)
+    assert "tag:bcn-known-effector-hit" in bcn_sql
+    assert "tag:scn-dna-effector-hit" not in bcn_sql
+    assert "tag:scn-protein-effector-hit" not in bcn_sql
+    assert sorted(row["name"] for row in bcn_rows) == ["10C01", "16B09", "BCN_ONLY"]
+
+    db.close()
+
+
+def test_effector_prompts_do_not_mix_in_homology_scope_conditions(tmp_path: Path):
+    db_path = tmp_path / "chat-effector-no-scope-mix.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("organism", "organism:heterodera-schachtii", name="Heterodera schachtii")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:bcn-known-effector-hit", name="BCN Known Effector Hit")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:bcn-known-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+
+    effector_conditions = chat.module._semantic_conditions(
+        chat,
+        "select all proteins identified as known effectors in BCN",
+    )
+    assert not any(cond["kind"] == "scope_tag" for cond in effector_conditions)
+
+    homology_conditions = chat.module._semantic_conditions(
+        chat,
+        "select proteins with cyst nematode homology",
+    )
+    assert any(cond["kind"] == "scope_tag" for cond in homology_conditions)
+
+    db.close()
 
 
 def test_validation_error_rejects_unrequested_extra_semantic_conditions(tmp_path: Path):
@@ -768,5 +1067,40 @@ def test_semantic_query_for_bcn_homology_and_bcn_orthologs(tmp_path: Path):
     assert "HAS_BCN_MEMBER" in sql
     assert "HAS_NEMATODE_HIT" not in sql
     assert "homology-scope-nematode" not in sql
+    assert rows
+    assert rows[0]["id"] == "gene-1"
+
+
+def test_broad_homology_and_bcn_orthologs_does_not_add_cyst_scope_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-broad-bcn-orthologs.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Broad parasitism hit")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn-1")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(chat, "select genes with broad homology and BCN orthologs", "", ["gene"])
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert sql is not None
+    assert "HAS_BROAD_HOMOLOGY_HIT" in sql
+    assert "HAS_BCN_MEMBER" in sql
+    assert "homology-scope-cyst-nematode" not in sql
     assert rows
     assert rows[0]["id"] == "gene-1"

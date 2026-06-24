@@ -21,6 +21,7 @@ from typing import Any
 from kgx.db import KnowledgeGraphDB
 from .client import OllamaClient
 from .modules.base import ChatModule
+from .prompt_corpus import prompt_corpus_few_shots
 
 _SYSTEM_TEMPLATE = """\
 You are a SQL assistant for a local knowledge graph database backed by SQLite.
@@ -259,6 +260,7 @@ class ChatToSQL:
     def _requested_result_types(self, message: str) -> list[str]:
         low = f" {message.lower()} "
         requested: list[str] = []
+        suppressed: set[str] = set()
         try:
             types = [row["type"] for row in self.db.entity_types()]
         except Exception:
@@ -268,7 +270,13 @@ class ChatToSQL:
                 requested.extend(self.module.preferred_result_types(self, message, types))
             except Exception:
                 pass
+            try:
+                suppressed.update(self.module.suppressed_result_types(self, message, types))
+            except Exception:
+                pass
         for entity_type in types:
+            if entity_type in suppressed:
+                continue
             for variant in self._type_name_variants(entity_type):
                 if f" {variant} " in low:
                     requested.append(entity_type)
@@ -779,6 +787,14 @@ class ChatToSQL:
         debug_steps: list[dict[str, Any]] = []
         system = _SYSTEM_TEMPLATE.format(schema_context=self._schema_context())
         messages: list[dict] = [{"role": "system", "content": system}]
+        few_shots = prompt_corpus_few_shots(self.module.corpus_section() if self.module else None)
+        debug_steps.append({
+            "step": "few_shot_examples",
+            "value": [f"{item['section']}:{item['id']}" for item in few_shots],
+        })
+        for item in few_shots:
+            messages.append({"role": "user", "content": item["prompt"] + " /no_think"})
+            messages.append({"role": "assistant", "content": f"```sql\n{item['sql']}\n```"})
         requested_types = self._requested_result_types(message)
         debug_steps.append({"step": "requested_result_types", "value": requested_types})
         if requested_types:

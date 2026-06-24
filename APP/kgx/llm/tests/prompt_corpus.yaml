@@ -1,0 +1,266 @@
+general:
+  - id: broad_homology_ditylenchus_genes
+    dataset: ditylenchus_gene
+    prompt: select all genes that have broad homology hits for Ditylenchus destructor
+    few_shot_sql: |
+      SELECT DISTINCT e.id, e.name, e.type
+      FROM entities e
+      JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+      JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+      JOIN relationships ph ON ph.source_id = tp.target_id AND ph.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+      WHERE e.type = 'gene'
+    responses:
+      - |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships r ON e.id = r.source_id
+        WHERE r.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+          AND e.type = 'gene'
+      - |
+        SELECT DISTINCT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+        JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+        JOIN relationships ph ON ph.source_id = tp.target_id AND ph.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+        WHERE e.type = 'gene'
+    expect_ids: [gene-1]
+    expect_sql_contains: [HAS_TRANSCRIPT, TRANSLATED_TO, HAS_BROAD_HOMOLOGY_HIT]
+
+  - id: broad_homology_ditylenchus_proteins
+    dataset: ditylenchus_protein
+    prompt: select proteins that have broad homology hits for Ditylenchus destructor
+    few_shot_sql: |
+      SELECT DISTINCT e.id, e.name, e.type
+      FROM entities e
+      JOIN relationships ph ON ph.source_id = e.id AND ph.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+      JOIN relationships ht ON ht.source_id = ph.target_id AND ht.rel_type = 'TAGGED'
+      JOIN entities t ON t.id = ht.target_id
+      WHERE e.type = 'protein'
+        AND t.type = 'tag'
+        AND t.name = 'Ditylenchus destructor'
+    responses:
+      - |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships r ON e.id = r.source_id
+        WHERE r.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+        AND EXISTS (
+            SELECT 1
+            FROM entities e2
+            JOIN relationships r2 ON e2.id = r2.target_id
+            WHERE r2.source_id = e.id
+              AND e2.name = 'Ditylenchus destructor'
+        )
+        AND e.type = 'protein'
+    expect_ids: [prot-1]
+    expect_sql_contains: ["t.type = 'tag'", "HAS_BROAD_HOMOLOGY_HIT"]
+
+  - id: people_metadata_mix
+    dataset: people_metadata
+    prompt: select people with title PI and department Biology
+    few_shot_sql: |
+      SELECT e.id, e.name, e.type
+      FROM entities e
+      WHERE e.type = 'person'
+        AND json_extract(e.metadata, '$.title') = 'PI'
+        AND json_extract(e.metadata, '$.department') = 'Biology'
+    responses:
+      - |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        WHERE e.type = 'person'
+          AND json_extract(e.metadata, '$.title') = 'PI'
+          AND json_extract(e.metadata, '$.department') = 'Biology'
+    expect_ids: [alice]
+
+modules:
+  genomics:
+    - id: ortholog_gene_copies
+      dataset: ortholog_count
+      prompt: select genes with 3 or more ortholog gene copies
+      responses:
+        - |
+          SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.gene_counts') as gene_counts
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'BELONGS_TO_ORTHOGROUP'
+          AND e.type = 'gene'
+          AND json_extract(e.metadata, '$.gene_counts') IS NOT NULL
+          AND (
+              (json_extract(e.metadata, '$.gene_counts."Ditylenchus destructor"') >= 3)
+          )
+      expect_ids: [gene-1]
+      expect_sql_contains: [BELONGS_TO_ORTHOGROUP, "metadata, '$.gene_counts'", "CAST(gc.value AS INTEGER) >= 3"]
+
+    - id: genes_with_hgt_donor
+      dataset: hgt_gene
+      prompt: select all genes that have HGT donor
+      few_shot_sql: |
+        SELECT DISTINCT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+        JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+        JOIN relationships hd ON hd.source_id = tp.target_id AND hd.rel_type = 'HAS_HGT_DONOR'
+        WHERE e.type = 'gene'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'HAS_HGT_DONOR'
+          AND e.type = 'gene'
+      expect_ids: [gene-1]
+      expect_sql_contains: [HAS_TRANSCRIPT, TRANSLATED_TO, HAS_HGT_DONOR]
+
+    - id: genes_with_horizontal_gene_transfer
+      dataset: hgt_gene
+      prompt: select all genes with horizontal gene transfer
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'HAS_HGT_DONOR'
+          AND e.type = 'gene'
+      expect_ids: [gene-1]
+      expect_sql_contains: [HAS_TRANSCRIPT, TRANSLATED_TO, HAS_HGT_DONOR]
+
+    - id: horizontal_gene_transfer_donors
+      dataset: hgt_gene
+      prompt: select horizontal gene transfer donors
+      few_shot_sql: |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        WHERE e.type = 'hgt_donor'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'hgt_donor'
+      expect_ids: [donor-1]
+      expect_sql_contains: ["e.type = 'hgt_donor'"]
+
+    - id: protein_hgt_donor_in_orthogroup_question
+      dataset: hgt_orthogroup
+      prompt: does any protein has HGT donor and belongs to orthogroup OG0005830?
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'HAS_HGT_DONOR'
+          AND e.type = 'protein'
+      expect_ids: [prot-1]
+      expect_sql_contains: [HAS_HGT_DONOR, BELONGS_TO_ORTHOGROUP, OG0005830]
+
+    - id: protein_hgt_donor_in_orthogroup
+      dataset: hgt_orthogroup
+      prompt: select protein with HGT donor in orthogroup OG0005830
+      few_shot_sql: |
+        SELECT DISTINCT e.id, e.name, e.type
+        FROM entities e
+        JOIN relationships hd ON hd.source_id = e.id AND hd.rel_type = 'HAS_HGT_DONOR'
+        JOIN relationships tp ON tp.target_id = e.id AND tp.rel_type = 'TRANSLATED_TO'
+        JOIN relationships gt ON gt.target_id = tp.source_id AND gt.rel_type = 'HAS_TRANSCRIPT'
+        JOIN relationships og ON og.source_id = gt.source_id AND og.rel_type = 'BELONGS_TO_ORTHOGROUP'
+        JOIN entities orthogroup ON orthogroup.id = og.target_id
+        WHERE e.type = 'protein'
+          AND upper(orthogroup.name) = 'OG0005830'
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'HAS_HGT_DONOR'
+          AND e.type = 'protein'
+      expect_ids: [prot-1]
+      expect_sql_contains: [HAS_HGT_DONOR, BELONGS_TO_ORTHOGROUP, OG0005830]
+
+    - id: cyst_nematode_homology_and_bcn_orthologs
+      dataset: bcn_combo
+      prompt: select genes with cyst nematode homology and BCN orthologs
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'gene'
+            AND e.id = 'missing'
+      expect_ids: [gene-1]
+      expect_sql_contains: [HAS_BCN_HIT, HAS_BCN_MEMBER]
+
+    - id: exact_transcript_lookup
+      dataset: genomics_sample
+      prompt: select transcript Hg_chrom4_TN10mRNA_7223
+      few_shot_sql: |
+        SELECT e.id, e.name, e.type
+        FROM entities e
+        WHERE e.type = 'transcript'
+          AND lower(e.name) = lower('Hg_chrom4_TN10mRNA_7223')
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'transcript'
+            AND lower(e.name) = lower('Hg_chrom4_TN10mRNA_7223')
+      expect_names: [Hg_chrom4_TN10mRNA_7223]
+      expect_sql_contains: ["e.type = 'transcript'"]
+
+    - id: known_effectors_h_glycines
+      dataset: genomics_sample
+      prompt: select all proteins identified as known effectors in H. glycines
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'protein'
+            AND e.id = 'missing'
+      expect_names: [10A06, 10C01, 16B09]
+      expect_sql_contains: [tag:scn-dna-effector-hit, tag:scn-protein-effector-hit]
+      expect_sql_not_contains: [tag:bcn-known-effector-hit]
+
+    - id: broad_parasistism_and_bcn_orthologs
+      dataset: broad_bcn_orthologs
+      prompt: select genes with broad parasistism and BCN orthologs
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'gene'
+            AND e.id = 'missing'
+      expect_ids: [gene-1]
+      expect_sql_contains: [HAS_BROAD_HOMOLOGY_HIT, HAS_BCN_MEMBER]
+      expect_sql_not_contains: [homology-scope-cyst-nematode]
+
+    - id: proteins_with_hgt_donor_and_broad_parasitism
+      dataset: hgt_broad
+      prompt: select proteins with HGT donor and broad parasitism
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships r ON e.id = r.source_id
+          WHERE r.rel_type = 'HAS_HGT_DONOR'
+          AND e.type = 'protein'
+      expect_ids: [prot-1]
+      expect_sql_contains: [HAS_HGT_DONOR, HAS_BROAD_HOMOLOGY_HIT]
+
+    - id: genes_bridge_to_protein_metadata
+      dataset: gene_protein_metadata
+      prompt: select genes with pfam PF00001 and secretion secreted
+      responses:
+        - |
+          SELECT e.id, e.name, e.type
+          FROM entities e
+          WHERE e.type = 'gene'
+            AND json_extract(e.metadata, '$.pfam') = 'PF00001'
+            AND json_extract(e.metadata, '$.secretion') = 'secreted'
+        - |
+          SELECT DISTINCT e.id, e.name, e.type
+          FROM entities e
+          JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+          JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+          JOIN entities owner ON owner.id = tp.target_id AND owner.type = 'protein'
+          WHERE e.type = 'gene'
+            AND json_extract(owner.metadata, '$.pfam') = 'PF00001'
+            AND json_extract(owner.metadata, '$.secretion') = 'secreted'
+      expect_ids: [gene-1]
