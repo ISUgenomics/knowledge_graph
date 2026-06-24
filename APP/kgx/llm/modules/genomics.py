@@ -5,18 +5,21 @@ from typing import Any
 
 from kgx.genomics_source import load_semantic_registry
 
-from .base import ChatModule
+from .base import RegistryConditionModule
 
 
-class GenomicsChatModule(ChatModule):
+class GenomicsChatModule(RegistryConditionModule):
     _HOMOLOGY_SCOPE_ROOT = "homology-scope"
     def __init__(
         self,
         semantic_schema: dict[str, Any] | None = None,
         semantic_registry: dict[str, Any] | None = None,
     ):
-        self.semantic_registry = semantic_registry or load_semantic_registry(None)
-        self.semantic_schema = semantic_schema or dict(self.semantic_registry.get("schema", {}) or {})
+        super().__init__(
+            semantic_registry_loader=load_semantic_registry,
+            semantic_schema=semantic_schema,
+            semantic_registry=semantic_registry,
+        )
 
     def corpus_section(self) -> str | None:
         return "genomics"
@@ -50,29 +53,20 @@ class GenomicsChatModule(ChatModule):
         return {alias.strip() for alias in aliases if alias.strip()}
 
     def _protein_evidence_specs(self) -> list[dict[str, Any]]:
-        families = self.semantic_registry.get("relation_families", {}) if isinstance(self.semantic_registry, dict) else {}
+        families = self._registry_relation_families()
         specs = families.get("protein_evidence", []) if isinstance(families, dict) else []
         return [dict(item) for item in list(specs or []) if isinstance(item, dict)]
 
     def _ortholog_member_aliases(self) -> list[str]:
-        families = self.semantic_registry.get("relation_families", {}) if isinstance(self.semantic_registry, dict) else {}
-        ortholog_member = families.get("ortholog_member", {}) if isinstance(families, dict) else {}
+        ortholog_member = self._registry_relation_family("ortholog_member")
         aliases = list(ortholog_member.get("aliases", []) or [])
         return [str(alias) for alias in aliases if str(alias).strip()]
 
     def _relation_family(self, family_id: str) -> dict[str, Any]:
-        families = self.semantic_registry.get("relation_families", {}) if isinstance(self.semantic_registry, dict) else {}
-        family = families.get(family_id, {}) if isinstance(families, dict) else {}
-        return dict(family) if isinstance(family, dict) else {}
-
-    def _registry_path(self, from_type: str, to_type: str) -> list[dict[str, str]]:
-        paths = self.semantic_registry.get("paths", {}) if isinstance(self.semantic_registry, dict) else {}
-        key = f"{from_type}->{to_type}"
-        path = paths.get(key, []) if isinstance(paths, dict) else []
-        return [dict(step) for step in list(path or []) if isinstance(step, dict)]
+        return self._registry_relation_family(family_id)
 
     def _scope_tag_operator(self, tag_id: str) -> dict[str, Any]:
-        operators = self.semantic_registry.get("operators", {}) if isinstance(self.semantic_registry, dict) else {}
+        operators = self._registry_operators()
         scope_tags = operators.get("scope_tags", {}) if isinstance(operators, dict) else {}
         operator = scope_tags.get(str(tag_id), {}) if isinstance(scope_tags, dict) else {}
         return dict(operator) if isinstance(operator, dict) else {}
@@ -80,11 +74,6 @@ class GenomicsChatModule(ChatModule):
     def _validation_config(self) -> dict[str, Any]:
         validation = self.semantic_registry.get("validation", {}) if isinstance(self.semantic_registry, dict) else {}
         return dict(validation) if isinstance(validation, dict) else {}
-
-    def _condition_handlers(self) -> dict[str, str]:
-        operators = self.semantic_registry.get("operators", {}) if isinstance(self.semantic_registry, dict) else {}
-        handlers = operators.get("condition_handlers", {}) if isinstance(operators, dict) else {}
-        return dict(handlers) if isinstance(handlers, dict) else {}
 
     def _primary_organism_aliases(self, chat) -> set[str]:
         try:
@@ -121,7 +110,7 @@ class GenomicsChatModule(ChatModule):
         return aliases
 
     def _schema_group_aliases(self, group_id: str) -> list[str]:
-        groups = self.semantic_schema.get("groups", {}) if isinstance(self.semantic_schema, dict) else {}
+        groups = self._semantic_schema_groups()
         group = groups.get(group_id, {}) if isinstance(groups, dict) else {}
         aliases = list(group.get("aliases", []) or [])
         return [f" {alias.strip()} " for alias in aliases if str(alias).strip()]
@@ -285,12 +274,28 @@ class GenomicsChatModule(ChatModule):
             pruned.append(tag_id)
         return pruned
 
-    def _semantic_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+    def _matched_protein_evidence_conditions(self, message: str) -> list[dict[str, Any]]:
         conditions: list[dict[str, Any]] = []
         for spec in self._protein_evidence_specs():
-            if self._message_matches_aliases(message, spec["aliases"]):
-                owner_type = str(spec.get("owner_type", "protein") or "protein")
-                conditions.append({"kind": "protein_evidence", **spec, "owner_types": [owner_type]})
+            if not self._message_matches_aliases(message, list(spec.get("aliases", []) or [])):
+                continue
+            owner_type = str(spec.get("owner_type", "protein") or "protein")
+            conditions.append({"kind": "protein_evidence", **spec, "owner_types": [owner_type]})
+        return conditions
+
+    def _matched_ortholog_member_conditions(self, message: str) -> list[dict[str, Any]]:
+        low = str(message or "").lower()
+        ortholog_aliases = self._ortholog_member_aliases()
+        if (
+            ortholog_aliases
+            and self._message_matches_aliases(message, ortholog_aliases)
+            and not re.search(r"\bcop(y|ies)\b", low)
+        ):
+            return [{"kind": "ortholog_member"}]
+        return []
+
+    def _semantic_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+        conditions: list[dict[str, Any]] = self._matched_protein_evidence_conditions(message)
         specific_effector_conditions: list[dict[str, Any]] = []
         generic_effector_conditions: list[dict[str, Any]] = []
         for spec in self._effector_tag_specs(chat):
@@ -315,14 +320,7 @@ class GenomicsChatModule(ChatModule):
         orthogroup_label = self._requested_orthogroup_label(message)
         if orthogroup_label:
             conditions.append({"kind": "orthogroup_filter", "label": orthogroup_label})
-        low = str(message or "").lower()
-        ortholog_aliases = self._ortholog_member_aliases()
-        if (
-            ortholog_aliases
-            and self._message_matches_aliases(message, ortholog_aliases)
-            and not re.search(r"\bcop(y|ies)\b", low)
-        ):
-            conditions.append({"kind": "ortholog_member"})
+        conditions.extend(self._matched_ortholog_member_conditions(message))
         for tag_id in self._requested_scope_tag_ids(chat, message):
             conditions.append({"kind": "scope_tag", "tag_id": tag_id})
         return conditions
@@ -366,6 +364,8 @@ class GenomicsChatModule(ChatModule):
     def preferred_result_types(self, chat, message: str, available_types: list[str]) -> list[str]:
         low = f" {str(message or '').lower()} "
         preferred: list[str] = []
+        if self._requests_broad_homology_organism_tags(message, available_types):
+            preferred.append("tag")
         requested_hgt_donor = self._requests_hgt_donor_result(message, available_types)
         if requested_hgt_donor:
             preferred.append("hgt_donor")
@@ -383,6 +383,8 @@ class GenomicsChatModule(ChatModule):
         return preferred
 
     def suppressed_result_types(self, chat, message: str, available_types: list[str]) -> list[str]:
+        if self._requests_broad_homology_organism_tags(message, available_types):
+            return ["organism"]
         if self._requests_hgt_donor_result(message, available_types):
             return ["gene"]
         return []
@@ -402,53 +404,136 @@ class GenomicsChatModule(ChatModule):
             or " horizontal gene transfer donors " in low
         )
 
-    def _append_path_joins(
-        self,
-        chat,
-        *,
-        from_type: str,
-        to_type: str,
-        current_node_ref: str,
-        alias_index: int,
-    ) -> tuple[list[str], str, int]:
-        joins: list[str] = []
-        registry_path = self._registry_path(from_type, to_type)
-        if registry_path:
-            path = [
-                (
-                    str(step.get("src", "")),
-                    str(step.get("rel_type", "")),
-                    str(step.get("dst", "")),
-                    str(step.get("direction", "forward")),
-                )
-                for step in registry_path
-            ]
-        else:
-            path = chat._shortest_type_path_any_direction(from_type, to_type)
-        if from_type != to_type and not path:
-            return [], "", alias_index
-        ref = current_node_ref
-        current_type = from_type
-        for src, edge_rel, dst, direction in path:
-            if src != current_type:
-                return [], "", alias_index
-            alias_index += 1
-            rel_alias = f"p{alias_index}"
-            if direction == "forward":
-                joins.append(
-                    f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {ref} AND {rel_alias}.rel_type = '{edge_rel}'"
-                )
-                ref = f"{rel_alias}.target_id"
-            else:
-                joins.append(
-                    f"JOIN relationships {rel_alias} ON {rel_alias}.target_id = {ref} AND {rel_alias}.rel_type = '{edge_rel}'"
-                )
-                ref = f"{rel_alias}.source_id"
-            current_type = dst
-        return joins, ref, alias_index
+    @staticmethod
+    def _requests_broad_homology_organism_tags(message: str, available_types: list[str]) -> bool:
+        low = f" {str(message or '').lower()} "
+        if "tag" not in available_types:
+            return False
+        broad_cue = (
+            " broad homology " in low
+            or " broad homologies " in low
+            or " broad parasitism " in low
+            or " broad parasistism " in low
+        )
+        organism_cue = (
+            " organism " in low
+            or " organisms " in low
+            or " organism tag " in low
+            or " organism tags " in low
+        )
+        return broad_cue and organism_cue
 
     def _requested_core_type(self, requested_types: list[str]) -> str:
         return next((item for item in requested_types if item in {"gene", "transcript", "protein"}), "")
+
+    @staticmethod
+    def _requests_hgt_donor_semantics(message: str) -> bool:
+        low = f" {str(message or '').lower()} "
+        return (
+            " hgt donor " in low
+            or " hgt donors " in low
+            or " horizontal gene transfer donor " in low
+            or " horizontal gene transfer donors " in low
+        )
+
+    def _ortholog_count_owner_type(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        selected_type: str,
+        rel_type: str,
+    ) -> tuple[str, list[tuple[str, str, str]]]:
+        patterns = chat._typed_rel_patterns()
+        if rel_type:
+            target_types = sorted({dst for src, rel, dst in patterns if src == requested_type and rel == rel_type})
+            owner_type = next((etype for etype in target_types if "gene_counts" in set(chat.db.metadata_keys(etype))), "")
+            if owner_type:
+                return owner_type, chat._shortest_type_path(requested_type, owner_type)
+        if "gene_counts" in set(chat.db.metadata_keys(selected_type)):
+            return selected_type, chat._shortest_type_path(requested_type, selected_type)
+
+        candidate_types = sorted({
+            row["type"]
+            for row in chat.db.execute_read("SELECT type FROM entities GROUP BY type ORDER BY type")
+            if "type" in row
+        })
+        for candidate_type in candidate_types:
+            if "gene_counts" not in set(chat.db.metadata_keys(candidate_type)):
+                continue
+            path = chat._shortest_type_path(requested_type, candidate_type)
+            if requested_type == candidate_type or path:
+                return candidate_type, path
+        return "", []
+
+    def _protein_evidence_context(self, cond: dict[str, Any]) -> dict[str, Any]:
+        owner_type = next(iter(list(cond.get("owner_types", []) or [cond.get("owner_type", "protein")])), "protein")
+        return {
+            "owner_type": str(owner_type or "protein"),
+            "evidence_rel_type": str(cond.get("rel_type", "") or ""),
+            "target_types": [str(item) for item in list(cond.get("target_types", []) or []) if str(item).strip()],
+        }
+
+    def _protein_evidence_rel_types(self) -> list[str]:
+        rel_types: list[str] = []
+        for spec in self._protein_evidence_specs():
+            rel_type = str(spec.get("rel_type", "") or "").strip()
+            if rel_type and rel_type not in rel_types:
+                rel_types.append(rel_type)
+        return rel_types
+
+    def _scope_tag_context(self, tag_id: str, operator: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "tag_id": str(tag_id),
+            "owner_type": str(operator.get("owner_type", evidence.get("owner_type", "protein")) or "protein"),
+            "evidence_rel_type": str(evidence.get("rel_type", "") or ""),
+            "target_types": [str(operator.get("target_type", "comparative_hit") or "comparative_hit")],
+            "tag_rel_type": str(operator.get("tag_rel_type", "TAGGED") or "TAGGED"),
+        }
+
+    def _tag_evidence_context(self, cond: dict[str, Any]) -> dict[str, Any]:
+        owner_type = next(iter(list(cond.get("owner_types", []) or ["protein"])), "protein")
+        tag_ids = [str(tag_id) for tag_id in list(cond.get("tag_ids", []) or []) if str(tag_id).strip()]
+        return {
+            "owner_type": str(owner_type or "protein"),
+            "tag_ids": tag_ids,
+        }
+
+    def _append_scope_tag_filter_from_context(
+        self,
+        *,
+        tag_id: str,
+        operator: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        used_scope_tags: set[str],
+        context: dict[str, Any],
+    ) -> tuple[bool, int]:
+        ok, alias_index, _context = self._append_registry_operator_joins(
+            None,
+            operator_id="scope_tag",
+            requested_type=str(context.get("owner_type", "protein") or "protein"),
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+            template_context={
+                "tag_id": tag_id,
+                "owner_type": str(context.get("owner_type", "protein") or "protein"),
+                "evidence_rel_type": str(context.get("evidence_rel_type", "") or ""),
+                "target_types": list(context.get("target_types", []) or []),
+                "tag_rel_type": str(operator.get("tag_rel_type", "TAGGED") or "TAGGED"),
+            },
+            initial_context={
+                "owner_ref": context.get("owner_ref", "e.id"),
+                "evidence_rel": context.get("evidence_rel", ""),
+                "evidence_target": context.get("evidence_target", ""),
+            },
+        )
+        if not ok:
+            return False, alias_index
+        used_scope_tags.add(tag_id)
+        return True, alias_index
 
     def _append_protein_evidence_joins(
         self,
@@ -462,120 +547,41 @@ class GenomicsChatModule(ChatModule):
         scope_tag_ids: set[str],
         used_scope_tags: set[str],
     ) -> tuple[bool, int]:
-        owner_type = next(iter(list(cond.get("owner_types", []) or ["protein"])), "protein")
-        path_joins, owner_ref, alias_index = self._append_path_joins(
+        ok, alias_index, context = self._append_registry_operator_joins(
             chat,
-            from_type=requested_type,
-            to_type=owner_type,
-            current_node_ref="e.id",
+            operator_id="protein_evidence",
+            requested_type=requested_type,
+            joins=joins,
+            where_lines=where_lines,
             alias_index=alias_index,
+            template_context=self._protein_evidence_context(cond),
         )
-        if requested_type != owner_type and not path_joins:
+        if not ok:
             return False, alias_index
-        joins.extend(path_joins)
-        alias_index += 1
-        ev_alias = f"ev{alias_index}"
-        joins.append(
-            f"JOIN relationships {ev_alias} ON {ev_alias}.source_id = {owner_ref or 'e.id'} AND {ev_alias}.rel_type = '{cond['rel_type']}'"
-        )
-        alias_index += 1
-        target_alias = f"t{alias_index}"
         target_types = list(cond.get("target_types", []) or [])
-        if len(target_types) == 1:
-            target_type_clause = f"{target_alias}.type = '{target_types[0]}'"
-        else:
-            target_type_clause = f"{target_alias}.type IN ({', '.join(repr(target_type) for target_type in target_types)})"
-        joins.append(
-            f"JOIN entities {target_alias} ON {target_alias}.id = {ev_alias}.target_id AND {target_type_clause}"
-        )
+        target_alias = str(context.get("evidence_target", "") or "")
         for scope_tag_id in scope_tag_ids:
             operator = self._scope_tag_operator(scope_tag_id)
             if operator.get("evidence_id") != cond["id"]:
                 continue
             if target_types and operator.get("target_type") and operator.get("target_type") not in target_types:
                 continue
-            alias_index += 1
-            tg_alias = f"tg{alias_index}"
-            joins.append(
-                f"JOIN relationships {tg_alias} ON {tg_alias}.source_id = {target_alias}.id AND {tg_alias}.rel_type = '{operator.get('tag_rel_type', 'TAGGED')}'"
+            ok, alias_index = self._append_scope_tag_filter_from_context(
+                tag_id=scope_tag_id,
+                operator=operator,
+                joins=joins,
+                where_lines=where_lines,
+                alias_index=alias_index,
+                used_scope_tags=used_scope_tags,
+                context={
+                    **self._protein_evidence_context(cond),
+                    "owner_ref": context.get("owner_ref", "e.id"),
+                    "evidence_rel": context.get("evidence_rel", ""),
+                    "evidence_target": target_alias,
+                },
             )
-            alias_index += 1
-            tag_alias = f"tag{alias_index}"
-            joins.append(
-                f"JOIN entities {tag_alias} ON {tag_alias}.id = {tg_alias}.target_id AND {tag_alias}.type = 'tag'"
-            )
-            where_lines.append(f"  AND {tag_alias}.id = '{scope_tag_id}'")
-            used_scope_tags.add(scope_tag_id)
-        return True, alias_index
-
-    def _append_orthogroup_filter_joins(
-        self,
-        chat,
-        *,
-        requested_type: str,
-        label: str,
-        joins: list[str],
-        where_lines: list[str],
-        alias_index: int,
-    ) -> tuple[bool, int]:
-        family = self._relation_family("orthogroup_filter")
-        owner_type = str(family.get("owner_type", "gene") or "gene")
-        path_joins, gene_ref, alias_index = self._append_path_joins(
-            chat,
-            from_type=requested_type,
-            to_type=owner_type,
-            current_node_ref="e.id",
-            alias_index=alias_index,
-        )
-        if requested_type != owner_type and not path_joins:
-            return False, alias_index
-        joins.extend(path_joins)
-        alias_index += 1
-        og_alias = f"og{alias_index}"
-        joins.append(
-            f"JOIN relationships {og_alias} ON {og_alias}.source_id = {gene_ref or 'e.id'} AND {og_alias}.rel_type = '{family.get('rel_type', 'BELONGS_TO_ORTHOGROUP')}'"
-        )
-        alias_index += 1
-        owner_alias = f"owner{alias_index}"
-        joins.append(
-            f"JOIN entities {owner_alias} ON {owner_alias}.id = {og_alias}.target_id AND {owner_alias}.type = 'orthogroup'"
-        )
-        where_lines.append(
-            f"  AND (upper({owner_alias}.name) = '{label}' OR upper({owner_alias}.id) = 'ORTHOGROUP:{label}')"
-        )
-        return True, alias_index
-
-    def _append_ortholog_member_joins(
-        self,
-        chat,
-        *,
-        requested_type: str,
-        joins: list[str],
-        alias_index: int,
-    ) -> tuple[bool, int]:
-        family = self._relation_family("ortholog_member")
-        bridge_rel_type = str(family.get("bridge_rel_type", "BELONGS_TO_ORTHOGROUP") or "BELONGS_TO_ORTHOGROUP")
-        owner_type = str(self._relation_family("orthogroup_filter").get("owner_type", "gene") or "gene")
-        path_joins, gene_ref, alias_index = self._append_path_joins(
-            chat,
-            from_type=requested_type,
-            to_type=owner_type,
-            current_node_ref="e.id",
-            alias_index=alias_index,
-        )
-        if requested_type != owner_type and not path_joins:
-            return False, alias_index
-        joins.extend(path_joins)
-        alias_index += 1
-        og_alias = f"ogm{alias_index}"
-        joins.append(
-            f"JOIN relationships {og_alias} ON {og_alias}.source_id = {gene_ref or 'e.id'} AND {og_alias}.rel_type = '{bridge_rel_type}'"
-        )
-        alias_index += 1
-        mem_alias = f"mem{alias_index}"
-        joins.append(
-            f"JOIN relationships {mem_alias} ON {mem_alias}.source_id = {og_alias}.target_id AND {mem_alias}.rel_type = '{family.get('rel_type', 'HAS_BCN_MEMBER')}'"
-        )
+            if not ok:
+                return False, alias_index
         return True, alias_index
 
     def _append_scope_tag_joins(
@@ -592,41 +598,20 @@ class GenomicsChatModule(ChatModule):
         operator = self._scope_tag_operator(tag_id)
         if not operator:
             return True, alias_index
-        path_joins, owner_ref, alias_index = self._append_path_joins(
-            chat,
-            from_type=requested_type,
-            to_type=str(operator.get("owner_type", "protein") or "protein"),
-            current_node_ref="e.id",
-            alias_index=alias_index,
-        )
-        owner_type = str(operator.get("owner_type", "protein") or "protein")
-        if requested_type != owner_type and not path_joins:
-            return False, alias_index
-        joins.extend(path_joins)
         evidence = next((spec for spec in self._protein_evidence_specs() if spec["id"] == operator.get("evidence_id")), None)
         if not evidence:
             return False, alias_index
-        alias_index += 1
-        ev_alias = f"sev{alias_index}"
-        joins.append(
-            f"JOIN relationships {ev_alias} ON {ev_alias}.source_id = {owner_ref or 'e.id'} AND {ev_alias}.rel_type = '{evidence['rel_type']}'"
+        ok, alias_index, _context = self._append_registry_operator_joins(
+            chat,
+            operator_id="scope_tag",
+            requested_type=requested_type,
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+            template_context=self._scope_tag_context(tag_id, operator, evidence),
         )
-        alias_index += 1
-        target_alias = f"shit{alias_index}"
-        joins.append(
-            f"JOIN entities {target_alias} ON {target_alias}.id = {ev_alias}.target_id AND {target_alias}.type = '{operator.get('target_type', 'comparative_hit')}'"
-        )
-        alias_index += 1
-        tg_alias = f"stg{alias_index}"
-        joins.append(
-            f"JOIN relationships {tg_alias} ON {tg_alias}.source_id = {target_alias}.id AND {tg_alias}.rel_type = '{operator.get('tag_rel_type', 'TAGGED')}'"
-        )
-        alias_index += 1
-        tag_alias = f"stag{alias_index}"
-        joins.append(
-            f"JOIN entities {tag_alias} ON {tag_alias}.id = {tg_alias}.target_id AND {tag_alias}.type = 'tag'"
-        )
-        where_lines.append(f"  AND {tag_alias}.id = '{tag_id}'")
+        if not ok:
+            return False, alias_index
         used_scope_tags.add(tag_id)
         return True, alias_index
 
@@ -639,97 +624,134 @@ class GenomicsChatModule(ChatModule):
         joins: list[str],
         alias_index: int,
     ) -> tuple[bool, int]:
-        owner_type = next(iter(list(cond.get("owner_types", []) or ["protein"])), "protein")
-        path_joins, owner_ref, alias_index = self._append_path_joins(
+        ok, alias_index, _context = self._append_registry_operator_joins(
             chat,
-            from_type=requested_type,
-            to_type=owner_type,
-            current_node_ref="e.id",
+            operator_id="tag_evidence",
+            requested_type=requested_type,
+            joins=joins,
+            where_lines=[],
             alias_index=alias_index,
+            template_context=self._tag_evidence_context(cond),
         )
-        if requested_type != owner_type and not path_joins:
-            return False, alias_index
-        joins.extend(path_joins)
-        alias_index += 1
-        tg_alias = f"etg{alias_index}"
-        joins.append(
-            f"JOIN relationships {tg_alias} ON {tg_alias}.source_id = {owner_ref or 'e.id'} AND {tg_alias}.rel_type = 'TAGGED'"
-        )
-        alias_index += 1
-        tag_alias = f"etag{alias_index}"
-        tag_ids = list(cond.get("tag_ids", []) or [])
-        if not tag_ids:
-            return False, alias_index
-        tag_id_clause = ", ".join(repr(tag_id) for tag_id in tag_ids)
-        joins.append(
-            f"JOIN entities {tag_alias} ON {tag_alias}.id = {tg_alias}.target_id AND {tag_alias}.type = 'tag' AND {tag_alias}.id IN ({tag_id_clause})"
-        )
-        return True, alias_index
+        return ok, alias_index
 
-    def _apply_semantic_condition(
+    def _handle_condition_protein_evidence(
         self,
         chat,
         *,
         requested_type: str,
-        cond: dict[str, Any],
+        condition: dict[str, Any],
         joins: list[str],
         where_lines: list[str],
         alias_index: int,
-        scope_tag_ids: set[str],
-        used_scope_tags: set[str],
-        has_protein_evidence: bool,
+        state: dict[str, Any],
     ) -> tuple[bool, int]:
-        kind = str(cond.get("kind", "") or "")
-        handler_name = self._condition_handlers().get(kind, "")
-        if handler_name == "protein_evidence":
-            return self._append_protein_evidence_joins(
-                chat,
-                requested_type=requested_type,
-                cond=cond,
-                joins=joins,
-                where_lines=where_lines,
-                alias_index=alias_index,
-                scope_tag_ids=scope_tag_ids,
-                used_scope_tags=used_scope_tags,
-            )
-        if handler_name == "orthogroup_filter":
-            return self._append_orthogroup_filter_joins(
-                chat,
-                requested_type=requested_type,
-                label=str(cond.get("label", "") or ""),
-                joins=joins,
-                where_lines=where_lines,
-                alias_index=alias_index,
-            )
-        if handler_name == "ortholog_member":
-            return self._append_ortholog_member_joins(
-                chat,
-                requested_type=requested_type,
-                joins=joins,
-                alias_index=alias_index,
-            )
-        if handler_name == "scope_tag":
-            tag_id = str(cond.get("tag_id", "") or "")
-            if tag_id in used_scope_tags or not has_protein_evidence:
-                return True, alias_index
-            return self._append_scope_tag_joins(
-                chat,
-                requested_type=requested_type,
-                tag_id=tag_id,
-                joins=joins,
-                where_lines=where_lines,
-                alias_index=alias_index,
-                used_scope_tags=used_scope_tags,
-            )
-        if handler_name == "tag_evidence":
-            return self._append_tag_evidence_joins(
-                chat,
-                requested_type=requested_type,
-                cond=cond,
-                joins=joins,
-                alias_index=alias_index,
-            )
-        return True, alias_index
+        return self._append_protein_evidence_joins(
+            chat,
+            requested_type=requested_type,
+            cond=condition,
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+            scope_tag_ids=state.setdefault("scope_tag_ids", set()),
+            used_scope_tags=state.setdefault("used_scope_tags", set()),
+        )
+
+    def _handle_condition_orthogroup_filter(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        ok, alias_index, _context = self._append_registry_operator_joins(
+            chat,
+            operator_id="orthogroup_filter",
+            requested_type=requested_type,
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+            template_context={"label": str(condition.get("label", "") or "")},
+        )
+        return ok, alias_index
+
+    def _handle_condition_ortholog_member(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        ok, alias_index, _context = self._append_registry_operator_joins(
+            chat,
+            operator_id="ortholog_member",
+            requested_type=requested_type,
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+        )
+        return ok, alias_index
+
+    def _handle_condition_scope_tag(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        tag_id = str(condition.get("tag_id", "") or "")
+        used_scope_tags = state.setdefault("used_scope_tags", set())
+        if tag_id in used_scope_tags or not state.get("has_protein_evidence", False):
+            return True, alias_index
+        return self._append_scope_tag_joins(
+            chat,
+            requested_type=requested_type,
+            tag_id=tag_id,
+            joins=joins,
+            where_lines=where_lines,
+            alias_index=alias_index,
+            used_scope_tags=used_scope_tags,
+        )
+
+    def _handle_condition_tag_evidence(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        return self._append_tag_evidence_joins(
+            chat,
+            requested_type=requested_type,
+            cond=condition,
+            joins=joins,
+            alias_index=alias_index,
+        )
+
+    def _semantic_condition_handlers_map(self) -> dict[str, Any]:
+        return {
+            "protein_evidence": self._handle_condition_protein_evidence,
+            "orthogroup_filter": self._handle_condition_orthogroup_filter,
+            "ortholog_member": self._handle_condition_ortholog_member,
+            "scope_tag": self._handle_condition_scope_tag,
+            "tag_evidence": self._handle_condition_tag_evidence,
+        }
 
     def _semantic_query(self, chat, message: str, requested_types: list[str]) -> str | None:
         requested_type = self._requested_core_type(requested_types)
@@ -739,34 +761,17 @@ class GenomicsChatModule(ChatModule):
         if not conditions:
             return None
 
-        joins: list[str] = []
-        where_lines = [f"WHERE e.type = '{requested_type}'"]
-        alias_index = 0
-        scope_tag_ids = {cond["tag_id"] for cond in conditions if cond["kind"] == "scope_tag"}
-        has_protein_evidence = any(cond["kind"] == "protein_evidence" for cond in conditions)
-        used_scope_tags: set[str] = set()
-
-        for cond in conditions:
-            ok, alias_index = self._apply_semantic_condition(
-                chat,
-                requested_type=requested_type,
-                cond=cond,
-                joins=joins,
-                where_lines=where_lines,
-                alias_index=alias_index,
-                scope_tag_ids=scope_tag_ids,
-                used_scope_tags=used_scope_tags,
-                has_protein_evidence=has_protein_evidence,
-            )
-            if not ok:
-                return None
-
-        return "\n".join([
-            "SELECT DISTINCT e.id, e.name, e.type",
-            "FROM entities e",
-            *joins,
-            *where_lines,
-        ])
+        return self._build_semantic_entity_query(
+            chat,
+            requested_type=requested_type,
+            conditions=conditions,
+            distinct=True,
+            state={
+                "scope_tag_ids": {cond["tag_id"] for cond in conditions if cond["kind"] == "scope_tag"},
+                "used_scope_tags": set(),
+                "has_protein_evidence": any(cond["kind"] == "protein_evidence" for cond in conditions),
+            },
+        )
 
     def schema_context_lines(self, chat) -> list[str]:
         try:
@@ -815,60 +820,86 @@ class GenomicsChatModule(ChatModule):
             for cond in requested_condition_kinds
             if cond["kind"] == "tag_evidence"
         }
-        validation = self._validation_config()
-        ortholog_member_rel_type = str(validation.get("ortholog_member_rel_type", "HAS_BCN_MEMBER") or "HAS_BCN_MEMBER")
-        orthogroup_filter_rel_type = str(validation.get("orthogroup_filter_rel_type", "BELONGS_TO_ORTHOGROUP") or "BELONGS_TO_ORTHOGROUP")
+        ortholog_member_rel_types = self._operator_rel_types("ortholog_member")
+        ortholog_member_rel_type = next((rel_type for rel_type in ortholog_member_rel_types if rel_type != "BELONGS_TO_ORTHOGROUP"), "")
+        orthogroup_filter_rel_types = self._operator_rel_types("orthogroup_filter")
+        orthogroup_filter_rel_type = next(iter(orthogroup_filter_rel_types), "")
         requested_has_bcn_member = any(cond["kind"] == "ortholog_member" for cond in requested_condition_kinds)
-
-        for rel_type in list(validation.get("protein_evidence_rel_types", []) or []):
-            if rel_type in sql_up and rel_type not in requested_protein_rel_types:
-                return (
+        unexpected_checks: list[tuple[list[str], bool, str]] = []
+        for rel_type in self._protein_evidence_rel_types():
+            unexpected_checks.append((
+                [rel_type],
+                rel_type in requested_protein_rel_types,
+                (
                     f"Unexpected evidence condition: the SQL includes relationship '{rel_type}', but the user did not request that evidence. "
                     "Keep the requested result type and only apply evidence conditions that are explicitly implied by the prompt."
-                )
+                ),
+            ))
         for tag_id, _tag_name in self._homology_scope_branch(chat):
-            tag_id = tag_id.upper()
-            if tag_id in sql_up and tag_id not in requested_scope_tags:
-                return (
+            unexpected_checks.append((
+                [tag_id],
+                tag_id.upper() in requested_scope_tags,
+                (
                     f"Unexpected scope filter: the SQL constrains '{tag_id.lower()}', but the user did not request that homology scope. "
                     "Keep the requested result type and only apply scope filters that are explicitly implied by the prompt."
-                )
-        if ortholog_member_rel_type in sql_up and not requested_has_bcn_member:
-            return (
-                "Unexpected ortholog-member filter: the SQL requires ortholog members, but the user did not request an ortholog-member condition."
-            )
+                ),
+            ))
+        if ortholog_member_rel_type:
+            unexpected_checks.append((
+                [ortholog_member_rel_type],
+                requested_has_bcn_member,
+                "Unexpected ortholog-member filter: the SQL requires ortholog members, but the user did not request an ortholog-member condition.",
+            ))
         for spec in self._effector_tag_specs(chat):
-            spec_tag_ids = [tag_id.upper() for tag_id in list(spec.get("tag_ids", []) or [])]
-            if any(tag_id in sql_up for tag_id in spec_tag_ids) and spec["id"] not in requested_tag_evidence_ids:
-                return (
+            unexpected_checks.append((
+                [str(tag_id) for tag_id in list(spec.get("tag_ids", []) or []) if str(tag_id).strip()],
+                spec["id"] in requested_tag_evidence_ids,
+                (
                     f"Unexpected tag-evidence filter: the SQL constrains '{spec['id']}', but the user did not request that effector/tag evidence."
-                )
+                ),
+            ))
+        error = self._find_unexpected_signature_error(sql, unexpected_checks)
+        if error:
+            return error
 
+        missing_checks: list[tuple[list[str], bool, str]] = []
         for cond in requested_condition_kinds:
-            if cond["kind"] == "protein_evidence" and cond["rel_type"] not in sql_up:
-                return (
-                    f"Missing evidence condition: the user requested '{cond['id']}' semantics, but the SQL does not include "
-                    f"relationship '{cond['rel_type']}'. Keep the requested result type and add that evidence bridge."
-                )
+            if cond["kind"] == "protein_evidence":
+                missing_checks.append((
+                    [str(cond.get("rel_type", "") or "")],
+                    True,
+                    (
+                        f"Missing evidence condition: the user requested '{cond['id']}' semantics, but the SQL does not include "
+                        f"relationship '{cond['rel_type']}'. Keep the requested result type and add that evidence bridge."
+                    ),
+                ))
             if cond["kind"] == "tag_evidence":
-                tag_ids = [tag_id.upper() for tag_id in list(cond.get("tag_ids", []) or [])]
-                if not any(tag_id in sql_up for tag_id in tag_ids):
-                    return (
-                        f"Missing tag-evidence condition: the user requested '{cond['id']}', but the SQL does not include the matching normalized effector/tag ids."
-                    )
-            if cond["kind"] == "scope_tag" and cond["tag_id"].upper() not in sql_up:
-                return (
-                    f"Missing scope filter: the user requested scope '{cond['tag_id']}', but the SQL does not constrain that tag. "
-                    "Keep the requested result type and add the matching tag filter."
-                )
-            if cond["kind"] == "ortholog_member" and ortholog_member_rel_type not in sql_up:
-                return (
-                    "Missing ortholog-member filter: the user requested ortholog genes, but the SQL does not include "
-                    "the orthogroup-to-ortholog-member path."
-                )
+                missing_checks.append((
+                    [str(tag_id) for tag_id in list(cond.get("tag_ids", []) or []) if str(tag_id).strip()],
+                    True,
+                    f"Missing tag-evidence condition: the user requested '{cond['id']}', but the SQL does not include the matching normalized effector/tag ids.",
+                ))
+            if cond["kind"] == "scope_tag":
+                missing_checks.append((
+                    [str(cond.get("tag_id", "") or "")],
+                    True,
+                    (
+                        f"Missing scope filter: the user requested scope '{cond['tag_id']}', but the SQL does not constrain that tag. "
+                        "Keep the requested result type and add the matching tag filter."
+                    ),
+                ))
+            if cond["kind"] == "ortholog_member" and ortholog_member_rel_type:
+                missing_checks.append((
+                    [ortholog_member_rel_type],
+                    True,
+                    "Missing ortholog-member filter: the user requested ortholog genes, but the SQL does not include the orthogroup-to-ortholog-member path.",
+                ))
+        error = self._find_missing_signature_error(sql, missing_checks)
+        if error:
+            return error
         orthogroup_label = self._requested_orthogroup_label(message)
         if orthogroup_label and self._message_matches_aliases(message, ["hgt donor", "horizontal gene transfer", " hgt "]):
-            if orthogroup_filter_rel_type not in sql_up and "ORTHOGROUP" not in sql_up:
+            if orthogroup_filter_rel_type and orthogroup_filter_rel_type not in sql_up and "ORTHOGROUP" not in sql_up:
                 return (
                     f"Missing orthogroup filter: the user requested orthogroup '{orthogroup_label}' together with HGT evidence. "
                     "Keep the requested result type, but also bridge through the gene-to-orthogroup path and filter on the requested orthogroup."
@@ -912,10 +943,32 @@ class GenomicsChatModule(ChatModule):
             return semantic_sql
         if not sql or not requested_types:
             return None
+        available_types = [row["type"] for row in chat.db.entity_types()]
+        if "tag" in requested_types and self._requests_broad_homology_organism_tags(message, available_types):
+            return "\n".join([
+                "SELECT DISTINCT e.id, e.name, e.type",
+                "FROM entities e",
+                "JOIN relationships broader ON broader.source_id = e.id AND broader.rel_type = 'BROADER'",
+                "JOIN entities parent ON parent.id = broader.target_id AND parent.type = 'tag'",
+                "JOIN relationships tag_hit ON tag_hit.target_id = e.id AND tag_hit.rel_type = 'TAGGED'",
+                "JOIN entities hit ON hit.id = tag_hit.source_id AND hit.type = 'comparative_hit'",
+                "JOIN relationships ev ON ev.target_id = hit.id AND ev.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'",
+                "JOIN relationships scope_rel ON scope_rel.source_id = hit.id AND scope_rel.rel_type = 'TAGGED'",
+                "JOIN entities scope_tag ON scope_tag.id = scope_rel.target_id AND scope_tag.type = 'tag'",
+                "WHERE e.type = 'tag'",
+                "  AND e.id LIKE 'homology-organism:%'",
+                "  AND parent.id = 'homology-organism'",
+                "  AND scope_tag.id = 'homology-scope-broad-parasitism'",
+            ])
+        if "hgt_donor" in requested_types and self._requests_hgt_donor_semantics(message):
+            return "\n".join([
+                "SELECT DISTINCT e.id, e.name, e.type",
+                "FROM entities e",
+                "JOIN relationships r ON r.target_id = e.id AND r.rel_type = 'HAS_HGT_DONOR'",
+                "WHERE e.type = 'hgt_donor'",
+            ])
         msg = str(message or "").lower()
         if "ortholog" not in msg:
-            return None
-        if "gene_counts" not in sql.lower() and "belongs_to_orthogroup" not in sql.lower():
             return None
         rel_match = re.search(r"r\.rel_type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
         type_match = re.search(r"e\.type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
@@ -927,17 +980,12 @@ class GenomicsChatModule(ChatModule):
         if requested_types and selected_type not in requested_types and selected_type != "orthogroup":
             return None
         rel_type = rel_match.group(1) if rel_match else ""
-        patterns = chat._typed_rel_patterns()
-        owner_type = ""
-        path = []
-        if rel_type:
-            target_types = sorted({dst for src, rel, dst in patterns if src == requested_type and rel == rel_type})
-            owner_type = next((etype for etype in target_types if "gene_counts" in set(chat.db.metadata_keys(etype))), "")
-            if owner_type:
-                path = chat._shortest_type_path(requested_type, owner_type)
-        if not owner_type and "gene_counts" in set(chat.db.metadata_keys(selected_type)):
-            owner_type = selected_type
-            path = chat._shortest_type_path(requested_type, owner_type)
+        owner_type, path = self._ortholog_count_owner_type(
+            chat,
+            requested_type=requested_type,
+            selected_type=selected_type,
+            rel_type=rel_type,
+        )
         if not owner_type or (requested_type != owner_type and not path):
             return None
         op, value = threshold

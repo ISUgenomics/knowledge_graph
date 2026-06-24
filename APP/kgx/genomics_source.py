@@ -183,7 +183,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "aliases": ["cyst nematode homology", "bcn homology"],
                     "rel_type": "HAS_BCN_HIT",
                     "owner_type": "protein",
-                    "target_types": ["comparative_hit", "bcn_gene"],
+                    "target_types": ["comparative_hit"],
                 },
             ],
             "orthogroup_filter": {
@@ -212,6 +212,131 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 "scope_tag": "scope_tag",
                 "tag_evidence": "tag_evidence",
             },
+            "specs": {
+                "protein_evidence": {
+                    "owner_type_ref": "owner_type",
+                    "steps": [
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "ev",
+                            "source_ref": "{owner_ref}",
+                            "direction": "forward",
+                            "rel_type_ref": "evidence_rel_type",
+                            "bind": "evidence_rel",
+                        },
+                        {
+                            "kind": "entity",
+                            "alias_prefix": "t",
+                            "id_ref": "{evidence_rel}.target_id",
+                            "entity_types_ref": "target_types",
+                            "bind": "evidence_target",
+                        },
+                    ],
+                },
+                "orthogroup_filter": {
+                    "owner_type": "gene",
+                    "steps": [
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "og",
+                            "source_ref": "{owner_ref}",
+                            "direction": "forward",
+                            "rel_type": "BELONGS_TO_ORTHOGROUP",
+                            "bind": "orthogroup_rel",
+                        },
+                        {
+                            "kind": "entity",
+                            "alias_prefix": "owner",
+                            "id_ref": "{orthogroup_rel}.target_id",
+                            "entity_type": "orthogroup",
+                            "bind": "orthogroup_entity",
+                        },
+                    ],
+                    "where_templates": [
+                        "  AND (upper({orthogroup_entity}.name) = '{label}' OR upper({orthogroup_entity}.id) = 'ORTHOGROUP:{label}')",
+                    ],
+                },
+                "ortholog_member": {
+                    "owner_type": "gene",
+                    "steps": [
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "ogm",
+                            "source_ref": "{owner_ref}",
+                            "direction": "forward",
+                            "rel_type": "BELONGS_TO_ORTHOGROUP",
+                            "bind": "orthogroup_rel",
+                        },
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "mem",
+                            "source_ref": "{orthogroup_rel}.target_id",
+                            "direction": "forward",
+                            "rel_type": "HAS_BCN_MEMBER",
+                            "bind": "member_rel",
+                        },
+                    ],
+                },
+                "scope_tag": {
+                    "owner_type_ref": "owner_type",
+                    "steps": [
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "sev",
+                            "source_ref": "{owner_ref}",
+                            "direction": "forward",
+                            "rel_type_ref": "evidence_rel_type",
+                            "bind": "evidence_rel",
+                        },
+                        {
+                            "kind": "entity",
+                            "alias_prefix": "shit",
+                            "id_ref": "{evidence_rel}.target_id",
+                            "entity_types_ref": "target_types",
+                            "bind": "evidence_target",
+                        },
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "stg",
+                            "source_ref": "{evidence_target}.id",
+                            "direction": "forward",
+                            "rel_type_ref": "tag_rel_type",
+                            "bind": "tag_rel",
+                        },
+                        {
+                            "kind": "entity",
+                            "alias_prefix": "stag",
+                            "id_ref": "{tag_rel}.target_id",
+                            "entity_type": "tag",
+                            "bind": "tag_entity",
+                        },
+                    ],
+                    "where_templates": [
+                        "  AND {tag_entity}.id = '{tag_id}'",
+                    ],
+                },
+                "tag_evidence": {
+                    "owner_type_ref": "owner_type",
+                    "steps": [
+                        {
+                            "kind": "relationship",
+                            "alias_prefix": "etg",
+                            "source_ref": "{owner_ref}",
+                            "direction": "forward",
+                            "rel_type": "TAGGED",
+                            "bind": "tag_rel",
+                        },
+                        {
+                            "kind": "entity",
+                            "alias_prefix": "etag",
+                            "id_ref": "{tag_rel}.target_id",
+                            "entity_type": "tag",
+                            "id_in_ref": "tag_ids",
+                            "bind": "tag_entity",
+                        },
+                    ],
+                },
+            },
             "scope_tags": {
                 "homology-scope-broad-parasitism": {
                     "evidence_id": "broad_homology",
@@ -233,16 +358,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 },
             },
         },
-        "validation": {
-            "protein_evidence_rel_types": [
-                "HAS_HGT_DONOR",
-                "HAS_BROAD_HOMOLOGY_HIT",
-                "HAS_NEMATODE_HIT",
-                "HAS_BCN_HIT",
-            ],
-            "ortholog_member_rel_type": "HAS_BCN_MEMBER",
-            "orthogroup_filter_rel_type": "BELONGS_TO_ORTHOGROUP",
-        },
+        "validation": {},
         "paths": {
             "gene->gene": [],
             "gene->transcript": [
