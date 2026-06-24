@@ -864,6 +864,14 @@ class ChatToSQL:
             if retry_result.sql and not retry_validation_error:
                 retry_result.debug = debug_steps
                 return retry_result
+            debug_steps.append({"step": "validation_retry_error", "value": retry_validation_error or validation_error})
+            return ChatResult(
+                intent=result.intent,
+                content=result.content,
+                sql=retry_result.sql or result.sql,
+                error=retry_validation_error or validation_error,
+                debug=debug_steps,
+            )
         if result.intent == "query" and result.sql and not result.results:
             count_map_sql = self.module.synthesize_query(self, message, result.sql, requested_types) if self.module else None
             debug_steps.append({"step": "count_map_sql", "sql": count_map_sql})

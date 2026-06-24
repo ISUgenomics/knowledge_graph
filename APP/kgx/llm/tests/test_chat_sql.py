@@ -3,6 +3,7 @@ from pathlib import Path
 from kgx.db import KnowledgeGraphDB
 from kgx.llm import ChatToSQL
 from kgx.llm.modules.genomics import GenomicsChatModule
+from kgx.llm.modules.people import PeopleChatModule
 
 
 class _FakeLLM:
@@ -266,6 +267,300 @@ WHERE e.type = 'person'
     assert result.sql is not None
     assert result.results
     assert [row["id"] for row in result.results] == ["alice"]
+
+
+def test_people_module_reads_metadata_hints_from_registry(tmp_path: Path):
+    db_path = tmp_path / "chat-people-registry.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
+    db.close()
+
+    module = PeopleChatModule(
+        semantic_registry={
+            "schema": {},
+            "metadata_hints": {
+                "person": {
+                    "preferred_fields": ["title", "department", "institution"],
+                },
+            },
+        },
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    context = chat._schema_context()
+    db.close()
+
+    assert "People semantic hints" in context
+    assert "title, department, institution" in context
+
+
+def test_people_module_synthesizes_registry_metadata_filters(tmp_path: Path):
+    db_path = tmp_path / "chat-people-synthesize.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff", "department": "Chemistry"})
+    db.close()
+
+    sql = """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=PeopleChatModule())
+    result = chat.ask("select people in department Chemistry")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "json_extract(e.metadata, '$.department') = 'Chemistry'" in result.sql
+    assert [row["id"] for row in result.results] == ["bob"]
+
+
+def test_people_validation_rejects_unrequested_registry_metadata_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-people-unrequested.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=PeopleChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+  AND json_extract(e.metadata, '$.department') = 'Biology'
+""",
+        ["person"],
+        "select people",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected people metadata filter" in err
+
+
+def test_people_module_synthesizes_registry_contact_filters(tmp_path: Path):
+    db_path = tmp_path / "chat-people-contact.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff"})
+    db.conn.execute(
+        "INSERT INTO contact_info (entity_id, field, value) VALUES (?, ?, ?)",
+        ("alice", "email", "alice@example.org"),
+    )
+    db.conn.execute(
+        "INSERT INTO contact_info (entity_id, field, value) VALUES (?, ?, ?)",
+        ("bob", "email", "bob@example.org"),
+    )
+    db.conn.commit()
+    db.close()
+
+    sql = """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=PeopleChatModule())
+    result = chat.ask("select people with email bob@example.org")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "JOIN contact_info c1 ON c1.entity_id = e.id" in result.sql
+    assert "c1.field = 'email'" in result.sql
+    assert "c1.value = 'bob@example.org'" in result.sql
+    assert [row["id"] for row in result.results] == ["bob"]
+
+
+def test_people_validation_rejects_unrequested_registry_contact_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-people-contact-unrequested.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI"})
+    db.conn.execute(
+        "INSERT INTO contact_info (entity_id, field, value) VALUES (?, ?, ?)",
+        ("alice", "email", "alice@example.org"),
+    )
+    db.conn.commit()
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=PeopleChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN contact_info c ON c.entity_id = e.id
+WHERE e.type = 'person'
+  AND c.field = 'email'
+  AND c.value = 'alice@example.org'
+""",
+        ["person"],
+        "select people",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected people contact filter" in err
+
+
+def test_people_module_synthesizes_registry_relationship_filters(tmp_path: Path):
+    db_path = tmp_path / "chat-people-publications.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff"})
+    db.upsert_entity("publication", "paper-1", name="Paper 1", metadata={"title": "Paper 1"})
+    db.add_relationship("alice", "AUTHORED", "paper-1")
+    db.add_relationship("bob", "AUTHORED", "paper-1")
+    db.close()
+
+    sql = """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=PeopleChatModule())
+    result = chat.ask("select people with publications")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "AUTHORED" in result.sql
+    assert "type = 'publication'" in result.sql
+    assert [row["id"] for row in result.results] == ["alice", "bob"]
+
+
+def test_people_validation_rejects_unrequested_registry_relationship_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-people-publications-unrequested.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI"})
+    db.upsert_entity("publication", "paper-1", name="Paper 1", metadata={"title": "Paper 1"})
+    db.add_relationship("alice", "AUTHORED", "paper-1")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=PeopleChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON r.source_id = e.id AND r.rel_type = 'AUTHORED'
+JOIN entities t ON t.id = r.target_id AND t.type = 'publication'
+WHERE e.type = 'person'
+""",
+        ["person"],
+        "select people",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected people relationship filter" in err
+
+
+def test_people_registry_drives_parser_and_renderer_contract(tmp_path: Path):
+    db_path = tmp_path / "chat-people-registry-contract.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"department": "Biology"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"department": "Chemistry"})
+    db.close()
+
+    module = PeopleChatModule(
+        semantic_registry={
+            "schema": {},
+            "metadata_hints": {},
+            "operators": {
+                "condition_handlers": {
+                    "metadata_filter": "metadata_filter",
+                },
+                "parsers": {
+                    "field_value_semicolon": {
+                        "mode": "field_value",
+                        "split_pattern": r";",
+                    },
+                },
+                "renderers": {
+                    "metadata": {
+                        "where_templates": [
+                            "  AND lower(json_extract(e.metadata, '$.{field}')) = lower('{value}')",
+                        ],
+                        "validation_signatures": [
+                            "$.{field}",
+                            "lower('{value}')",
+                        ],
+                    },
+                },
+                "specs": {
+                    "metadata_filters": {
+                        "dept": {
+                            "field": "department",
+                            "aliases": ["dept"],
+                            "parser_kind": "field_value_semicolon",
+                        },
+                    },
+                    "contact_filters": {},
+                    "relationship_filters": {},
+                },
+            },
+            "validation": {},
+            "paths": {
+                "person->person": [],
+            },
+        },
+    )
+
+    sql = """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=module)
+    result = chat.ask("select people with dept Chemistry; show matches")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "lower(json_extract(e.metadata, '$.department')) = lower('Chemistry')" in result.sql
+    assert [row["id"] for row in result.results] == ["bob"]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'person'
+  AND lower(json_extract(e.metadata, '$.department')) = lower('Chemistry')
+""",
+        ["person"],
+        "select people",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected people metadata filter" in err
+
+
+def test_ask_includes_people_module_few_shot_examples(tmp_path: Path):
+    db_path = tmp_path / "chat-people-few-shot.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("person", "alice", name="Alice", metadata={"title": "PI", "department": "Biology"})
+    db.upsert_entity("person", "bob", name="Bob", metadata={"title": "Staff", "department": "Chemistry"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    llm = _CaptureLLM()
+    chat = ChatToSQL(db, llm, module=PeopleChatModule())
+    chat.ask("select people in department Chemistry")
+    db.close()
+
+    assert llm.messages is not None
+    contents = [str(item.get("content", "")) for item in llm.messages]
+    assert any("select people with title PI and department Biology" in content for content in contents)
+    assert any("select people in department Chemistry" in content for content in contents)
 
 
 def test_cross_db_genomics_prompt_bridges_to_downstream_metadata_owner(tmp_path: Path):
@@ -558,6 +853,56 @@ ORDER BY e.name
     assert result.results == []
 
 
+def test_ask_rewrites_plain_ortholog_copy_count_query_to_gene_counts_owner(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-plain-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 2,
+        },
+    })
+    db.upsert_entity("orthogroup", "orthogroup:og2", name="OG2", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 1,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("gene-2", "BELONGS_TO_ORTHOGROUP", "orthogroup:og2")
+    db.close()
+
+    class _PlainBadOrthologCountLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+) >= 2
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _PlainBadOrthologCountLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in result.sql
+    assert "JOIN json_each(owner.metadata, '$.gene_counts') gc" in result.sql
+    assert "CAST(gc.value AS INTEGER) >= 2" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1"]
+
+
 def test_synthesizes_gene_query_from_owner_side_orthogroup_count_sql(tmp_path: Path):
     db_path = tmp_path / "chat-owner-side-count.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -719,6 +1064,107 @@ def test_ask_synthesizes_gene_bridge_query_for_horizontal_gene_transfer(tmp_path
     assert result.results
     assert result.results[0]["id"] == "gene-1"
     assert "HAS_HGT_DONOR" in (result.sql or "")
+
+
+def test_ask_returns_hgt_donor_nodes_for_hgt_donor_request(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-donor-result-type.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1", metadata={"hgt_alien_index": "0.56"})
+    db.close()
+
+    class _WrongGeneHgtLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id
+WHERE r.rel_type = 'HAS_HGT_DONOR'
+AND e.type = 'gene'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _WrongGeneHgtLLM(), module=GenomicsChatModule())
+    result = chat.ask("select horizontal gene transfer donors")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "r.target_id = e.id" in result.sql
+    assert "e.type = 'hgt_donor'" in result.sql
+    assert [row["id"] for row in result.results] == ["donor-1"]
+
+
+def test_ask_returns_homology_organism_tags_for_broad_homology_organisms(tmp_path: Path):
+    db_path = tmp_path / "chat-broad-homology-organisms.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Q04456.1")
+    db.upsert_entity("tag", "homology-organism", name="Homology Organism")
+    db.upsert_entity("tag", "homology-organism:ditylenchus-destructor", name="Ditylenchus destructor")
+    db.upsert_entity("tag", "homology-scope-broad-parasitism", name="Broad Parasitism")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-organism:ditylenchus-destructor")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-broad-parasitism")
+    db.add_relationship("homology-organism:ditylenchus-destructor", "BROADER", "homology-organism")
+    db.close()
+
+    class _WrongBroadHomologyResultLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'comparative_hit'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _WrongBroadHomologyResultLLM(), module=GenomicsChatModule())
+    result = chat.ask("select all broad homology organisms")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.id LIKE 'homology-organism:%'" in result.sql
+    assert "scope_tag.id = 'homology-scope-broad-parasitism'" in result.sql
+    assert [row["id"] for row in result.results] == ["homology-organism:ditylenchus-destructor"]
+
+
+def test_ask_returns_homology_organism_tags_for_broad_parasitism_driver_tags(tmp_path: Path):
+    db_path = tmp_path / "chat-broad-parasitism-driver-tags.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Q04456.1")
+    db.upsert_entity("tag", "homology-organism", name="Homology Organism")
+    db.upsert_entity("tag", "homology-organism:caenorhabditis-briggsae", name="Caenorhabditis briggsae")
+    db.upsert_entity("tag", "homology-scope-broad-parasitism", name="Broad Parasitism")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-organism:caenorhabditis-briggsae")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-broad-parasitism")
+    db.add_relationship("homology-organism:caenorhabditis-briggsae", "BROADER", "homology-organism")
+    db.close()
+
+    class _MissingEvidenceTagLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'tag'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _MissingEvidenceTagLLM(), module=GenomicsChatModule())
+    result = chat.ask("select all organism tags driving broad parasitism")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "ev.target_id = hit.id AND ev.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'" in result.sql
+    assert [row["id"] for row in result.results] == ["homology-organism:caenorhabditis-briggsae"]
 
 
 def test_ask_synthesizes_protein_hgt_query_with_orthogroup_filter(tmp_path: Path):
@@ -947,6 +1393,94 @@ def test_effector_prompts_do_not_mix_in_homology_scope_conditions(tmp_path: Path
     db.close()
 
 
+def test_registry_drives_protein_evidence_synthesis_and_validation(tmp_path: Path):
+    db_path = tmp_path / "chat-registry-contract.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="Donor 1")
+    db.add_relationship("prot-1", "HAS_CUSTOM_DONOR", "donor-1")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "schema": {},
+            "relation_families": {
+                "protein_evidence": [
+                    {
+                        "id": "custom_hgt",
+                        "aliases": [" custom donor "],
+                        "rel_type": "HAS_CUSTOM_DONOR",
+                        "owner_type": "protein",
+                        "target_types": ["hgt_donor"],
+                    },
+                ],
+                "ortholog_member": {
+                    "aliases": [],
+                },
+            },
+            "operators": {
+                "condition_handlers": {
+                    "protein_evidence": "protein_evidence",
+                },
+                "specs": {
+                    "protein_evidence": {
+                        "owner_type_ref": "owner_type",
+                        "steps": [
+                            {
+                                "kind": "relationship",
+                                "alias_prefix": "ev",
+                                "source_ref": "{owner_ref}",
+                                "direction": "forward",
+                                "rel_type_ref": "evidence_rel_type",
+                                "bind": "evidence_rel",
+                            },
+                            {
+                                "kind": "entity",
+                                "alias_prefix": "t",
+                                "id_ref": "{evidence_rel}.target_id",
+                                "entity_types_ref": "target_types",
+                                "bind": "evidence_target",
+                            },
+                        ],
+                    },
+                },
+                "scope_tags": {},
+            },
+            "organisms": {
+                "alias_overrides": {},
+            },
+            "paths": {
+                "protein->protein": [],
+            },
+            "validation": {},
+        },
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+
+    sql = chat.module.synthesize_query(chat, "select proteins with custom donor", "SELECT 1", ["protein"])
+    assert sql is not None
+    assert "HAS_CUSTOM_DONOR" in sql
+
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ev1 ON ev1.source_id = e.id AND ev1.rel_type = 'HAS_CUSTOM_DONOR'
+JOIN entities t2 ON t2.id = ev1.target_id AND t2.type = 'hgt_donor'
+WHERE e.type = 'protein'
+""",
+        ["protein"],
+        "select proteins",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Unexpected evidence condition" in err
+    assert "HAS_CUSTOM_DONOR" in err
+
+
 def test_validation_error_rejects_unrequested_extra_semantic_conditions(tmp_path: Path):
     db_path = tmp_path / "chat-extra-semantics.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -994,6 +1528,118 @@ WHERE e.type = 'protein'
 
     assert err is not None
     assert "Unexpected evidence condition" in err or "Unexpected scope filter" in err
+
+
+def test_ask_returns_error_when_validation_fails_and_no_fix_succeeds(tmp_path: Path):
+    db_path = tmp_path / "chat-hard-validation-stop.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.close()
+
+    class _AlwaysWrongTypeLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _AlwaysWrongTypeLLM())
+    result = chat.ask("select hgt donors")
+    db.close()
+
+    assert result.error is not None
+    assert "Wrong result type" in result.error
+    assert result.results == []
+    assert any(step["step"] == "validation_retry_error" for step in result.debug)
+
+
+def test_genomics_registry_drives_custom_ortholog_alias_and_member_rel(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-ortholog-alias.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_CUSTOM_MEMBER", "bcn-1")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "schema": {},
+            "categories": {},
+            "relation_families": {
+                "protein_evidence": [],
+                "ortholog_member": {
+                    "aliases": ["partner locus", "partner loci"],
+                    "bridge_rel_type": "BELONGS_TO_ORTHOGROUP",
+                    "rel_type": "HAS_CUSTOM_MEMBER",
+                    "owner_type": "orthogroup",
+                    "target_types": ["bcn_gene"],
+                },
+            },
+            "operators": {
+                "condition_handlers": {
+                    "ortholog_member": "ortholog_member",
+                },
+                "specs": {
+                    "ortholog_member": {
+                        "owner_type": "gene",
+                        "steps": [
+                            {
+                                "kind": "relationship",
+                                "alias_prefix": "ogm",
+                                "source_ref": "{owner_ref}",
+                                "direction": "forward",
+                                "rel_type": "BELONGS_TO_ORTHOGROUP",
+                                "bind": "orthogroup_rel",
+                            },
+                            {
+                                "kind": "relationship",
+                                "alias_prefix": "mem",
+                                "source_ref": "{orthogroup_rel}.target_id",
+                                "direction": "forward",
+                                "rel_type": "HAS_CUSTOM_MEMBER",
+                                "bind": "member_rel",
+                            },
+                        ],
+                    },
+                },
+                "scope_tags": {},
+            },
+            "organisms": {
+                "alias_overrides": {},
+            },
+            "paths": {
+                "gene->gene": [],
+            },
+            "validation": {},
+        },
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+
+    sql = chat.module.synthesize_query(chat, "select genes with partner loci", "SELECT 1", ["gene"])
+    assert sql is not None
+    assert "HAS_CUSTOM_MEMBER" in sql
+
+    err = chat._validate_sql_against_schema(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ogm1 ON ogm1.source_id = e.id AND ogm1.rel_type = 'BELONGS_TO_ORTHOGROUP'
+JOIN relationships mem2 ON mem2.source_id = ogm1.target_id AND mem2.rel_type = 'HAS_CUSTOM_MEMBER'
+WHERE e.type = 'gene'
+""",
+        ["gene"],
+        "select genes with partner loci",
+    )
+    db.close()
+
+    assert err is None
 
 
 def test_ask_synthesizes_gene_query_for_hgt_and_ortholog_gene(tmp_path: Path):
@@ -1069,6 +1715,83 @@ def test_semantic_query_for_bcn_homology_and_bcn_orthologs(tmp_path: Path):
     assert "homology-scope-nematode" not in sql
     assert rows
     assert rows[0]["id"] == "gene-1"
+
+
+def test_bcn_homology_and_bcn_orthologs_applies_cyst_scope_on_comparative_hits(tmp_path: Path):
+    db_path = tmp_path / "chat-bcn-combo-comparative-scope.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn-1")
+    db.add_relationship("prot-1", "HAS_BCN_HIT", "hit-1")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-cyst-nematode")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert sql is not None
+    assert "HAS_BCN_HIT" in sql
+    assert "HAS_BCN_MEMBER" in sql
+    assert "shit6.type = 'comparative_hit'" in sql or "t4.type = 'comparative_hit'" in sql
+    assert "homology-scope-cyst-nematode" in sql
+    assert rows
+    assert rows[0]["id"] == "gene-1"
+
+
+def test_bcn_homology_and_bcn_orthologs_returns_zero_when_only_cyst_hit_has_no_orthogroup_member(tmp_path: Path):
+    db_path = tmp_path / "chat-bcn-combo-singleton-hit.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("transcript", "tx-2", name="Transcript 2")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("comparative_hit", "comparative_hit:cyst_nematode:hsc-gene-4672-t1", name="Hsc_gene_4672.t1")
+    db.upsert_entity("orthogroup", "orthogroup:og2", name="OG2")
+    db.upsert_entity("bcn_gene", "bcn-1", name="Hsc_gene_14957.t1")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("prot-1", "HAS_BCN_HIT", "comparative_hit:cyst_nematode:hsc-gene-4672-t1")
+    db.add_relationship("comparative_hit:cyst_nematode:hsc-gene-4672-t1", "TAGGED", "homology-scope-cyst-nematode")
+    db.add_relationship("gene-2", "HAS_TRANSCRIPT", "tx-2")
+    db.add_relationship("tx-2", "TRANSLATED_TO", "prot-2")
+    db.add_relationship("gene-2", "BELONGS_TO_ORTHOGROUP", "orthogroup:og2")
+    db.add_relationship("orthogroup:og2", "HAS_BCN_MEMBER", "bcn-1")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert sql is not None
+    assert "HAS_BCN_HIT" in sql
+    assert "HAS_BCN_MEMBER" in sql
+    assert "homology-scope-cyst-nematode" in sql
+    assert rows == []
 
 
 def test_broad_homology_and_bcn_orthologs_does_not_add_cyst_scope_filter(tmp_path: Path):
