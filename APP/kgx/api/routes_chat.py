@@ -26,7 +26,7 @@ class ChatRequest(BaseModel):
     history: list[dict] = []
 
 
-def make_chat_router(db: KnowledgeGraphDB, llm_config: dict, domain_name: str | None = None) -> tuple:
+def make_chat_router(db: KnowledgeGraphDB, llm_config: dict, ui_config: dict | None = None, domain_name: str | None = None) -> tuple:
     """Returns (router, llm_client) so app.py can close the client on shutdown."""
     router = APIRouter(tags=["chat"])
 
@@ -36,7 +36,7 @@ def make_chat_router(db: KnowledgeGraphDB, llm_config: dict, domain_name: str | 
         model=llm_config.get("model", "qwen3-coder:30b"),
         temperature=llm_config.get("temperature", 0.0),
     )
-    chat_sql = ChatToSQL(db, llm, module=get_chat_module(domain_name))
+    chat_sql = ChatToSQL(db, llm, module=get_chat_module(domain_name, ui_config=ui_config))
 
     @router.get("/chat/status")
     def chat_status():

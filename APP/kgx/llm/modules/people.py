@@ -2,4 +2,5 @@ from .base import ChatModule
 
 
 class PeopleChatModule(ChatModule):
-    pass
+    def corpus_section(self) -> str | None:
+        return "people"

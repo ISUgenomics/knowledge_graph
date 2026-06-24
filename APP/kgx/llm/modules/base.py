@@ -7,7 +7,13 @@ if TYPE_CHECKING:
 
 
 class ChatModule:
+    def corpus_section(self) -> str | None:
+        return None
+
     def preferred_result_types(self, chat: "ChatToSQL", message: str, available_types: list[str]) -> list[str]:
+        return []
+
+    def suppressed_result_types(self, chat: "ChatToSQL", message: str, available_types: list[str]) -> list[str]:
         return []
 
     def schema_context_lines(self, chat: "ChatToSQL") -> list[str]:
