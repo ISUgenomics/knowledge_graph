@@ -9,6 +9,19 @@ from .base import RegistryConditionModule
 
 
 class GenomicsChatModule(RegistryConditionModule):
+    """Genomics semantic module.
+
+    Most evidence/operator discovery now flows from the shared semantic registry.
+    The remaining handwritten logic is intentionally limited to heuristics that
+    still depend on live graph content or dynamic organism/tag naming, notably:
+    - effector tag family expansion and organism scoping
+    - live organism alias collection from the graph
+    - tag-branch traversal for scope/effector discovery
+
+    Those paths are the current fallback boundary rather than hidden semantic
+    duplication. They are kept local until they can be represented declaratively
+    without making the runtime more brittle.
+    """
     _HOMOLOGY_SCOPE_ROOT = "homology-scope"
     def __init__(
         self,
@@ -57,13 +70,22 @@ class GenomicsChatModule(RegistryConditionModule):
         specs = families.get("protein_evidence", []) if isinstance(families, dict) else []
         return [dict(item) for item in list(specs or []) if isinstance(item, dict)]
 
-    def _ortholog_member_aliases(self) -> list[str]:
+    def _ortholog_member_spec(self) -> dict[str, Any]:
         ortholog_member = self._registry_relation_family("ortholog_member")
-        aliases = list(ortholog_member.get("aliases", []) or [])
+        return dict(ortholog_member) if isinstance(ortholog_member, dict) else {}
+
+    def _ortholog_member_aliases(self) -> list[str]:
+        aliases = list(self._ortholog_member_spec().get("aliases", []) or [])
         return [str(alias) for alias in aliases if str(alias).strip()]
 
     def _relation_family(self, family_id: str) -> dict[str, Any]:
         return self._registry_relation_family(family_id)
+
+    def _condition_parser(self, parser_kind: str) -> dict[str, Any]:
+        operators = self._registry_operators()
+        parsers = operators.get("parsers", {}) if isinstance(operators, dict) else {}
+        parser = parsers.get(str(parser_kind), {}) if isinstance(parsers, dict) else {}
+        return dict(parser) if isinstance(parser, dict) else {}
 
     def _scope_tag_operator(self, tag_id: str) -> dict[str, Any]:
         operators = self._registry_operators()
@@ -119,103 +141,20 @@ class GenomicsChatModule(RegistryConditionModule):
         aliases = self._schema_group_aliases(group_id)
         return bool(aliases) and self._message_matches_aliases(message, aliases)
 
-    def _effector_tag_specs(self, chat) -> list[dict[str, Any]]:
-        branch_ids = chat.db._ordered_branch_ids("effector-evidence", hierarchy_edge="BROADER")
-        if branch_ids == ["effector-evidence"] and not chat.db.get_entity("effector-evidence"):
-            rows = chat.db.execute_read(
-                "SELECT id, name FROM entities WHERE type = 'tag' AND id LIKE 'tag:%effector%' ORDER BY id"
-            )
-        else:
-            rows = []
-            for tag_id in branch_ids:
-                entity = chat.db.get_entity(tag_id)
-                if not entity or entity.get("type") != "tag" or entity.get("id") == "effector-evidence":
-                    continue
-                rows.append({"id": entity["id"], "name": entity.get("name", entity["id"])})
+    def _dynamic_family_scoped_aliases(self, chat, family: dict[str, Any]) -> dict[str, set[str]]:
+        # Genomics still owns only the live organism-alias lookup. The dynamic
+        # family executor in the shared base handles how these scoped values are
+        # interpreted by registry templates.
+        return {
+            "primary": self._primary_organism_aliases(chat),
+            "secondary": self._secondary_organism_aliases(chat),
+        }
 
-        primary_aliases = self._primary_organism_aliases(chat)
-        secondary_aliases = self._secondary_organism_aliases(chat)
-        specs: list[dict[str, Any]] = []
-        for row in rows:
-            tag_id = str(row.get("id", "") or "")
-            tag_name = str(row.get("name", "") or "")
-            norm_id = tag_id.lower()
-            norm_name = tag_name.lower()
-            if "effector" not in norm_id and "effector" not in norm_name:
-                continue
-            is_known = "known" in norm_id or "known" in norm_name
-            is_putative = "putative" in norm_id or "putative" in norm_name
-            is_dna = "dna" in norm_id or "dna" in norm_name
-            is_protein = "protein" in norm_id or "protein" in norm_name
-            aliases = {
-                norm_name,
-                norm_name.replace(" hit", ""),
-                norm_id.replace("tag:", "").replace("-", " "),
-                norm_id.replace("tag:", "").replace("-hit", "").replace("-", " "),
-            }
-            generic_aliases = set(aliases)
-            primary_scoped_aliases: set[str] = set()
-            secondary_scoped_aliases: set[str] = set()
-            if is_known:
-                generic_aliases.update({"known effector", "known effectors"})
-            if is_dna or is_protein:
-                generic_aliases.update({"known effector", "known effectors"})
-            if is_putative:
-                generic_aliases.update({"putative effector", "putative effectors"})
-            if is_dna:
-                generic_aliases.update({"dna effector", "dna effectors"})
-            if is_protein:
-                generic_aliases.update({"protein effector", "protein effectors"})
-            if primary_aliases and (is_dna or is_protein):
-                for org_alias in primary_aliases:
-                    if is_known or is_dna or is_protein:
-                        primary_scoped_aliases.update({
-                            f"known effector in {org_alias}",
-                            f"known effectors in {org_alias}",
-                            f"{org_alias} known effector",
-                            f"{org_alias} known effectors",
-                            f"identified as known effector in {org_alias}",
-                            f"identified as known effectors in {org_alias}",
-                        })
-                    if is_putative:
-                        primary_scoped_aliases.update({
-                            f"putative effector in {org_alias}",
-                            f"putative effectors in {org_alias}",
-                        })
-            if secondary_aliases and not is_dna and not is_protein:
-                for org_alias in secondary_aliases:
-                    if is_known:
-                        secondary_scoped_aliases.update({
-                            f"known effector in {org_alias}",
-                            f"known effectors in {org_alias}",
-                            f"{org_alias} known effector",
-                            f"{org_alias} known effectors",
-                            f"identified as known effector in {org_alias}",
-                            f"identified as known effectors in {org_alias}",
-                        })
-                    if is_putative:
-                        secondary_scoped_aliases.update({
-                            f"putative effector in {org_alias}",
-                            f"putative effectors in {org_alias}",
-                        })
-            aliases.update(generic_aliases)
-            aliases.update(primary_scoped_aliases)
-            aliases.update(secondary_scoped_aliases)
-            owner_types = ["gene"] if "island" in norm_id or "island" in norm_name else ["protein"]
-            specs.append({
-                "id": norm_id.replace("tag:", ""),
-                "aliases": [f" {alias.strip()} " for alias in aliases if alias.strip()],
-                "generic_aliases": [f" {alias.strip()} " for alias in generic_aliases if alias.strip()],
-                "primary_scoped_aliases": [f" {alias.strip()} " for alias in primary_scoped_aliases if alias.strip()],
-                "secondary_scoped_aliases": [f" {alias.strip()} " for alias in secondary_scoped_aliases if alias.strip()],
-                "tag_ids": [tag_id],
-                "owner_types": owner_types,
-                "is_known": is_known,
-                "is_putative": is_putative,
-                "is_dna": is_dna,
-                "is_protein": is_protein,
-            })
-        return specs
+    def _effector_tag_specs(self, chat) -> list[dict[str, Any]]:
+        # Runtime adapter now only supplies the organism alias sets; branch/tag
+        # expansion, classification, and alias rendering live in the shared
+        # dynamic-family infrastructure plus registry config.
+        return self._dynamic_family_specs(chat, "effector_evidence")
 
     @staticmethod
     def _scope_aliases_for_tag(tag_id: str, tag_name: str) -> list[str]:
@@ -242,21 +181,34 @@ class GenomicsChatModule(RegistryConditionModule):
 
     def _requested_scope_tag_ids(self, chat, message: str) -> list[str]:
         low = f" {str(message or '').lower()} "
-        has_homology_cue = (
-            self._message_has_group_cue(message, "homology")
-            or any(self._message_matches_aliases(message, spec["aliases"]) for spec in self._protein_evidence_specs())
-            or " homology " in low
-            or " homologies " in low
-            or " ortholog " in low
-            or " orthologs " in low
-            or " ortholog gene " in low
-            or " ortholog genes " in low
-        )
         has_effector_cue = any(
             self._message_matches_aliases(message, list(spec.get("aliases", []) or []))
             for spec in self._effector_tag_specs(chat)
         ) or self._message_has_group_cue(message, "effectors")
-        if has_effector_cue and not has_homology_cue:
+        scope_tags = self._registry_operators().get("scope_tags", {}) if isinstance(self._registry_operators(), dict) else {}
+        parser_kind = ""
+        for operator in scope_tags.values() if isinstance(scope_tags, dict) else []:
+            if isinstance(operator, dict) and operator.get("parser_kind"):
+                parser_kind = str(operator.get("parser_kind", "") or "")
+                break
+        parser = self._condition_parser(parser_kind)
+        required_message_cues = [str(cue) for cue in list(parser.get("required_message_cues", []) or []) if str(cue).strip()]
+        required_group_cues = [str(group_id) for group_id in list(parser.get("required_group_cues", []) or []) if str(group_id).strip()]
+        blocked_group_cues = [str(group_id) for group_id in list(parser.get("blocked_group_cues", []) or []) if str(group_id).strip()]
+        required_relation_families = [str(family_id) for family_id in list(parser.get("required_relation_families", []) or []) if str(family_id).strip()]
+        has_required_message_cue = any(cue in low for cue in required_message_cues)
+        has_required_group_cue = any(self._message_has_group_cue(message, group_id) for group_id in required_group_cues)
+        has_required_relation_family = any(
+            any(self._message_matches_aliases(message, list(spec.get("aliases", []) or [])) for spec in self._protein_evidence_specs())
+            for family_id in required_relation_families
+            if family_id == "protein_evidence"
+        )
+        has_required_cue = has_required_message_cue or has_required_group_cue or has_required_relation_family
+        requires_cue = bool(required_message_cues or required_group_cues or required_relation_families)
+        blocked = any(self._message_has_group_cue(message, group_id) for group_id in blocked_group_cues)
+        if requires_cue and not has_required_cue:
+            return []
+        if blocked and not has_required_cue:
             return []
 
         found: list[str] = []
@@ -277,6 +229,9 @@ class GenomicsChatModule(RegistryConditionModule):
     def _matched_protein_evidence_conditions(self, message: str) -> list[dict[str, Any]]:
         conditions: list[dict[str, Any]] = []
         for spec in self._protein_evidence_specs():
+            parser = self._condition_parser(str(spec.get("parser_kind", "") or ""))
+            if str(parser.get("mode", "") or "") != "alias_match":
+                continue
             if not self._message_matches_aliases(message, list(spec.get("aliases", []) or [])):
                 continue
             owner_type = str(spec.get("owner_type", "protein") or "protein")
@@ -284,17 +239,27 @@ class GenomicsChatModule(RegistryConditionModule):
         return conditions
 
     def _matched_ortholog_member_conditions(self, message: str) -> list[dict[str, Any]]:
+        spec = self._ortholog_member_spec()
+        parser = self._condition_parser(str(spec.get("parser_kind", "") or ""))
         low = str(message or "").lower()
-        ortholog_aliases = self._ortholog_member_aliases()
+        ortholog_aliases = [str(alias) for alias in list(spec.get("aliases", []) or []) if str(alias).strip()]
+        exclude_patterns = [str(pattern) for pattern in list(spec.get("exclude_patterns", []) or []) if str(pattern).strip()]
+        parser_mode = str(parser.get("mode", "") or "alias_match")
         if (
             ortholog_aliases
             and self._message_matches_aliases(message, ortholog_aliases)
-            and not re.search(r"\bcop(y|ies)\b", low)
+            and (
+                parser_mode == "alias_match"
+                or (parser_mode == "alias_match_excluding_terms" and not any(re.search(pattern, low) for pattern in exclude_patterns))
+            )
         ):
             return [{"kind": "ortholog_member"}]
         return []
 
     def _semantic_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+        # Registry-driven discovery handles protein evidence, ortholog member,
+        # and scope-tag cues. Effector conditions remain the main handwritten
+        # fallback because they are derived from live branch/tag expansion.
         conditions: list[dict[str, Any]] = self._matched_protein_evidence_conditions(message)
         specific_effector_conditions: list[dict[str, Any]] = []
         generic_effector_conditions: list[dict[str, Any]] = []

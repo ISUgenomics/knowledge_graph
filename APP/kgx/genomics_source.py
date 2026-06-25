@@ -157,6 +157,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "id": "hgt",
                     "category": "hgt",
                     "aliases": ["hgt donor", "horizontal gene transfer", " hgt "],
+                    "parser_kind": "alias_match",
                     "rel_type": "HAS_HGT_DONOR",
                     "owner_type": "protein",
                     "target_types": ["hgt_donor"],
@@ -165,6 +166,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "id": "broad_homology",
                     "category": "homology",
                     "aliases": ["broad homology", "broad parasitism", "broad parasistism"],
+                    "parser_kind": "alias_match",
                     "rel_type": "HAS_BROAD_HOMOLOGY_HIT",
                     "owner_type": "protein",
                     "target_types": ["comparative_hit"],
@@ -173,6 +175,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "id": "nematode_homology",
                     "category": "homology",
                     "aliases": ["nematode homology", "c. elegans", "caenorhabditis elegans"],
+                    "parser_kind": "alias_match",
                     "rel_type": "HAS_NEMATODE_HIT",
                     "owner_type": "protein",
                     "target_types": ["comparative_hit"],
@@ -181,6 +184,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "id": "bcn_homology",
                     "category": "homology",
                     "aliases": ["cyst nematode homology", "bcn homology"],
+                    "parser_kind": "alias_match",
                     "rel_type": "HAS_BCN_HIT",
                     "owner_type": "protein",
                     "target_types": ["comparative_hit"],
@@ -193,6 +197,8 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             },
             "ortholog_member": {
                 "aliases": ["ortholog gene", "ortholog genes", "bcn ortholog", "bcn orthologs", "bcn gene", "bcn genes"],
+                "parser_kind": "alias_match_excluding_terms",
+                "exclude_patterns": [r"\bcop(y|ies)\b"],
                 "bridge_rel_type": "BELONGS_TO_ORTHOGROUP",
                 "rel_type": "HAS_BCN_MEMBER",
                 "owner_type": "orthogroup",
@@ -205,6 +211,124 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             },
         },
         "operators": {
+            "parsers": {
+                "alias_match": {
+                    "mode": "alias_match",
+                },
+                "alias_match_excluding_terms": {
+                    "mode": "alias_match_excluding_terms",
+                },
+                "scope_tag_alias_match": {
+                    "mode": "scope_tag_alias_match",
+                    "required_message_cues": [
+                        " homology ",
+                        " homologies ",
+                        " ortholog ",
+                        " orthologs ",
+                        " ortholog gene ",
+                        " ortholog genes ",
+                    ],
+                    "required_group_cues": ["homology"],
+                    "required_relation_families": ["protein_evidence"],
+                    "blocked_group_cues": ["effectors"],
+                },
+            },
+            "dynamic_families": {
+                "effector_evidence": {
+                    "source": {
+                        "mode": "branch_tags",
+                        "root_tag_id": "effector-evidence",
+                        "hierarchy_rel_type": "BROADER",
+                        "fallback_tag_id_pattern": "tag:%effector%",
+                    },
+                    "normalize": {
+                        "id_strip_prefix": "tag:",
+                        "replace_dash_with_space": True,
+                        "remove_suffixes": [" hit"],
+                    },
+                    "classify": {
+                        "flags": {
+                            "known": {"any_substrings": ["known"]},
+                            "putative": {"any_substrings": ["putative"]},
+                            "dna": {"any_substrings": ["dna"]},
+                            "protein": {"any_substrings": ["protein"]},
+                            "island": {"any_substrings": ["island"]},
+                        },
+                    },
+                    "owner_types": {
+                        "default": ["protein"],
+                        "when_flags": {
+                            "island": ["gene"],
+                        },
+                    },
+                    "alias_templates": {
+                        "generic": {
+                            "known": ["known effector", "known effectors"],
+                            "putative": ["putative effector", "putative effectors"],
+                            "dna": ["dna effector", "dna effectors", "known effector", "known effectors"],
+                            "protein": ["protein effector", "protein effectors", "known effector", "known effectors"],
+                        },
+                        "organism_scoped": {
+                            "template_flag_matches": {
+                                "known": ["known", "dna", "protein"],
+                                "putative": ["putative"],
+                            },
+                            "organism_sets": {
+                                "primary": {
+                                    "include_when_any_flags": ["putative", "dna", "protein"],
+                                    "exclude_when_flags": [],
+                                },
+                                "secondary": {
+                                    "include_when_any_flags": ["known", "putative"],
+                                    "exclude_when_flags": ["dna", "protein"],
+                                },
+                            },
+                            "templates": {
+                                "known": {
+                                    "primary": [
+                                        "known effector in {organism}",
+                                        "known effectors in {organism}",
+                                        "{organism} known effector",
+                                        "{organism} known effectors",
+                                        "identified as known effector in {organism}",
+                                        "identified as known effectors in {organism}",
+                                    ],
+                                    "secondary": [
+                                        "known effector in {organism}",
+                                        "known effectors in {organism}",
+                                        "{organism} known effector",
+                                        "{organism} known effectors",
+                                        "identified as known effector in {organism}",
+                                        "identified as known effectors in {organism}",
+                                    ],
+                                },
+                                "putative": {
+                                    "primary": [
+                                        "putative effector in {organism}",
+                                        "putative effectors in {organism}",
+                                    ],
+                                    "secondary": [
+                                        "putative effector in {organism}",
+                                        "putative effectors in {organism}",
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                    "collapse": {
+                        "mode": "flag_family",
+                        "when_message_contains": {
+                            "known": [" known effector ", " known effectors "],
+                            "putative": [" putative effector ", " putative effectors "],
+                        },
+                        "fallback_precedence": ["known", "putative", "dna", "protein"],
+                        "merge_field": "tag_ids",
+                    },
+                    "output": {
+                        "condition_kind": "tag_evidence",
+                    },
+                },
+            },
             "condition_handlers": {
                 "protein_evidence": "protein_evidence",
                 "orthogroup_filter": "orthogroup_filter",
@@ -340,18 +464,21 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             "scope_tags": {
                 "homology-scope-broad-parasitism": {
                     "evidence_id": "broad_homology",
+                    "parser_kind": "scope_tag_alias_match",
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",
                 },
                 "homology-scope-nematode": {
                     "evidence_id": "nematode_homology",
+                    "parser_kind": "scope_tag_alias_match",
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",
                 },
                 "homology-scope-cyst-nematode": {
                     "evidence_id": "bcn_homology",
+                    "parser_kind": "scope_tag_alias_match",
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",

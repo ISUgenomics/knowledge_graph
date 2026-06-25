@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from kgx.db import KnowledgeGraphDB
+from kgx.genomics_source import load_semantic_registry
 from kgx.llm import ChatToSQL
 from kgx.llm.modules.genomics import GenomicsChatModule
 from kgx.llm.modules.people import PeopleChatModule
@@ -1640,6 +1641,195 @@ WHERE e.type = 'gene'
     db.close()
 
     assert err is None
+
+
+def test_genomics_registry_drives_custom_protein_evidence_condition_discovery(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-protein-evidence-discovery.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "schema": {},
+            "relation_families": {
+                "protein_evidence": [
+                    {
+                        "id": "custom_hgt",
+                        "aliases": [" custom donor "],
+                        "parser_kind": "alias_match",
+                        "rel_type": "HAS_CUSTOM_DONOR",
+                        "owner_type": "protein",
+                        "target_types": ["hgt_donor"],
+                    },
+                ],
+                "ortholog_member": {"aliases": []},
+            },
+            "operators": {
+                "parsers": {
+                    "alias_match": {"mode": "alias_match"},
+                },
+                "condition_handlers": {
+                    "protein_evidence": "protein_evidence",
+                },
+                "specs": {},
+                "scope_tags": {},
+            },
+            "organisms": {"alias_overrides": {}},
+            "paths": {},
+            "validation": {},
+        },
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    conditions = chat.module._semantic_conditions(chat, "select proteins with custom donor")
+    db.close()
+
+    assert any(cond["kind"] == "protein_evidence" and cond["id"] == "custom_hgt" for cond in conditions)
+
+
+def test_genomics_registry_drives_ortholog_condition_exclusion_patterns(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-ortholog-exclusion.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "schema": {},
+            "relation_families": {
+                "protein_evidence": [],
+                "ortholog_member": {
+                    "aliases": ["focal ortholog"],
+                    "parser_kind": "alias_match_excluding_terms",
+                    "exclude_patterns": [r"\bcopies\b"],
+                    "rel_type": "HAS_BCN_MEMBER",
+                    "owner_type": "orthogroup",
+                    "target_types": ["bcn_gene"],
+                },
+            },
+            "operators": {
+                "parsers": {
+                    "alias_match_excluding_terms": {"mode": "alias_match_excluding_terms"},
+                },
+                "condition_handlers": {
+                    "ortholog_member": "ortholog_member",
+                },
+                "specs": {},
+                "scope_tags": {},
+            },
+            "organisms": {"alias_overrides": {}},
+            "paths": {},
+            "validation": {},
+        },
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    included = chat.module._semantic_conditions(chat, "select genes with focal ortholog")
+    excluded = chat.module._semantic_conditions(chat, "select genes with focal ortholog copies")
+    db.close()
+
+    assert any(cond["kind"] == "ortholog_member" for cond in included)
+    assert not any(cond["kind"] == "ortholog_member" for cond in excluded)
+
+
+def test_genomics_registry_drives_scope_tag_eligibility_cues(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-scope-cues.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.close()
+
+    module = GenomicsChatModule(
+        semantic_registry={
+            "schema": {
+                "groups": {
+                    "homology": {"aliases": []},
+                    "effectors": {"aliases": []},
+                },
+            },
+            "relation_families": {
+                "protein_evidence": [],
+                "ortholog_member": {"aliases": []},
+            },
+            "operators": {
+                "parsers": {
+                    "scope_tag_alias_match": {
+                        "mode": "scope_tag_alias_match",
+                        "required_message_cues": [" niche cue "],
+                        "required_group_cues": [],
+                        "required_relation_families": [],
+                        "blocked_group_cues": [],
+                    },
+                },
+                "condition_handlers": {
+                    "scope_tag": "scope_tag",
+                },
+                "specs": {},
+                "scope_tags": {
+                    "homology-scope-cyst-nematode": {
+                        "evidence_id": "bcn_homology",
+                        "parser_kind": "scope_tag_alias_match",
+                        "owner_type": "protein",
+                        "target_type": "comparative_hit",
+                        "tag_rel_type": "TAGGED",
+                    },
+                },
+            },
+            "organisms": {"alias_overrides": {}},
+            "paths": {},
+            "validation": {},
+        },
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=module)
+    without_cue = chat.module._semantic_conditions(chat, "select proteins with cyst nematode")
+    with_cue = chat.module._semantic_conditions(chat, "select proteins with niche cue cyst nematode")
+    db.close()
+
+    assert not any(cond["kind"] == "scope_tag" for cond in without_cue)
+    assert any(cond["kind"] == "scope_tag" and cond["tag_id"] == "homology-scope-cyst-nematode" for cond in with_cue)
+
+
+def test_genomics_registry_drives_effector_template_flag_matches(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-effector-template-flags.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("organism", "organism:heterodera-schachtii", name="Heterodera schachtii")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    family = registry["operators"]["dynamic_families"]["effector_evidence"]
+    family["alias_templates"]["organism_scoped"]["template_flag_matches"] = {
+        "known": ["dna"],
+        "putative": ["putative"],
+    }
+    family["alias_templates"]["organism_scoped"]["organism_sets"]["primary"]["include_when_any_flags"] = ["dna"]
+    family["alias_templates"]["organism_scoped"]["organism_sets"]["secondary"]["include_when_any_flags"] = []
+    family["alias_templates"]["organism_scoped"]["organism_sets"]["secondary"]["exclude_when_flags"] = []
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    conditions = chat.module._semantic_conditions(chat, "select proteins identified as known effectors in h. glycines")
+    db.close()
+
+    assert any(
+        cond["kind"] == "tag_evidence" and "tag:scn-dna-effector-hit" in list(cond.get("tag_ids", []) or [])
+        for cond in conditions
+    )
 
 
 def test_ask_synthesizes_gene_query_for_hgt_and_ortholog_gene(tmp_path: Path):
