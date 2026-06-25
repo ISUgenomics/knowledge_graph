@@ -132,6 +132,103 @@
           → orbit + select
 ```
 
+## NL Query Backend
+
+The natural-language query path is now split into a shared semantic execution layer and thinner domain modules.
+
+### Runtime flow
+
+1. `/api/chat` routes the request into `kgx/llm/chat_sql.py`.
+2. `ChatToSQL` decides whether the prompt is:
+   - a fast-path schema question answered directly from the DB, or
+   - an LLM-backed SQL request.
+3. The selected domain module contributes semantic context before and after the LLM step:
+   - prompt/schema hints
+   - preferred or suppressed result types
+   - semantic validation
+   - deterministic query synthesis or correction when the model misses required semantics
+4. If validation fails, KGX now prefers registry-backed correction paths or a retry over returning invalid SQL silently.
+
+### Shared semantic layer
+
+Shared infrastructure in `kgx/llm/modules/base.py` now owns most reusable semantic behavior:
+
+- semantic registry and schema loading
+- registry-driven operator execution
+- registry-driven condition dispatch
+- registry-driven dynamic-family expansion
+- shared validation helpers for missing or unexpected semantic signatures
+
+This is the main move toward a single-source-of-truth backend: semantic rules increasingly live in registry/config and are executed by shared machinery instead of handwritten domain SQL logic.
+
+### Domain module role
+
+Domain modules should now mostly provide:
+
+- domain registry loading
+- prompt-corpus and schema-context hints
+- minimal runtime adapters when live graph data is needed
+- narrow fallback heuristics where the graph cannot yet be described declaratively
+
+Current examples:
+
+- `people` is mostly registry-driven for parsing, rendering, synthesis, and validation.
+- `genomics` is substantially more registry-driven than before, but still keeps a smaller fallback layer for graph-derived organism/tag heuristics.
+
+### Dynamic-family pattern
+
+Dynamic semantic families, such as genomics effector evidence tags, follow this split:
+
+- registry config defines source rules, normalization, flag classification, alias templates, owner typing, and output kind
+- the shared executor expands those rules into runtime semantic specs
+- domain code only supplies live scoped values when templates need them, such as primary and secondary organism aliases
+
+If a new domain needs more than scoped live values, the intended direction is to extend the shared executor rather than reintroduce local semantic-family logic.
+
+### Adding a new semantic domain
+
+Use this checklist when bringing a new domain onto the NL backend:
+
+1. Add domain registry and schema loaders.
+   - Create `<domain>_source.py` with semantic schema and semantic registry definitions.
+   - Register the domain through `kgx/domain_sources.py` if it needs app-level dispatch.
+
+2. Add or extend the domain module.
+   - Create or update `kgx/llm/modules/<domain>.py`.
+   - Keep domain code focused on:
+     - registry loading
+     - prompt or schema-context hints
+     - minimal live-data adapters
+     - narrow fallback heuristics only when the graph cannot yet describe the behavior declaratively
+
+3. Put semantics in registry/config first.
+   - Prefer registry-defined:
+     - aliases and parsing cues
+     - operator specs
+     - dynamic-family rules
+     - validation signatures
+     - prompt-corpus section names and schema hints
+   - Only extend shared code when multiple domains would benefit from the same execution pattern.
+
+4. Wire prompt corpus and app exposure.
+   - Add few-shot examples in `kgx/llm/tests/prompt_corpus.yaml`.
+   - Make sure the app exposes the domain semantic schema and registry through `kgx/api/app.py` and module loading paths.
+
+5. Add contract tests across surfaces.
+   - `kgx/llm/tests/test_chat_sql.py`
+     - parsing
+     - synthesis
+     - validation
+     - custom-registry behavior
+   - `kgx/llm/tests/test_prompt_corpus.py`
+     - corpus alignment with the domain module and registry
+   - `kgx/api/tests/test_app_smoke.py`
+     - app-exposed semantic schema and registry
+
+6. Check the failure boundary explicitly.
+   - If any semantic behavior remains handwritten, document why it is still a runtime fallback.
+   - Prefer a small explicit fallback boundary over hidden semantic duplication in module logic.
+
 ## Event Bus Protocol
 
 All UI components communicate via the shared EventBus. No component imports another.

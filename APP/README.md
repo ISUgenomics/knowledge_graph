@@ -571,6 +571,28 @@ The chat module includes:
 - **`<think>` block stripping** — removes qwen3's reasoning tokens from output
 - **Context trimming** — only last 4 history messages sent to avoid filling the context window
 
+### Semantic registry pattern
+
+Contributor note for domain-specific chat behavior:
+
+- Semantic rules should live in domain registry/config first, not in handwritten module SQL logic.
+- Shared module infrastructure now owns most semantic execution:
+  - registry loading
+  - operator execution
+  - condition dispatch
+  - dynamic-family expansion
+  - parts of validation and correction
+- Domain modules should mainly provide:
+  - registry loading
+  - prompt or schema-context hints
+  - minimal runtime adapters when live graph data is needed
+
+For dynamic semantic families such as genomics effector tags:
+
+- Registry config should define source rules, normalization, classification flags, alias templates, owner typing, and output kind.
+- Domain code should only supply live scoped values when templates need them, for example primary or secondary organism aliases.
+- If a new domain needs more than scoped alias inputs, extend the shared executor in `kgx/llm/modules/base.py` before adding local semantic-family logic.
+
 ### Mutation safety
 
 When the LLM generates a mutation (INSERT/UPDATE/DELETE):
