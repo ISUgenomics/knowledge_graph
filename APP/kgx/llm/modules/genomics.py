@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -70,6 +71,38 @@ class GenomicsChatModule(RegistryConditionModule):
         specs = families.get("protein_evidence", []) if isinstance(families, dict) else []
         return [dict(item) for item in list(specs or []) if isinstance(item, dict)]
 
+    @staticmethod
+    def _is_evidence_relation_spec(spec: dict[str, Any]) -> bool:
+        if not isinstance(spec, dict):
+            return False
+        rel_type = str(spec.get("rel_type", "") or "").strip()
+        parser_kind = str(spec.get("parser_kind", "") or "").strip()
+        aliases = [str(alias).strip() for alias in list(spec.get("aliases", []) or []) if str(alias).strip()]
+        target_types = [str(item).strip() for item in list(spec.get("target_types", []) or []) if str(item).strip()]
+        return bool(rel_type and parser_kind and aliases and target_types)
+
+    def _evidence_relation_specs(self, family_id: str | None = None) -> list[dict[str, Any]]:
+        families = self._registry_relation_families()
+        if not isinstance(families, dict):
+            return []
+        selected = {str(family_id)} if family_id else set(families.keys())
+        specs: list[dict[str, Any]] = []
+        for current_family_id in selected:
+            family_value = families.get(current_family_id, [])
+            if not isinstance(family_value, list):
+                continue
+            for item in family_value:
+                if not isinstance(item, dict) or not self._is_evidence_relation_spec(item):
+                    continue
+                specs.append({
+                    **dict(item),
+                    "family_id": current_family_id,
+                })
+        return specs
+
+    def _evidence_spec_by_id(self, evidence_id: str) -> dict[str, Any] | None:
+        return next((spec for spec in self._evidence_relation_specs() if spec.get("id") == evidence_id), None)
+
     def _ortholog_member_spec(self) -> dict[str, Any]:
         ortholog_member = self._registry_relation_family("ortholog_member")
         return dict(ortholog_member) if isinstance(ortholog_member, dict) else {}
@@ -96,6 +129,200 @@ class GenomicsChatModule(RegistryConditionModule):
     def _validation_config(self) -> dict[str, Any]:
         validation = self.semantic_registry.get("validation", {}) if isinstance(self.semantic_registry, dict) else {}
         return dict(validation) if isinstance(validation, dict) else {}
+
+    def _metadata_filter_specs(self) -> list[dict[str, Any]]:
+        operators = self._registry_operators()
+        specs = operators.get("specs", {}) if isinstance(operators, dict) else {}
+        metadata_filters = specs.get("metadata_filters", {}) if isinstance(specs, dict) else {}
+        if not isinstance(metadata_filters, dict):
+            return []
+        items: list[dict[str, Any]] = []
+        for filter_id, spec in metadata_filters.items():
+            if not isinstance(spec, dict):
+                continue
+            items.append({
+                "id": str(filter_id),
+                "field": str(spec.get("field", filter_id) or filter_id),
+                "aliases": [str(alias) for alias in list(spec.get("aliases", []) or []) if str(alias).strip()],
+                "parser_kind": str(spec.get("parser_kind", "") or ""),
+                "owner_type": str(spec.get("owner_type", "") or ""),
+                "category": str(spec.get("category", "") or ""),
+            })
+        return items
+
+    def _metadata_filter_renderer(self) -> dict[str, Any]:
+        operators = self._registry_operators()
+        renderers = operators.get("renderers", {}) if isinstance(operators, dict) else {}
+        renderer = renderers.get("metadata", {}) if isinstance(renderers, dict) else {}
+        return dict(renderer) if isinstance(renderer, dict) else {}
+
+    @staticmethod
+    def _sql_literal(value: str) -> str:
+        return str(value).replace("'", "''")
+
+    @staticmethod
+    def _format_registry_template(template: str, context: dict[str, str]) -> str:
+        try:
+            return str(template).format(**context)
+        except KeyError:
+            return ""
+
+    def _condition_display_specs(self, condition: dict[str, Any]) -> list[dict[str, str]]:
+        kind = str(condition.get("kind", "") or "")
+        if kind == "orthogroup_filter":
+            spec = self._registry_operator_spec("orthogroup_filter")
+            display = spec.get("display", []) if isinstance(spec, dict) else []
+            return [dict(item) for item in list(display or []) if isinstance(item, dict)]
+        if kind == "scope_tag":
+            operator = self._scope_tag_operator(str(condition.get("tag_id", "") or ""))
+            display = operator.get("display", []) if isinstance(operator, dict) else []
+            return [dict(item) for item in list(display or []) if isinstance(item, dict)]
+        return []
+
+    def _condition_display_value(
+        self,
+        chat,
+        condition: dict[str, Any],
+        display_spec: dict[str, str],
+    ) -> str:
+        value_ref = str(display_spec.get("value_ref", "") or "").strip()
+        if value_ref:
+            return str(condition.get(value_ref, "") or "")
+        value_source = str(display_spec.get("value_source", "") or "").strip()
+        if value_source == "tag_name":
+            tag_id = str(condition.get("tag_id", "") or "")
+            entity = chat.db.get_entity(tag_id) if tag_id else None
+            return str((entity or {}).get("name", "") or "")
+        return str(display_spec.get("value", "") or "")
+
+    def _semantic_condition_evidence_columns(
+        self,
+        chat,
+        conditions: list[dict[str, Any]],
+    ) -> list[tuple[str, str]]:
+        evidence_columns: list[tuple[str, str]] = []
+        seen_aliases: set[str] = set()
+        for cond in conditions:
+            for display_spec in self._condition_display_specs(cond):
+                alias = str(display_spec.get("alias", "") or "").strip()
+                if not alias or alias in seen_aliases:
+                    continue
+                value = self._sql_literal(self._condition_display_value(chat, cond, display_spec))
+                if not value:
+                    continue
+                evidence_columns.append((f"'{value}'", alias))
+                seen_aliases.add(alias)
+        return evidence_columns
+
+    def _requested_metadata_filters(self, message: str) -> list[dict[str, str]]:
+        text = str(message or "").strip()
+        requested: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for spec in self._metadata_filter_specs():
+            if spec["field"] in seen:
+                continue
+            parser = self._condition_parser(str(spec.get("parser_kind", "") or ""))
+            if str(parser.get("mode", "") or "") != "field_value":
+                continue
+            split_pattern = str(parser.get("split_pattern", r"\s+\b(?:and|or)\b|[?!,]") or r"\s+\b(?:and|or)\b|[?!,]")
+            for alias in list(spec.get("aliases", []) or []):
+                match = re.search(rf"\b{re.escape(alias.lower())}\b", text.lower())
+                if not match:
+                    continue
+                value_text = text[match.end():].strip()
+                value = re.split(split_pattern, value_text, maxsplit=1)[0].strip().strip("'\"")
+                if not value:
+                    continue
+                requested.append({
+                    "id": str(spec["id"]),
+                    "field": str(spec["field"]),
+                    "value": value,
+                    "owner_type": str(spec.get("owner_type", "") or ""),
+                    "category": str(spec.get("category", "") or ""),
+                })
+                seen.add(str(spec["field"]))
+                break
+        return requested
+
+    def _metadata_filter_context(self, item: dict[str, str]) -> dict[str, str]:
+        return {key: self._sql_literal(str(value)) for key, value in item.items()}
+
+    @staticmethod
+    def _select_clause_with_evidence(evidence_columns: list[tuple[str, str]]) -> str:
+        base = ["e.id", "e.name", "e.type"]
+        for expr, alias in evidence_columns:
+            expr_text = str(expr).strip()
+            alias_text = str(alias).strip()
+            if not expr_text or not alias_text:
+                continue
+            base.append(f"{expr_text} AS {alias_text}")
+        return "SELECT DISTINCT " + ", ".join(base)
+
+    @staticmethod
+    def _requested_limit(message: str) -> int | None:
+        low = str(message or "").lower()
+        for pattern in [
+            r"\btop\s+(\d+)\b",
+            r"\bselect\s+(\d+)\s+(?:genes?|proteins?|transcripts?|chromosomes?)\b",
+            r"\bfirst\s+(\d+)\b",
+        ]:
+            match = re.search(pattern, low)
+            if match:
+                return int(match.group(1))
+        return None
+
+    def _expression_ranking_request(self, chat, message: str, requested_types: list[str]) -> dict[str, str | int] | None:
+        low = f" {str(message or '').lower()} "
+        if " expression " not in low:
+            return None
+        if " highest " not in low and " lowest " not in low and " top " not in low:
+            return None
+        requested_type = requested_types[0] if requested_types else ""
+        if not requested_type:
+            return None
+        limit = self._requested_limit(message)
+        if limit is None:
+            return None
+        direction = "DESC" if (" highest " in low or " top " in low) else "ASC"
+        rows = chat.db.execute_read("SELECT id, name, metadata FROM entities WHERE type = 'expression_measure' ORDER BY id")
+        for row in rows:
+            expr_id = str(row.get("id", "") or "")
+            expr_name = str(row.get("name", "") or "")
+            metadata = row.get("metadata", {}) or {}
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except Exception:
+                    metadata = {}
+            if not isinstance(metadata, dict):
+                metadata = {}
+            label = str(metadata.get("label", expr_name) or expr_name)
+            source_column = str(metadata.get("source_column", "") or "").strip()
+            aliases = {
+                expr_name.lower(),
+                label.lower(),
+                expr_id.split(":", 1)[-1].lower(),
+                f"in {label.lower()}",
+                f"under {label.lower()}",
+                f"{label.lower()} condition",
+                f"in {label.lower()} condition",
+                f"under {label.lower()} condition",
+                f"{label.lower()} stage",
+            }
+            if not any(alias and alias in low for alias in aliases):
+                continue
+            if not source_column:
+                continue
+            return {
+                "requested_type": requested_type,
+                "owner_type": "transcript",
+                "expr_id": expr_id,
+                "expr_label": label,
+                "source_column": source_column,
+                "direction": direction,
+                "limit": limit,
+            }
+        return None
 
     def _primary_organism_aliases(self, chat) -> set[str]:
         try:
@@ -154,7 +381,41 @@ class GenomicsChatModule(RegistryConditionModule):
         # Runtime adapter now only supplies the organism alias sets; branch/tag
         # expansion, classification, and alias rendering live in the shared
         # dynamic-family infrastructure plus registry config.
-        return self._dynamic_family_specs(chat, "effector_evidence")
+        specs = self._dynamic_family_specs(chat, "effector_evidence")
+        for spec in specs:
+            spec["display"] = self._effector_display_specs(spec)
+        return specs
+
+    @staticmethod
+    def _effector_display_specs(spec: dict[str, Any]) -> list[dict[str, str]]:
+        spec_id = str(spec.get("id", "") or "")
+        display: list[dict[str, str]] = []
+        if "scn-dna-effector" in spec_id:
+            display.append({
+                "alias": "scn_known_n",
+                "expr_template": "(SELECT json_extract(o.metadata, '$.glycines_effectors_dna') FROM entities o WHERE o.id = {owner_ref})",
+            })
+        if "scn-protein-effector" in spec_id:
+            display.append({
+                "alias": "scn_known_p",
+                "expr_template": "(SELECT json_extract(o.metadata, '$.glycines_effectors_prot') FROM entities o WHERE o.id = {owner_ref})",
+            })
+        if "bcn-known-effector" in spec_id:
+            display.append({
+                "alias": "bcn_known",
+                "expr_template": "(SELECT json_extract(o.metadata, '$.schachtii_effectors_known') FROM entities o WHERE o.id = {owner_ref})",
+            })
+        if "bcn-putative-effector" in spec_id:
+            display.append({
+                "alias": "bcn_putative",
+                "expr_template": "(SELECT json_extract(o.metadata, '$.schachtii_effectors_putative') FROM entities o WHERE o.id = {owner_ref})",
+            })
+        if spec.get("is_putative"):
+            display.append({
+                "alias": "scn_putative",
+                "expr_template": "(SELECT json_extract(o.metadata, '$.effector') FROM entities o WHERE o.id = {owner_ref})",
+            })
+        return display
 
     @staticmethod
     def _scope_aliases_for_tag(tag_id: str, tag_name: str) -> list[str]:
@@ -199,9 +460,11 @@ class GenomicsChatModule(RegistryConditionModule):
         has_required_message_cue = any(cue in low for cue in required_message_cues)
         has_required_group_cue = any(self._message_has_group_cue(message, group_id) for group_id in required_group_cues)
         has_required_relation_family = any(
-            any(self._message_matches_aliases(message, list(spec.get("aliases", []) or [])) for spec in self._protein_evidence_specs())
+            any(
+                self._message_matches_aliases(message, list(spec.get("aliases", []) or []))
+                for spec in self._evidence_relation_specs(family_id)
+            )
             for family_id in required_relation_families
-            if family_id == "protein_evidence"
         )
         has_required_cue = has_required_message_cue or has_required_group_cue or has_required_relation_family
         requires_cue = bool(required_message_cues or required_group_cues or required_relation_families)
@@ -228,7 +491,7 @@ class GenomicsChatModule(RegistryConditionModule):
 
     def _matched_protein_evidence_conditions(self, message: str) -> list[dict[str, Any]]:
         conditions: list[dict[str, Any]] = []
-        for spec in self._protein_evidence_specs():
+        for spec in self._evidence_relation_specs():
             parser = self._condition_parser(str(spec.get("parser_kind", "") or ""))
             if str(parser.get("mode", "") or "") != "alias_match":
                 continue
@@ -255,6 +518,111 @@ class GenomicsChatModule(RegistryConditionModule):
         ):
             return [{"kind": "ortholog_member"}]
         return []
+
+    def _metadata_filter_query(self, chat, requested_type: str, filters: list[dict[str, str]]) -> str | dict[str, Any] | None:
+        if not filters:
+            return None
+        owner_types = {str(item.get("owner_type", "") or "") for item in filters if str(item.get("owner_type", "") or "")}
+        if len(owner_types) != 1:
+            return None
+        owner_type = next(iter(owner_types), "")
+        if not owner_type:
+            return None
+        joins: list[str] = []
+        where_lines = [f"WHERE e.type = '{requested_type}'"]
+        alias_index = 0
+        path_joins, owner_ref, alias_index = self._append_path_joins(
+            chat,
+            from_type=requested_type,
+            to_type=owner_type,
+            current_node_ref="e.id",
+            alias_index=alias_index,
+        )
+        if requested_type != owner_type and not path_joins:
+            return None
+        joins.extend(path_joins)
+        if requested_type == owner_type:
+            joins.append(f"JOIN entities owner ON owner.id = e.id AND owner.type = '{owner_type}'")
+        else:
+            joins.append(f"JOIN entities owner ON owner.id = {owner_ref} AND owner.type = '{owner_type}'")
+        evidence_columns: list[tuple[str, str]] = []
+        for item in filters:
+            context = self._metadata_filter_context(item)
+            for template in list(self._metadata_filter_renderer().get("where_templates", []) or []):
+                where_lines.append(self._format_registry_template(str(template), context))
+            field = str(item.get("field", "") or "")
+            if field:
+                evidence_columns.append((f"json_extract(owner.metadata, '$.{field}')", field))
+        rendered_sql = "\n".join([
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            *joins,
+            *where_lines,
+        ])
+        return self._synthesis_result(
+            rendered_sql,
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "genomics_metadata_filters",
+                "requested_type": requested_type,
+                "filter_fields": [str(item.get("field", "") or "") for item in filters],
+                "owner_type": owner_type,
+            },
+        )
+
+    def _expression_ranking_query(self, chat, request: dict[str, str | int]) -> str | dict[str, Any] | None:
+        requested_type = str(request.get("requested_type", "") or "")
+        owner_type = str(request.get("owner_type", "") or "")
+        expr_id = self._sql_literal(str(request.get("expr_id", "") or ""))
+        source_column = self._sql_literal(str(request.get("source_column", "") or ""))
+        direction = "DESC" if str(request.get("direction", "DESC") or "DESC").upper() == "DESC" else "ASC"
+        limit = int(request.get("limit", 0) or 0)
+        if not requested_type or not owner_type or not expr_id or not source_column or limit <= 0:
+            return None
+        joins: list[str] = []
+        alias_index = 0
+        path_joins, owner_ref, alias_index = self._append_path_joins(
+            chat,
+            from_type=requested_type,
+            to_type=owner_type,
+            current_node_ref="e.id",
+            alias_index=alias_index,
+        )
+        if requested_type != owner_type and not path_joins:
+            return None
+        joins.extend(path_joins)
+        if requested_type == owner_type:
+            joins.append(f"JOIN entities owner ON owner.id = e.id AND owner.type = '{owner_type}'")
+        else:
+            joins.append(f"JOIN entities owner ON owner.id = {owner_ref} AND owner.type = '{owner_type}'")
+        joins.append("JOIN relationships ex ON ex.source_id = owner.id AND ex.rel_type = 'HAS_EXPRESSION_SUMMARY'")
+        joins.append(f"JOIN entities expr ON expr.id = ex.target_id AND expr.type = 'expression_measure' AND expr.id = '{expr_id}'")
+        value_expr = f"CAST(json_extract(owner.metadata, '$.{source_column}') AS REAL)"
+        evidence_columns = [
+            ("expr.name", "expression_condition"),
+            (value_expr, "expression_value"),
+        ]
+        rendered_sql = "\n".join([
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            *joins,
+            f"WHERE e.type = '{requested_type}'",
+            f"  AND json_extract(owner.metadata, '$.{source_column}') IS NOT NULL",
+            f"ORDER BY {value_expr} {direction}",
+            f"LIMIT {limit}",
+        ])
+        return self._synthesis_result(
+            rendered_sql,
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "expression_ranking",
+                "requested_type": requested_type,
+                "expression_measure_id": str(request.get("expr_id", "") or ""),
+                "source_column": source_column,
+                "direction": direction,
+                "limit": limit,
+            },
+        )
 
     def _semantic_conditions(self, chat, message: str) -> list[dict[str, Any]]:
         # Registry-driven discovery handles protein evidence, ortholog member,
@@ -439,9 +807,38 @@ class GenomicsChatModule(RegistryConditionModule):
             "target_types": [str(item) for item in list(cond.get("target_types", []) or []) if str(item).strip()],
         }
 
+    def _condition_display_columns_from_context(
+        self,
+        cond: dict[str, Any],
+        context: dict[str, Any],
+    ) -> list[tuple[str, str]]:
+        columns: list[tuple[str, str]] = []
+        display_specs = [dict(item) for item in list(cond.get("display", []) or []) if isinstance(item, dict)]
+        target_types = [str(item) for item in list(context.get("target_types", []) or cond.get("target_types", []) or []) if str(item).strip()]
+        display_context = {
+            "owner_ref": str(context.get("owner_ref", "e.id") or "e.id"),
+            "evidence_rel_type": str(context.get("evidence_rel_type", cond.get("rel_type", "")) or cond.get("rel_type", "")),
+            "target_type": target_types[0] if target_types else "",
+            "evidence_target": str(context.get("evidence_target", "") or ""),
+        }
+        for spec in display_specs:
+            alias = str(spec.get("alias", "") or "").strip()
+            if not alias:
+                continue
+            expr_template = str(spec.get("expr_template", "") or "").strip()
+            if expr_template:
+                expr = self._format_registry_template(expr_template, display_context).strip()
+                if expr:
+                    columns.append((expr, alias))
+                    continue
+            value_source = str(spec.get("value_source", "") or "").strip()
+            if value_source == "target_name" and display_context["evidence_target"]:
+                columns.append((f"{display_context['evidence_target']}.name", alias))
+        return columns
+
     def _protein_evidence_rel_types(self) -> list[str]:
         rel_types: list[str] = []
-        for spec in self._protein_evidence_specs():
+        for spec in self._evidence_relation_specs():
             rel_type = str(spec.get("rel_type", "") or "").strip()
             if rel_type and rel_type not in rel_types:
                 rel_types.append(rel_type)
@@ -511,6 +908,7 @@ class GenomicsChatModule(RegistryConditionModule):
         alias_index: int,
         scope_tag_ids: set[str],
         used_scope_tags: set[str],
+        evidence_columns: list[tuple[str, str]] | None = None,
     ) -> tuple[bool, int]:
         ok, alias_index, context = self._append_registry_operator_joins(
             chat,
@@ -523,6 +921,8 @@ class GenomicsChatModule(RegistryConditionModule):
         )
         if not ok:
             return False, alias_index
+        if evidence_columns is not None:
+            evidence_columns.extend(self._condition_display_columns_from_context(cond, context))
         target_types = list(cond.get("target_types", []) or [])
         target_alias = str(context.get("evidence_target", "") or "")
         for scope_tag_id in scope_tag_ids:
@@ -563,7 +963,7 @@ class GenomicsChatModule(RegistryConditionModule):
         operator = self._scope_tag_operator(tag_id)
         if not operator:
             return True, alias_index
-        evidence = next((spec for spec in self._protein_evidence_specs() if spec["id"] == operator.get("evidence_id")), None)
+        evidence = self._evidence_spec_by_id(str(operator.get("evidence_id", "") or ""))
         if not evidence:
             return False, alias_index
         ok, alias_index, _context = self._append_registry_operator_joins(
@@ -588,8 +988,9 @@ class GenomicsChatModule(RegistryConditionModule):
         cond: dict[str, Any],
         joins: list[str],
         alias_index: int,
+        evidence_columns: list[tuple[str, str]] | None = None,
     ) -> tuple[bool, int]:
-        ok, alias_index, _context = self._append_registry_operator_joins(
+        ok, alias_index, context = self._append_registry_operator_joins(
             chat,
             operator_id="tag_evidence",
             requested_type=requested_type,
@@ -598,6 +999,8 @@ class GenomicsChatModule(RegistryConditionModule):
             alias_index=alias_index,
             template_context=self._tag_evidence_context(cond),
         )
+        if ok and evidence_columns is not None:
+            evidence_columns.extend(self._condition_display_columns_from_context(cond, context))
         return ok, alias_index
 
     def _handle_condition_protein_evidence(
@@ -620,6 +1023,7 @@ class GenomicsChatModule(RegistryConditionModule):
             alias_index=alias_index,
             scope_tag_ids=state.setdefault("scope_tag_ids", set()),
             used_scope_tags=state.setdefault("used_scope_tags", set()),
+            evidence_columns=state.setdefault("evidence_columns", []),
         )
 
     def _handle_condition_orthogroup_filter(
@@ -707,6 +1111,7 @@ class GenomicsChatModule(RegistryConditionModule):
             cond=condition,
             joins=joins,
             alias_index=alias_index,
+            evidence_columns=state.setdefault("evidence_columns", []),
         )
 
     def _semantic_condition_handlers_map(self) -> dict[str, Any]:
@@ -718,27 +1123,61 @@ class GenomicsChatModule(RegistryConditionModule):
             "tag_evidence": self._handle_condition_tag_evidence,
         }
 
-    def _semantic_query(self, chat, message: str, requested_types: list[str]) -> str | None:
+    def _semantic_query(self, chat, message: str, requested_types: list[str]) -> str | dict[str, Any] | None:
         requested_type = self._requested_core_type(requested_types)
         if requested_type not in {"gene", "transcript", "protein"}:
             return None
         conditions = self._semantic_conditions(chat, message)
         if not conditions:
             return None
-
-        return self._build_semantic_entity_query(
+        state = {
+            "scope_tag_ids": {cond["tag_id"] for cond in conditions if cond["kind"] == "scope_tag"},
+            "used_scope_tags": set(),
+            "has_protein_evidence": any(cond["kind"] == "protein_evidence" for cond in conditions),
+            "evidence_columns": [],
+        }
+        rendered_sql = self._build_semantic_entity_query(
             chat,
             requested_type=requested_type,
             conditions=conditions,
             distinct=True,
-            state={
-                "scope_tag_ids": {cond["tag_id"] for cond in conditions if cond["kind"] == "scope_tag"},
-                "used_scope_tags": set(),
-                "has_protein_evidence": any(cond["kind"] == "protein_evidence" for cond in conditions),
+            state=state,
+        )
+        if not rendered_sql:
+            return None
+        evidence_columns = list(state.get("evidence_columns", []) or []) + self._semantic_condition_evidence_columns(chat, conditions)
+        if evidence_columns:
+            rendered_sql = rendered_sql.replace(
+                "SELECT DISTINCT e.id, e.name, e.type",
+                self._select_clause_with_evidence(evidence_columns),
+                1,
+            )
+        return self._synthesis_result(
+            rendered_sql,
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "genomics_semantic_conditions",
+                "requested_type": requested_type,
+                "condition_kinds": [str(cond.get("kind", "") or "") for cond in conditions],
             },
         )
 
     def schema_context_lines(self, chat) -> list[str]:
+        lines: list[str] = []
+        metadata_hints = self.semantic_registry.get("metadata_hints", {}) if isinstance(self.semantic_registry, dict) else {}
+        if isinstance(metadata_hints, dict):
+            for hint_name, hint in metadata_hints.items():
+                if not isinstance(hint, dict):
+                    continue
+                preferred_fields = [str(item) for item in list(hint.get("preferred_fields", []) or []) if str(item).strip()]
+                target_types = [str(item) for item in list(hint.get("target_entity_types", []) or []) if str(item).strip()]
+                query_style = str(hint.get("query_style", "json_extract") or "json_extract")
+                if not preferred_fields:
+                    continue
+                target_text = f" on {', '.join(target_types)}" if target_types else ""
+                lines.append(
+                    f"{str(hint_name).replace('_', ' ').title()} semantic hints: use {query_style}{target_text} over preferred fields: {', '.join(preferred_fields)}."
+                )
         try:
             count_map_examples = chat.db.conn.execute(
                 """
@@ -753,22 +1192,70 @@ class GenomicsChatModule(RegistryConditionModule):
             ).fetchall()
         except Exception:
             count_map_examples = []
-        if not count_map_examples:
-            return []
-        type_list = ", ".join(row["type"] for row in count_map_examples)
-        return [
-            "Count-map semantics: some entity types store primary-organism counts as "
-            "`metadata.organism` + `metadata.gene_counts`. For those types, the primary count is the "
-            "entry in `gene_counts` keyed by `organism`, and ortholog/other-organism counts are the other "
-            f"entries in the same map. Types using this pattern: {type_list}",
-            "Comparative and HGT evidence can live on protein rows and still be queried at the gene, "
-            "transcript, or protein level by bridging through typed paths in either direction.",
-        ]
+        if count_map_examples:
+            type_list = ", ".join(row["type"] for row in count_map_examples)
+            lines.extend([
+                "Count-map semantics: some entity types store primary-organism counts as "
+                "`metadata.organism` + `metadata.gene_counts`. For those types, the primary count is the "
+                "entry in `gene_counts` keyed by `organism`, and ortholog/other-organism counts are the other "
+                f"entries in the same map. Types using this pattern: {type_list}",
+                "Comparative and HGT evidence can live on protein rows and still be queried at the gene, "
+                "transcript, or protein level by bridging through typed paths in either direction.",
+            ])
+        return lines
 
     def validation_error(self, chat, sql: str, requested_types: list[str], message: str) -> str | None:
         if not sql or not requested_types:
             return None
         sql_up = sql.upper()
+        expression_ranking = self._expression_ranking_request(chat, message, requested_types)
+        if expression_ranking:
+            expr_id = str(expression_ranking["expr_id"]).upper()
+            source_column = str(expression_ranking["source_column"])
+            limit = int(expression_ranking["limit"])
+            direction = str(expression_ranking["direction"]).upper()
+            if (
+                expr_id not in sql_up
+                or f"$.{source_column}".upper() not in sql_up
+                or f"LIMIT {limit}" not in sql_up
+                or "ORDER BY" not in sql_up
+                or direction not in sql_up
+            ):
+                return (
+                    f"Missing stage-ranked expression semantics: the user requested top expression for '{expression_ranking['expr_label']}', "
+                    f"but the SQL does not constrain expression measure '{expression_ranking['expr_id']}', order by transcript metadata "
+                    f"field '{expression_ranking['source_column']}', and apply LIMIT {limit}."
+                )
+        requested_metadata_filters = self._requested_metadata_filters(message)
+        metadata_renderer = self._metadata_filter_renderer()
+        sql_low = str(sql or "").lower()
+        requested_metadata_fields = {item["field"] for item in requested_metadata_filters}
+        for spec in self._metadata_filter_specs():
+            signatures = [
+                rendered.lower()
+                for template in list(metadata_renderer.get("validation_signatures", []) or [])
+                if (rendered := self._format_registry_template(str(template), self._metadata_filter_context({
+                    "id": str(spec["id"]),
+                    "field": str(spec["field"]),
+                    "value": "",
+                    "owner_type": str(spec.get("owner_type", "") or ""),
+                    "category": str(spec.get("category", "") or ""),
+                }))) and rendered.strip()
+            ]
+            if signatures and any(signature in sql_low for signature in signatures) and spec["field"] not in requested_metadata_fields:
+                return (
+                    f"Unexpected genomics metadata filter: the SQL constrains '{spec['field']}', but the user did not request that metadata-based genomics filter."
+                )
+        for item in requested_metadata_filters:
+            signatures = [
+                rendered.lower()
+                for template in list(metadata_renderer.get("validation_signatures", []) or [])
+                if (rendered := self._format_registry_template(str(template), self._metadata_filter_context(item))) and rendered.strip()
+            ]
+            if signatures and not all(signature in sql_low for signature in signatures):
+                return (
+                    f"Missing genomics metadata filter: the user requested {item['field']} '{item['value']}', but the SQL does not constrain that metadata field."
+                )
         requested_condition_kinds = self._semantic_conditions(chat, message)
         requested_protein_rel_types = {
             cond["rel_type"]
@@ -902,16 +1389,31 @@ class GenomicsChatModule(RegistryConditionModule):
             return "Wrong counting strategy: " + " ".join(owner_bits)
         return None
 
-    def synthesize_query(self, chat, message: str, sql: str, requested_types: list[str]) -> str | None:
+    def synthesize_query(self, chat, message: str, sql: str, requested_types: list[str]) -> str | dict[str, Any] | None:
+        expression_ranking = self._expression_ranking_request(chat, message, requested_types)
+        if expression_ranking:
+            expression_sql = self._expression_ranking_query(chat, expression_ranking)
+            if expression_sql:
+                return expression_sql
         semantic_sql = self._semantic_query(chat, message, requested_types)
         if semantic_sql:
             return semantic_sql
+        metadata_filters = self._requested_metadata_filters(message)
+        metadata_requested_type = requested_types[0] if requested_types else ""
+        if metadata_requested_type and metadata_filters:
+            metadata_sql = self._metadata_filter_query(chat, metadata_requested_type, metadata_filters)
+            if metadata_sql:
+                return metadata_sql
         if not sql or not requested_types:
             return None
         available_types = [row["type"] for row in chat.db.entity_types()]
         if "tag" in requested_types and self._requests_broad_homology_organism_tags(message, available_types):
-            return "\n".join([
-                "SELECT DISTINCT e.id, e.name, e.type",
+            evidence_columns = [
+                ("parent.name", "tag_group"),
+                ("scope_tag.name", "homology_scope"),
+            ]
+            return self._synthesis_result("\n".join([
+                self._select_clause_with_evidence(evidence_columns),
                 "FROM entities e",
                 "JOIN relationships broader ON broader.source_id = e.id AND broader.rel_type = 'BROADER'",
                 "JOIN entities parent ON parent.id = broader.target_id AND parent.type = 'tag'",
@@ -924,14 +1426,14 @@ class GenomicsChatModule(RegistryConditionModule):
                 "  AND e.id LIKE 'homology-organism:%'",
                 "  AND parent.id = 'homology-organism'",
                 "  AND scope_tag.id = 'homology-scope-broad-parasitism'",
-            ])
+            ]), evidence_columns=evidence_columns, semantic_trace={"kind": "broad_homology_organism_tags"})
         if "hgt_donor" in requested_types and self._requests_hgt_donor_semantics(message):
-            return "\n".join([
+            return self._synthesis_result("\n".join([
                 "SELECT DISTINCT e.id, e.name, e.type",
                 "FROM entities e",
                 "JOIN relationships r ON r.target_id = e.id AND r.rel_type = 'HAS_HGT_DONOR'",
                 "WHERE e.type = 'hgt_donor'",
-            ])
+            ]), semantic_trace={"kind": "hgt_donor_result"})
         msg = str(message or "").lower()
         if "ortholog" not in msg:
             return None
@@ -973,8 +1475,12 @@ class GenomicsChatModule(RegistryConditionModule):
             if requested_type != owner_type
             else f"JOIN entities owner ON owner.id = e.id AND owner.type = '{owner_type}'"
         )
-        return "\n".join([
-            "SELECT DISTINCT e.id, e.name, e.type",
+        evidence_columns = [
+            ("json_extract(owner.metadata, '$.organism')", "owner_organism"),
+            ("json_extract(owner.metadata, '$.gene_counts')", "gene_counts"),
+        ]
+        return self._synthesis_result("\n".join([
+            self._select_clause_with_evidence(evidence_columns),
             "FROM entities e",
             *joins,
             owner_join,
@@ -982,4 +1488,31 @@ class GenomicsChatModule(RegistryConditionModule):
             f"WHERE e.type = '{requested_type}'",
             "  AND gc.key != json_extract(owner.metadata, '$.organism')",
             f"  AND CAST(gc.value AS INTEGER) {op} {value}",
-        ])
+        ]), evidence_columns=evidence_columns, semantic_trace={"kind": "ortholog_count_map", "requested_type": requested_type, "owner_type": owner_type})
+
+    def evidence_columns_for_sql(self, chat, message: str, sql: str, requested_types: list[str]) -> list[tuple[str, str]] | None:
+        evidence_columns: list[tuple[str, str]] = []
+        requested_core_type = self._requested_core_type(requested_types)
+        if requested_core_type in {"gene", "transcript", "protein"}:
+            conditions = self._semantic_conditions(chat, message)
+            evidence_columns.extend(self._semantic_condition_evidence_columns(chat, conditions))
+        selected_type = requested_types[0] if requested_types else ""
+        if selected_type:
+            metadata_filters = self._requested_metadata_filters(message)
+            if metadata_filters and all(str(item.get("owner_type", "") or "") == selected_type for item in metadata_filters):
+                for item in metadata_filters:
+                    field = str(item.get("field", "") or "")
+                    if field:
+                        evidence_columns.append((f"json_extract(e.metadata, '$.{field}')", field))
+        if not evidence_columns:
+            return None
+        deduped: list[tuple[str, str]] = []
+        seen_aliases: set[str] = set()
+        for expr, alias in evidence_columns:
+            alias_text = str(alias).strip()
+            expr_text = str(expr).strip()
+            if not alias_text or not expr_text or alias_text in seen_aliases:
+                continue
+            seen_aliases.add(alias_text)
+            deduped.append((expr_text, alias_text))
+        return deduped or None
