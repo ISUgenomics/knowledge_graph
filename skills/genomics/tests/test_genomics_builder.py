@@ -203,6 +203,19 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
         assert protein["name"] == "Unknown_Hg_chrom1_TN10mRNA_10"
         assert protein["metadata"]["hgt_donor_id"] == "WP_194067917"
         assert "hgt_alien_index" not in protein["metadata"]
+        scn_putative = db.get_entity("hg_chrom2_tn10mrna_2403:protein")
+        assert scn_putative is not None
+        assert scn_putative["metadata"]["effector"] == "Yes"
+        assert scn_putative["metadata"]["schachtii_effectors_known"] == (
+            "Hsc_gene_26000;Hsc_gene_26001;Hsc_gene_26067;Hsc_gene_26068;"
+            "Hsc_gene_670;Hsc_gene_21866;Hsc_gene_21867"
+        )
+        scn_putative_tags = db.get_relationships("hg_chrom2_tn10mrna_2403:protein", "TAGGED", direction="outgoing")
+        assert any(rel["target_id"] == "tag:scn-putative-effector-hit" for rel in scn_putative_tags)
+        scn_putative_2 = db.get_entity("hg_chrom4_tn10mrna_7223:protein")
+        assert scn_putative_2 is not None
+        assert scn_putative_2["metadata"]["effector"] == "Yes"
+        assert scn_putative_2["metadata"]["schachtii_effectors_known"] == "Hsc_gene_17773;Hsc_gene_21122"
         donor = db.get_entity("hgt_donor:wp_194067917")
         assert donor is not None
         assert donor["name"] == "WP_194067917"
