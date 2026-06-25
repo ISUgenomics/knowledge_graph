@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import importlib.util
 import re
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,17 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text()) or {}
 
 
+def _load_python_config(path: Path) -> Any | None:
+    if not path.exists():
+        return None
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _clean_value(value: Any) -> Any:
     if value is None:
         return None
@@ -50,6 +62,87 @@ def _metadata_from_row(row: dict[str, str], columns: list[str]) -> dict[str, Any
         if value is not None:
             metadata[column] = value
     return metadata
+
+
+def _parse_scn_gene_name(value: Any) -> tuple[str | None, int | None]:
+    cleaned = _clean_value(value)
+    if cleaned is None:
+        return None, None
+    match = re.match(r"^Hg_(chrom\d+)_TN10gene_(\d+)$", str(cleaned))
+    if not match:
+        return None, None
+    return match.group(1).lower(), int(match.group(2))
+
+
+def _parse_hsc_gene_ids(value: Any) -> list[str]:
+    cleaned = _clean_value(value)
+    if cleaned is None:
+        return []
+    text = str(cleaned)
+    return sorted(
+        {
+            match.group(1).lower()
+            for match in re.finditer(r"Hsc_gene_([^;,\s\.]+)", text)
+        }
+    )
+
+
+def _derive_metadata_value(
+    row: dict[str, Any],
+    spec: dict[str, Any],
+    *,
+    python_cfg: Any | None,
+) -> Any:
+    kind = str(spec.get("kind", "") or "").strip()
+    source_column = str(spec.get("source_column", "") or "").strip()
+    source_value = row.get(source_column)
+
+    if kind == "scn_putative_from_gene_name":
+        chrom, gene_num = _parse_scn_gene_name(source_value)
+        if chrom is None or gene_num is None or python_cfg is None:
+            return None
+        lookup = getattr(python_cfg, "SCN_PUTATIVE_EFFECTOR_LOOKUP", None)
+        if lookup is None:
+            source = getattr(python_cfg, "SCN_PUTATIVE_EFFECTORS", {}) or {}
+            lookup = {str(key).lower(): set(values) for key, values in source.items()}
+        if gene_num in lookup.get(chrom, set()):
+            return spec.get("truthy_value", "Yes")
+        return None
+
+    if kind == "bcn_effector_from_gene_list":
+        list_name = str(spec.get("list_name", "") or "").strip()
+        if not list_name or python_cfg is None:
+            return None
+        raw_values = getattr(python_cfg, list_name, None)
+        if not raw_values:
+            return None
+        lookup = {str(item).strip().lower() for item in raw_values if str(item).strip()}
+        matches = [gene_id for gene_id in _parse_hsc_gene_ids(source_value) if gene_id in lookup]
+        if not matches:
+            return None
+        value_template = str(spec.get("value_template", "Hsc_gene_{id}") or "Hsc_gene_{id}")
+        return ";".join(value_template.format(id=match) for match in matches)
+
+    return None
+
+
+def _effective_row(
+    row: dict[str, Any],
+    *,
+    derived_specs: list[dict[str, Any]],
+    python_cfg: Any | None,
+) -> dict[str, Any]:
+    enriched = dict(row)
+    for spec in derived_specs:
+        key = str(spec.get("key", "") or "").strip()
+        if not key:
+            continue
+        if spec.get("when_missing", True) and _clean_value(enriched.get(key)) is not None:
+            continue
+        derived = _derive_metadata_value(enriched, spec, python_cfg=python_cfg)
+        if derived is not None:
+            enriched[key] = derived
+    return enriched
 
 
 def _protein_name(row: dict[str, str], protein_cfg: dict[str, Any]) -> str:
@@ -560,6 +653,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
     raw_cfg = schema.get("raw", {})
     entity_model = schema.get("entity_model", {})
     entities_cfg = entity_model.get("entities", {})
+    python_cfg = _load_python_config(source_dir / str(raw_cfg.get("config_source", "") or "")) if raw_cfg.get("config_source") else None
 
     data_path = source_dir / raw_cfg.get("data_path", "DATA.tsv")
     rows = _iter_rows(data_path, raw_cfg.get("delimiter", "\\t"))
@@ -636,9 +730,11 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             gene_cfg = entities_cfg["gene"]
             transcript_cfg = entities_cfg["transcript"]
             protein_cfg = entities_cfg["protein"]
+            derived_specs = list(protein_cfg.get("derived_metadata", []) or [])
+            effective_row = _effective_row(row, derived_specs=derived_specs, python_cfg=python_cfg)
 
-            gene_name = _clean_value(row.get(gene_cfg["id_column"]))
-            transcript_name = _clean_value(row.get(transcript_cfg["id_column"]))
+            gene_name = _clean_value(effective_row.get(gene_cfg["id_column"]))
+            transcript_name = _clean_value(effective_row.get(transcript_cfg["id_column"]))
             if gene_name is None or transcript_name is None:
                 continue
 
@@ -646,26 +742,26 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                 gene_cfg["entity_type"],
                 str(gene_name),
                 name=str(gene_name),
-                metadata=_metadata_from_row(row, gene_cfg.get("metadata_columns", [])),
+                metadata=_metadata_from_row(effective_row, gene_cfg.get("metadata_columns", [])),
             )
             transcript_id = db.upsert_entity(
                 transcript_cfg["entity_type"],
                 str(transcript_name),
                 name=str(transcript_name),
-                metadata=_metadata_from_row(row, transcript_cfg.get("metadata_columns", [])),
+                metadata=_metadata_from_row(effective_row, transcript_cfg.get("metadata_columns", [])),
             )
 
-            protein_id_value = _apply_template(protein_cfg["id_template"], row)
-            protein_metadata = _metadata_from_row(row, protein_cfg.get("metadata_columns", []))
+            protein_id_value = _apply_template(protein_cfg["id_template"], effective_row)
+            protein_metadata = _metadata_from_row(effective_row, protein_cfg.get("metadata_columns", []))
             sequence_column = protein_cfg.get("sequence_column", "")
-            sequence = _clean_value(row.get(sequence_column))
+            sequence = _clean_value(effective_row.get(sequence_column))
             if sequence is not None:
                 protein_metadata["protein_sequence"] = sequence
                 protein_metadata["length"] = len(str(sequence))
             protein_id = db.upsert_entity(
                 protein_cfg["entity_type"],
                 protein_id_value,
-                name=_protein_name(row, protein_cfg),
+                name=_protein_name(effective_row, protein_cfg),
                 metadata=protein_metadata,
             )
 
@@ -676,7 +772,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
 
             chromosome_entity_id = None
             chromosome_source_column = str(chromosome_cfg.get("source_column", "") or "")
-            chromosome_label = _chromosome_from_location(row.get(chromosome_source_column)) if chromosome_source_column else None
+            chromosome_label = _chromosome_from_location(effective_row.get(chromosome_source_column)) if chromosome_source_column else None
             if chromosome_label is not None:
                 chromosome_entity_id = db.upsert_entity(
                     chromosome_cfg.get("entity_type", "chromosome"),
@@ -695,9 +791,9 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                 db.add_relationship(chromosome_entity_id, "HAS_GENE", gene_id)
 
             orthogroup_id = None
-            orthogroup_value = _clean_value(row.get(orthogroup_cfg.get("source_column", "")))
+            orthogroup_value = _clean_value(effective_row.get(orthogroup_cfg.get("source_column", "")))
             if orthogroup_value is not None:
-                orthogroup_metadata = _metadata_from_row(row, orthogroup_cfg.get("metadata_columns", []))
+                orthogroup_metadata = _metadata_from_row(effective_row, orthogroup_cfg.get("metadata_columns", []))
                 orthogroup_id = db.upsert_entity(
                     orthogroup_cfg.get("entity_type", "orthogroup"),
                     orthogroup_cfg.get("id_template", "orthogroup:{value}").format(value=orthogroup_value),
@@ -731,7 +827,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
             }
 
             for spec in comparative_entities.values():
-                source_value = row.get(spec.get("source_column", ""))
+                source_value = effective_row.get(spec.get("source_column", ""))
                 if not source_value:
                     continue
                 attach_from = str(spec.get("attach_from", "") or "")
@@ -794,7 +890,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                         "source_column": str(spec.get("source_column", "") or ""),
                     }
                     for column in list(spec.get("edge_metadata_columns", []) or []):
-                        value = _clean_value(row.get(column))
+                        value = _clean_value(effective_row.get(column))
                         if value is None:
                             continue
                         edge_metadata[str(column)] = str(value)
@@ -826,7 +922,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
 
             for spec in annotation_bins:
                 parser = PARSERS[spec["parser"]]
-                items = parser(row.get(spec["column"], ""))
+                items = parser(effective_row.get(spec["column"], ""))
                 if not items:
                     continue
                 attach_id = entity_ids[spec["attach_to"]]
@@ -851,7 +947,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
 
             for spec in tag_bins:
                 parser = PARSERS[spec["parser"]]
-                items = parser(row.get(spec["column"], ""))
+                items = parser(effective_row.get(spec["column"], ""))
                 if not items:
                     continue
                 attach_id = entity_ids[spec["attach_to"]]
@@ -880,7 +976,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                         )
 
             for spec in boolean_tags:
-                cleaned = str(_clean_value(row.get(spec["column"])) or "").lower()
+                cleaned = str(_clean_value(effective_row.get(spec["column"])) or "").lower()
                 if cleaned not in set(spec.get("truthy", [])):
                     continue
                 parent_tag = seeded_tags.get(spec["parent_tag"], spec["parent_tag"])
@@ -894,7 +990,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                 )
 
             for spec in value_presence_tags:
-                if _clean_value(row.get(spec["column"])) is None:
+                if _clean_value(effective_row.get(spec["column"])) is None:
                     continue
                 parent_tag = seeded_tags.get(spec["parent_tag"], spec["parent_tag"])
                 _attach_tag(
@@ -914,7 +1010,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                         db,
                         source_entity_id=owner_entity_id,
                         owner_id=owner_entity_id,
-                        row=row,
+                        row=effective_row,
                         spec=spec,
                     )
 
@@ -926,7 +1022,7 @@ def build_dataset(*, source_dir: Path, db_path: Path, fresh: bool = False, vault
                         db,
                         source_entity_id=owner_entity_id,
                         owner_id=owner_entity_id,
-                        row=row,
+                        row=effective_row,
                         spec=spec,
                     )
                     if not contrast_entity_id:

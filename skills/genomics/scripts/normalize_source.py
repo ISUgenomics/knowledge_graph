@@ -91,6 +91,7 @@ PROTEIN_COLUMNS = [
     "dl_peroxisome",
     "dl_cell_membrane",
     "dl_extracellular",
+    "effector",
     "glycines_effectors_dna",
     "glycines_effectors_prot",
     "schachtii_effectors_known",
@@ -179,6 +180,7 @@ BOOLEAN_TAGS = [
 ]
 
 VALUE_PRESENCE_TAGS = [
+    {"column": "effector", "tag_id": "scn-putative-effector-hit", "label": "SCN Putative Effector Hit", "attach_to": "protein", "parent_tag": "effector-evidence"},
     {"column": "schachtii_effectors_known", "tag_id": "bcn-known-effector-hit", "label": "BCN Known Effector Hit", "attach_to": "protein", "parent_tag": "effector-evidence"},
     {"column": "schachtii_effectors_putative", "tag_id": "bcn-putative-effector-hit", "label": "BCN Putative Effector Hit", "attach_to": "protein", "parent_tag": "effector-evidence"},
     {"column": "glycines_effectors_dna", "tag_id": "scn-dna-effector-hit", "label": "SCN DNA Effector Hit", "attach_to": "protein", "parent_tag": "effector-evidence"},
@@ -327,6 +329,37 @@ def _ordered_dict(items: OrderedDict[str, str] | dict[str, str]) -> dict[str, st
     return {str(k): str(v) for k, v in dict(items).items()}
 
 
+def _derived_protein_metadata_specs(raw_cfg: dict[str, Any], header_set: set[str]) -> list[dict[str, Any]]:
+    specs: list[dict[str, Any]] = []
+    if raw_cfg.get("SCN_PUTATIVE_EFFECTORS") and "gene_name" in header_set:
+        specs.append({
+            "key": "effector",
+            "kind": "scn_putative_from_gene_name",
+            "source_column": "gene_name",
+            "truthy_value": "Yes",
+            "when_missing": True,
+        })
+    if raw_cfg.get("BCN_KNOWN_EFFECTORS") and "schachtii_genes" in header_set:
+        specs.append({
+            "key": "schachtii_effectors_known",
+            "kind": "bcn_effector_from_gene_list",
+            "source_column": "schachtii_genes",
+            "list_name": "BCN_KNOWN_EFFECTORS",
+            "value_template": "Hsc_gene_{id}",
+            "when_missing": True,
+        })
+    if raw_cfg.get("BCN_PUTATIVE_EFFECTORS") and "schachtii_genes" in header_set:
+        specs.append({
+            "key": "schachtii_effectors_putative",
+            "kind": "bcn_effector_from_gene_list",
+            "source_column": "schachtii_genes",
+            "list_name": "BCN_PUTATIVE_EFFECTORS",
+            "value_template": "Hsc_gene_{id}",
+            "when_missing": True,
+        })
+    return specs
+
+
 def _read_header(data_path: Path) -> list[str]:
     with data_path.open(newline="") as handle:
         reader = csv.reader(handle, delimiter="\t")
@@ -359,6 +392,8 @@ def normalize_source_package(
     log2fc_fields = raw_cfg.get("LOG2FC_FIELDS", OrderedDict())
     crosslink = raw_cfg.get("CROSSLINK", {}) or {}
     tooltips = raw_cfg.get("TOOLTIPS", {}) or {}
+    derived_protein_metadata = _derived_protein_metadata_specs(raw_cfg, header_set)
+    derived_protein_keys = {str(spec.get("key", "") or "") for spec in derived_protein_metadata if str(spec.get("key", "") or "")}
 
     shared_promoted_entities = {
         "orthogroup": {
@@ -551,7 +586,11 @@ def normalize_source_package(
                         "fallback_column": "uniquename",
                         "fallback_prefix": "Unknown",
                     },
-                    "metadata_columns": [c for c in PROTEIN_COLUMNS if c in header_set and c != "protein_sequence"],
+                    "metadata_columns": [
+                        c for c in PROTEIN_COLUMNS
+                        if c != "protein_sequence" and (c in header_set or c in derived_protein_keys)
+                    ],
+                    "derived_metadata": derived_protein_metadata,
                     "sequence_column": "protein_sequence" if "protein_sequence" in header_set else "",
                 },
             },
@@ -578,7 +617,7 @@ def normalize_source_package(
             contract_items=CONTRACT.get("boolean_tags", []),
         ),
         "value_presence_tags": split_shared_and_specific(
-            [item for item in VALUE_PRESENCE_TAGS if item["column"] in header_set],
+            [item for item in VALUE_PRESENCE_TAGS if item["column"] in header_set or item["column"] in derived_protein_keys],
             contract_items=CONTRACT.get("value_presence_tags", []),
         ),
         "tag_hierarchy": split_shared_and_specific(

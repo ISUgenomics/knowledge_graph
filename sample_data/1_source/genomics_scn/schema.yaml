@@ -289,6 +289,7 @@ entity_model:
       - dl_peroxisome
       - dl_cell_membrane
       - dl_extracellular
+      - effector
       - glycines_effectors_dna
       - glycines_effectors_prot
       - schachtii_effectors_known
@@ -350,6 +351,24 @@ entity_model:
       - tryptophan
       - tyrosine
       - unknown
+      derived_metadata:
+      - key: effector
+        kind: scn_putative_from_gene_name
+        source_column: gene_name
+        truthy_value: 'Yes'
+        when_missing: true
+      - key: schachtii_effectors_known
+        kind: bcn_effector_from_gene_list
+        source_column: schachtii_genes
+        list_name: BCN_KNOWN_EFFECTORS
+        value_template: Hsc_gene_{id}
+        when_missing: true
+      - key: schachtii_effectors_putative
+        kind: bcn_effector_from_gene_list
+        source_column: schachtii_genes
+        list_name: BCN_PUTATIVE_EFFECTORS
+        value_template: Hsc_gene_{id}
+        when_missing: true
       sequence_column: protein_sequence
   relationships:
   - *id001
@@ -604,7 +623,12 @@ value_presence_tags:
     label: SCN Protein Effector Hit
     attach_to: protein
     parent_tag: effector-evidence
-  dataset_specific: []
+  dataset_specific:
+  - column: effector
+    tag_id: scn-putative-effector-hit
+    label: SCN Putative Effector Hit
+    attach_to: protein
+    parent_tag: effector-evidence
 tag_hierarchy:
   shared:
     genomics:
