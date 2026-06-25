@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import json
 import shutil
 import sys
 import time
@@ -21,6 +22,8 @@ import uvicorn
 
 from kgx.config import load_config
 from kgx.api import create_app
+from kgx.db import KnowledgeGraphDB
+from kgx.semantic_onboarding import extract_registry_patch_artifact, generate_domain_onboarding_artifact
 from kgx.visualization_audit import audit_visualization_contract, repair_visualization_contract
 
 
@@ -58,6 +61,25 @@ def _bootstrap_db_from_seed(db_path: Path) -> bool:
     return True
 
 
+def _build_semantic_onboarding_artifact(config, db_path: Path) -> dict:
+    db = KnowledgeGraphDB(str(db_path))
+    try:
+        return generate_domain_onboarding_artifact(
+            config.domain.name,
+            db,
+            ui_config=config.ui.model_dump(),
+            explore_config=config.explore.model_dump(),
+            db_build_config=config.db_build.model_dump(),
+        )
+    finally:
+        db.close()
+
+
+def _build_semantic_onboarding_patch(config, db_path: Path) -> dict:
+    artifact = _build_semantic_onboarding_artifact(config, db_path)
+    return extract_registry_patch_artifact(artifact)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Knowledge Graph Explorer",
@@ -70,6 +92,10 @@ def main():
     parser.add_argument("--no-browser", action="store_true", help="Don't open browser")
     parser.add_argument("--audit-visualization", action="store_true", help="Audit the database against db_build.visualization and exit")
     parser.add_argument("--repair-visualization", action="store_true", help="Safely backfill configured visualization metadata aliases and exit")
+    parser.add_argument("--semantic-onboarding", action="store_true", help="Generate a semantic onboarding artifact for the configured dataset and exit")
+    parser.add_argument("--semantic-onboarding-out", help="Write the semantic onboarding artifact JSON to this path instead of stdout")
+    parser.add_argument("--semantic-patch", action="store_true", help="Generate a merge-ready semantic registry patch for the configured dataset and exit")
+    parser.add_argument("--semantic-patch-out", help="Write the semantic registry patch JSON to this path instead of stdout")
     args = parser.parse_args()
 
     # Load config
@@ -108,6 +134,30 @@ def main():
                 print(f"  - {warning}")
             sys.exit(2)
         print("Visualization contract audit passed.")
+        return
+
+    if args.semantic_onboarding:
+        artifact = _build_semantic_onboarding_artifact(config, db_path)
+        rendered = json.dumps(artifact, indent=2, sort_keys=True)
+        if args.semantic_onboarding_out:
+            out_path = Path(args.semantic_onboarding_out)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(rendered + "\n", encoding="utf-8")
+            print(f"Semantic onboarding artifact written to {out_path}")
+        else:
+            print(rendered)
+        return
+
+    if args.semantic_patch:
+        patch = _build_semantic_onboarding_patch(config, db_path)
+        rendered = json.dumps(patch, indent=2, sort_keys=True)
+        if args.semantic_patch_out:
+            out_path = Path(args.semantic_patch_out)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(rendered + "\n", encoding="utf-8")
+            print(f"Semantic registry patch written to {out_path}")
+        else:
+            print(rendered)
         return
 
     # Build app

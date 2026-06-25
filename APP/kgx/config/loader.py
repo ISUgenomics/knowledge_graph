@@ -234,6 +234,7 @@ class UIConfig(BaseModel):
     max_visible_nodes: int = 5000
     edge_filters_default_visible: list[str] = Field(default_factory=list)  # empty = all visible
     detail_layout_source: str = ""
+    semantic_registry_overlay: str = ""
     layouts: LayoutsConfig | None = Field(
         default_factory=lambda: LayoutsConfig(
             timeline=TimelineLayoutConfig(),

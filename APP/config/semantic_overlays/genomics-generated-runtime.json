@@ -1,0 +1,202 @@
+{
+  "artifact_version": "semantic-registry-patch.v1",
+  "domain": "genomics",
+  "registry_patch": {
+    "categories": {
+      "differential_expression": {
+        "entity_types": [
+          "contrast_definition"
+        ],
+        "metadata_fields": []
+      },
+      "expression": {
+        "entity_types": [
+          "expression_measure"
+        ],
+        "metadata_fields": []
+      },
+      "location": {
+        "entity_types": [
+          "chromosome"
+        ],
+        "metadata_fields": [
+          "start",
+          "end",
+          "strand",
+          "chromosome"
+        ]
+      },
+      "sequence": {
+        "entity_types": [
+          "protein"
+        ],
+        "metadata_fields": [
+          "protein_sequence",
+          "mrna_sequence",
+          "length"
+        ],
+        "relationship_types": []
+      }
+    },
+    "metadata_hints": {
+      "location": {
+        "preferred_fields": [
+          "start",
+          "end",
+          "strand",
+          "chromosome"
+        ],
+        "query_style": "json_extract",
+        "target_entity_types": [
+          "chromosome"
+        ]
+      },
+      "sequence": {
+        "preferred_fields": [
+          "protein_sequence",
+          "mrna_sequence",
+          "length"
+        ],
+        "query_style": "json_extract",
+        "target_entity_types": [
+          "protein"
+        ]
+      }
+    },
+    "operators": {
+      "condition_handlers": {
+        "dge_contrast": "dge_contrast",
+        "expression_measurement": "expression_measurement"
+      },
+      "parsers": {
+        "field_value": {
+          "mode": "field_value",
+          "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+        }
+      },
+      "renderers": {
+        "metadata": {
+          "validation_signatures": [
+            "$.{field}",
+            "{value}"
+          ],
+          "where_templates": [
+            "  AND json_extract(owner.metadata, '$.{field}') = '{value}'"
+          ]
+        }
+      },
+      "specs": {
+        "metadata_filters": {
+          "chromosome": {
+            "aliases": [
+              "chromosome"
+            ],
+            "category": "location",
+            "field": "chromosome",
+            "owner_type": "chromosome",
+            "parser_kind": "field_value"
+          },
+          "end": {
+            "aliases": [
+              "end"
+            ],
+            "category": "location",
+            "field": "end",
+            "owner_type": "chromosome",
+            "parser_kind": "field_value"
+          },
+          "length": {
+            "aliases": [
+              "length"
+            ],
+            "category": "sequence",
+            "field": "length",
+            "owner_type": "protein",
+            "parser_kind": "field_value"
+          },
+          "mrna_sequence": {
+            "aliases": [
+              "mrna_sequence"
+            ],
+            "category": "sequence",
+            "field": "mrna_sequence",
+            "owner_type": "protein",
+            "parser_kind": "field_value"
+          },
+          "protein_sequence": {
+            "aliases": [
+              "protein_sequence"
+            ],
+            "category": "sequence",
+            "field": "protein_sequence",
+            "owner_type": "protein",
+            "parser_kind": "field_value"
+          },
+          "start": {
+            "aliases": [
+              "start"
+            ],
+            "category": "location",
+            "field": "start",
+            "owner_type": "chromosome",
+            "parser_kind": "field_value"
+          },
+          "strand": {
+            "aliases": [
+              "strand"
+            ],
+            "category": "location",
+            "field": "strand",
+            "owner_type": "chromosome",
+            "parser_kind": "field_value"
+          }
+        }
+      }
+    },
+    "relation_families": {
+      "dge_contrast": [
+        {
+          "aliases": [
+            "differential expression",
+            "dge",
+            "contrast",
+            "upregulated",
+            "downregulated"
+          ],
+          "category": "differential_expression",
+          "id": "dge_contrast",
+          "owner_type": "transcript",
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_CONTRAST",
+          "target_types": [
+            "contrast_definition"
+          ]
+        }
+      ],
+      "expression_measurement": [
+        {
+          "aliases": [
+            "expression",
+            "abundance",
+            "tpm",
+            "fpkm"
+          ],
+          "category": "expression",
+          "id": "expression_measurement",
+          "owner_type": "transcript",
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_SUMMARY",
+          "target_types": [
+            "expression_measure"
+          ]
+        }
+      ]
+    }
+  },
+  "review_status": "draft",
+  "source_artifact_version": "semantics-onboarding.v1",
+  "summary": {
+    "activate_count": 4,
+    "fragment_count": 4
+  }
+}

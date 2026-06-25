@@ -72,6 +72,20 @@ async def test_app_smoke(app_config):
         assert config["ui"]["semantic_registry"]["operators"]["renderers"]["relationship"]["validation_signatures"][0] == "{rel_type}"
         assert config["ui"]["semantic_registry"]["operators"]["specs"]["relationship_filters"]["authored_publication"]["rel_type"] == "AUTHORED"
 
+        resp = await client.get("/api/semantic/onboarding")
+        assert resp.status_code == 200
+        onboarding = resp.json()
+        assert onboarding["artifact_version"] == "semantics-onboarding.v1"
+        assert onboarding["domain"] == "people"
+        assert onboarding["summary"]["active_count"] >= 2
+
+        resp = await client.get("/api/semantic/patch")
+        assert resp.status_code == 200
+        patch = resp.json()
+        assert patch["artifact_version"] == "semantic-registry-patch.v1"
+        assert patch["domain"] == "people"
+        assert "registry_patch" in patch
+
         cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/people.yaml"))
         assert cfg.domain.name == "people"
         assert cfg.db_build.source_policy.official_only is False
@@ -241,6 +255,20 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         assert semantic_registry["operators"]["specs"]["orthogroup_filter"]["steps"][0]["rel_type"] == "BELONGS_TO_ORTHOGROUP"
         assert semantic_registry["operators"]["specs"]["ortholog_member"]["steps"][1]["rel_type"] == "HAS_BCN_MEMBER"
         assert "bcn" in semantic_registry["organisms"]["alias_overrides"]["heterodera schachtii"]
+
+        resp = await client.get("/api/semantic/onboarding")
+        assert resp.status_code == 200
+        onboarding = resp.json()
+        assert onboarding["artifact_version"] == "semantics-onboarding.v1"
+        assert onboarding["domain"] == "genomics"
+        assert onboarding["summary"]["active_count"] >= 4
+
+        resp = await client.get("/api/semantic/patch")
+        assert resp.status_code == 200
+        patch = resp.json()
+        assert patch["artifact_version"] == "semantic-registry-patch.v1"
+        assert patch["domain"] == "genomics"
+        assert "registry_patch" in patch
 
         resp = await client.get("/api/graph", params={"mode": "explore", "preset": "protein_centric"})
         assert resp.status_code == 200

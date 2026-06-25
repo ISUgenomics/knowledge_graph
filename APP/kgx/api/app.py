@@ -28,6 +28,7 @@ from .routes_chat import make_chat_router
 from .routes_skills import make_skills_router
 from .routes_watch import make_watch_router
 from .routes_layout import make_layout_router
+from .routes_semantic import make_semantic_router
 
 # UI static files live next to the api package
 UI_DIR = Path(__file__).resolve().parent.parent / "ui"
@@ -116,6 +117,16 @@ def create_app(config: dict) -> FastAPI:
     app.include_router(make_watch_router(config["db_path"]), prefix="/api")
     app.include_router(
         make_layout_router(db, config.get("llm", {}), embedding_config, app.state.ui_config, db_build_config),
+        prefix="/api",
+    )
+    app.include_router(
+        make_semantic_router(
+            db,
+            domain_name=domain_name,
+            ui_config=app.state.ui_config,
+            explore_config=explore_config,
+            db_build_config=db_build_config,
+        ),
         prefix="/api",
     )
 
