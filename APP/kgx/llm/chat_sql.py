@@ -240,6 +240,52 @@ class ChatToSQL:
         return "\n".join(lines) if lines else "No schema data available."
 
     @staticmethod
+    def _normalize_synthesized_result(result: str | dict[str, Any] | None) -> dict[str, Any] | None:
+        if result is None:
+            return None
+        if isinstance(result, str):
+            return {"sql": result}
+        if isinstance(result, dict):
+            sql = str(result.get("sql", "") or "").strip()
+            if not sql:
+                return None
+            normalized = {"sql": sql}
+            if isinstance(result.get("evidence_columns"), list):
+                normalized["evidence_columns"] = list(result.get("evidence_columns", []) or [])
+            if isinstance(result.get("semantic_trace"), dict):
+                normalized["semantic_trace"] = dict(result.get("semantic_trace", {}) or {})
+            return normalized
+        return None
+
+    @staticmethod
+    def _apply_evidence_columns_to_sql(sql: str, evidence_columns: list[tuple[str, str]] | None) -> str | None:
+        if not sql or not evidence_columns:
+            return None
+        select_match = re.match(
+            r"^\s*SELECT\s+(DISTINCT\s+)?e\.id\s*,\s*e\.name\s*,\s*e\.type\b",
+            sql,
+            re.IGNORECASE,
+        )
+        if not select_match or not re.search(r"\bFROM\s+entities\s+e\b", sql, re.IGNORECASE):
+            return None
+        columns_sql = ", ".join(
+            f"{str(expr).strip()} AS {str(alias).strip()}"
+            for expr, alias in evidence_columns
+            if str(expr).strip() and str(alias).strip()
+        )
+        if not columns_sql:
+            return None
+        distinct = "DISTINCT " if select_match.group(1) else ""
+        replacement = f"SELECT {distinct}e.id, e.name, e.type, {columns_sql}"
+        return re.sub(
+            r"^\s*SELECT\s+(DISTINCT\s+)?e\.id\s*,\s*e\.name\s*,\s*e\.type\b",
+            replacement,
+            sql,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+
+    @staticmethod
     def _type_name_variants(entity_type: str) -> set[str]:
         text = str(entity_type or "").strip().lower()
         if not text:
@@ -619,7 +665,7 @@ class ChatToSQL:
         )
         return " ".join(hints)
 
-    def _synthesize_typed_path_query(self, sql: str, requested_types: list[str]) -> str | None:
+    def _synthesize_typed_path_query(self, sql: str, requested_types: list[str]) -> str | dict[str, Any] | None:
         if not sql or not requested_types:
             return None
         rel_match = re.search(r"r\.rel_type\s*=\s*'([^']+)'", sql, re.IGNORECASE)
@@ -673,9 +719,9 @@ class ChatToSQL:
                     joins.append("JOIN relationships tg ON tg.source_id = ev.target_id AND tg.rel_type = 'TAGGED'")
                     joins.append("JOIN entities t ON t.id = tg.target_id")
                     literal = tag_literals[0].replace("'", "''")
-                    return "\n".join(
+                    rendered_sql = "\n".join(
                         [
-                            "SELECT DISTINCT e.id, e.name, e.type",
+                            "SELECT DISTINCT e.id, e.name, e.type, t.name AS tag_name",
                             "FROM entities e",
                             *joins,
                             f"WHERE e.type = '{requested_type}'",
@@ -683,6 +729,16 @@ class ChatToSQL:
                             f"  AND t.name = '{literal}'",
                         ]
                     )
+                    return {
+                        "sql": rendered_sql,
+                        "evidence_columns": [("t.name", "tag_name")],
+                        "semantic_trace": {
+                            "kind": "typed_path_tag_bridge",
+                            "requested_type": requested_type,
+                            "rel_type": rel_type,
+                            "tag_name": literal,
+                        },
+                    }
         return None
 
     # Keywords that indicate a schema/meta question (no SQL needed)
@@ -830,18 +886,25 @@ class ChatToSQL:
         if validation_error:
             debug_steps.append({"step": "validation_error", "value": validation_error})
         if validation_error:
-            count_map_sql = self.module.synthesize_query(self, message, result.sql or "", requested_types) if self.module else None
-            debug_steps.append({"step": "validation_count_map_sql", "sql": count_map_sql})
-            if count_map_sql:
+            synthesized = self._normalize_synthesized_result(
+                self.module.synthesize_query(self, message, result.sql or "", requested_types) if self.module else None
+            )
+            debug_steps.append({
+                "step": "validation_count_map_sql",
+                "sql": synthesized.get("sql") if synthesized else None,
+                "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
+                "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
+            })
+            if synthesized:
                 try:
-                    count_map_results = self.db.execute_read(count_map_sql)
+                    count_map_results = self.db.execute_read(str(synthesized["sql"]))
                 except Exception:
                     count_map_results = []
                 debug_steps.append({"step": "validation_count_map_sql_results", "count": len(count_map_results)})
                 return ChatResult(
                     intent="query",
                     content=result.content,
-                    sql=count_map_sql,
+                    sql=str(synthesized["sql"]),
                     results=count_map_results,
                     debug=debug_steps,
                 )
@@ -873,33 +936,45 @@ class ChatToSQL:
                 debug=debug_steps,
             )
         if result.intent == "query" and result.sql and not result.results:
-            count_map_sql = self.module.synthesize_query(self, message, result.sql, requested_types) if self.module else None
-            debug_steps.append({"step": "count_map_sql", "sql": count_map_sql})
-            if count_map_sql:
+            synthesized = self._normalize_synthesized_result(
+                self.module.synthesize_query(self, message, result.sql, requested_types) if self.module else None
+            )
+            debug_steps.append({
+                "step": "count_map_sql",
+                "sql": synthesized.get("sql") if synthesized else None,
+                "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
+                "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
+            })
+            if synthesized:
                 try:
-                    count_map_results = self.db.execute_read(count_map_sql)
+                    count_map_results = self.db.execute_read(str(synthesized["sql"]))
                 except Exception:
                     count_map_results = []
                 debug_steps.append({"step": "count_map_sql_results", "count": len(count_map_results)})
                 return ChatResult(
                     intent="query",
                     content=result.content,
-                    sql=count_map_sql,
+                    sql=str(synthesized["sql"]),
                     results=count_map_results,
                     debug=debug_steps,
                 )
-            synthesized_sql = self._synthesize_typed_path_query(result.sql, requested_types)
-            debug_steps.append({"step": "synthesized_sql", "sql": synthesized_sql})
-            if synthesized_sql:
+            synthesized = self._normalize_synthesized_result(self._synthesize_typed_path_query(result.sql, requested_types))
+            debug_steps.append({
+                "step": "synthesized_sql",
+                "sql": synthesized.get("sql") if synthesized else None,
+                "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
+                "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
+            })
+            if synthesized:
                 try:
-                    synthesized_results = self.db.execute_read(synthesized_sql)
+                    synthesized_results = self.db.execute_read(str(synthesized["sql"]))
                 except Exception:
                     synthesized_results = []
                 debug_steps.append({"step": "synthesized_sql_results", "count": len(synthesized_results)})
                 return ChatResult(
                     intent="query",
                     content=result.content,
-                    sql=synthesized_sql,
+                    sql=str(synthesized["sql"]),
                     results=synthesized_results,
                     debug=debug_steps,
                 )
@@ -919,6 +994,25 @@ class ChatToSQL:
                 if retry_result.sql and not retry_validation_error and retry_result.results:
                     retry_result.debug = debug_steps
                     return retry_result
+        if result.intent == "query" and result.sql and result.results and self.module:
+            try:
+                evidence_columns = self.module.evidence_columns_for_sql(self, message, result.sql, requested_types)
+            except Exception:
+                evidence_columns = None
+            enriched_sql = self._apply_evidence_columns_to_sql(result.sql, evidence_columns)
+            debug_steps.append({
+                "step": "accepted_sql_evidence_enrichment",
+                "sql": enriched_sql,
+                "evidence_columns": evidence_columns,
+            })
+            if enriched_sql and enriched_sql != result.sql:
+                try:
+                    enriched_results = self.db.execute_read(enriched_sql)
+                except Exception:
+                    enriched_results = []
+                if enriched_results:
+                    result.sql = enriched_sql
+                    result.results = enriched_results
         result.debug = debug_steps
         return result
 

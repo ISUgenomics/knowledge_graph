@@ -37,6 +37,8 @@ class RegistryFilterModule(RegistryChatModule):
                 "filter_kind": filter_kind,
                 "parser_kind": str(spec.get("parser_kind", "") or ""),
             }
+            if isinstance(spec.get("display"), dict):
+                item["display"] = dict(spec.get("display", {}) or {})
             if filter_kind in {"metadata", "contact"}:
                 item["field"] = str(spec.get("field", filter_id) or filter_id)
             if filter_kind == "relationship":
@@ -72,7 +74,60 @@ class RegistryFilterModule(RegistryChatModule):
             context["target_alias"] = target_alias
         return context
 
-    def _requested_filters(self, message: str) -> list[dict[str, str]]:
+    def _default_evidence_columns(
+        self,
+        item: dict[str, str],
+        *,
+        join_alias: str,
+        target_alias: str,
+    ) -> list[tuple[str, str]]:
+        kind = str(item.get("filter_kind", "") or "")
+        field = str(item.get("field", "") or "")
+        if kind == "metadata" and field:
+            return [(f"json_extract(e.metadata, '$.{field}')", field)]
+        if kind == "contact" and field:
+            return [(f"{join_alias}.value", field)]
+        if kind == "relationship":
+            target_type = str(item.get("target_type", "") or "").strip()
+            if target_type:
+                return [(f"{target_alias}.name", f"{target_type}_name")]
+        return []
+
+    def _display_evidence_columns(
+        self,
+        item: dict[str, Any],
+        *,
+        join_alias: str,
+        target_alias: str,
+    ) -> list[tuple[str, str]]:
+        display = item.get("display", {})
+        if not isinstance(display, dict):
+            return self._default_evidence_columns(item, join_alias=join_alias, target_alias=target_alias)
+        if display.get("enabled", True) is False:
+            return []
+
+        alias = str(display.get("alias", "") or "").strip()
+        expr_template = str(display.get("expr_template", "") or "").strip()
+        if expr_template:
+            expr = self._format_template(
+                expr_template,
+                self._render_context(
+                    {key: str(value) for key, value in item.items() if key != "display"},
+                    join_alias=join_alias,
+                    target_alias=target_alias,
+                ),
+            ).strip()
+            if expr:
+                return [(expr, alias or str(item.get("field", "") or f"{item.get('id', 'value')}"))]
+
+        default_columns = self._default_evidence_columns(item, join_alias=join_alias, target_alias=target_alias)
+        if not default_columns:
+            return []
+        if not alias:
+            return default_columns
+        return [(default_columns[0][0], alias)]
+
+    def _requested_filters(self, message: str) -> list[dict[str, Any]]:
         text = str(message or "").strip()
         low = f" {text.lower()} "
         requested: list[dict[str, str]] = []
@@ -91,6 +146,8 @@ class RegistryFilterModule(RegistryChatModule):
                     for key, value in spec.items()
                     if key in {"id", "filter_kind", "rel_type", "target_type"}
                 })
+                if isinstance(spec.get("display"), dict):
+                    requested[-1]["display"] = dict(spec.get("display", {}) or {})
                 seen.add(spec["id"])
                 continue
             if mode == "field_value":
@@ -109,6 +166,8 @@ class RegistryFilterModule(RegistryChatModule):
                         "field": str(spec["field"]),
                         "value": value,
                     })
+                    if isinstance(spec.get("display"), dict):
+                        requested[-1]["display"] = dict(spec.get("display", {}) or {})
                     seen.add(str(spec["field"]))
                     break
         return requested
@@ -154,7 +213,7 @@ class RegistryFilterModule(RegistryChatModule):
                 return self.registry_filter_missing_error(kind, item)
         return None
 
-    def synthesize_query(self, chat, message: str, sql: str, requested_types: list[str]) -> str | None:
+    def synthesize_query(self, chat, message: str, sql: str, requested_types: list[str]) -> str | dict[str, Any] | None:
         requested_type = self.registry_filter_result_type()
         if not requested_type or requested_type not in requested_types:
             return None
@@ -164,6 +223,7 @@ class RegistryFilterModule(RegistryChatModule):
         joins: list[str] = []
         where_lines = list(self.registry_filter_base_where(requested_type))
         join_indices: dict[str, int] = {}
+        evidence_columns: list[tuple[str, str]] = []
         for item in requested_filters:
             kind = str(item.get("filter_kind", "") or "")
             renderer = self._filter_renderer(kind)
@@ -178,9 +238,33 @@ class RegistryFilterModule(RegistryChatModule):
                 joins.append(self._format_template(template, context))
             for template in list(renderer.get("where_templates", []) or []):
                 where_lines.append(self._format_template(template, context))
-        return "\n".join([
-            "SELECT e.id, e.name, e.type",
+            evidence_columns.extend(self._display_evidence_columns(item, join_alias=join_alias, target_alias=target_alias))
+        rendered_sql = "\n".join([
+            self._select_clause_with_evidence(evidence_columns),
             "FROM entities e",
             *joins,
             *where_lines,
         ])
+        return self._synthesis_result(
+            rendered_sql,
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "registry_filters",
+                "requested_type": requested_type,
+                "filter_ids": [str(item.get("id", "") or "") for item in requested_filters],
+            },
+        )
+
+    def evidence_columns_for_sql(self, chat, message: str, sql: str, requested_types: list[str]) -> list[tuple[str, str]] | None:
+        requested_type = self.registry_filter_result_type()
+        if not requested_type or requested_type not in requested_types:
+            return None
+        requested_filters = self._requested_filters(message)
+        if not requested_filters:
+            return None
+        evidence_columns: list[tuple[str, str]] = []
+        for item in requested_filters:
+            if str(item.get("filter_kind", "") or "") != "metadata":
+                continue
+            evidence_columns.extend(self._display_evidence_columns(item, join_alias="c1", target_alias="t1"))
+        return evidence_columns or None

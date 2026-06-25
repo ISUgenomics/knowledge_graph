@@ -22,7 +22,16 @@ class ChatModule:
     def validation_error(self, chat: "ChatToSQL", sql: str, requested_types: list[str], message: str) -> str | None:
         return None
 
-    def synthesize_query(self, chat: "ChatToSQL", message: str, sql: str, requested_types: list[str]) -> str | None:
+    def synthesize_query(self, chat: "ChatToSQL", message: str, sql: str, requested_types: list[str]) -> str | dict[str, Any] | None:
+        return None
+
+    def evidence_columns_for_sql(
+        self,
+        chat: "ChatToSQL",
+        message: str,
+        sql: str,
+        requested_types: list[str],
+    ) -> list[tuple[str, str]] | None:
         return None
 
 
@@ -69,6 +78,31 @@ class RegistryChatModule(ChatModule):
         families = self._registry_operators().get("dynamic_families", {})
         family = families.get(str(family_id), {}) if isinstance(families, dict) else {}
         return dict(family) if isinstance(family, dict) else {}
+
+    @staticmethod
+    def _synthesis_result(
+        sql: str,
+        *,
+        evidence_columns: list[tuple[str, str]] | None = None,
+        semantic_trace: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {"sql": str(sql)}
+        if evidence_columns:
+            result["evidence_columns"] = list(evidence_columns)
+        if semantic_trace:
+            result["semantic_trace"] = dict(semantic_trace)
+        return result
+
+    @staticmethod
+    def _select_clause_with_evidence(evidence_columns: list[tuple[str, str]]) -> str:
+        base = ["e.id", "e.name", "e.type"]
+        for expr, alias in evidence_columns:
+            expr_text = str(expr).strip()
+            alias_text = str(alias).strip()
+            if not expr_text or not alias_text:
+                continue
+            base.append(f"{expr_text} AS {alias_text}")
+        return "SELECT DISTINCT " + ", ".join(base)
 
 
 class RegistryOperatorModule(RegistryChatModule):
