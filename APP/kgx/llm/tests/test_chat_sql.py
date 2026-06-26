@@ -780,6 +780,86 @@ def test_ask_retries_after_zero_rows_using_live_name_matches(tmp_path: Path):
     assert "t.type = 'tag'" in (result.sql or "")
 
 
+def test_accepted_broad_homology_sql_is_enriched_with_homolog_organism_column(tmp_path: Path):
+    db_path = tmp_path / "chat-homology-organism-column.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("comparative_hit", "hit-1", name="KAI1713285.1")
+    db.upsert_entity("tag", "homology-organism:ditylenchus-destructor", name="Ditylenchus destructor")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-organism:ditylenchus-destructor")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ph ON ph.source_id = e.id AND ph.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN relationships ht ON ht.source_id = ph.target_id AND ht.rel_type = 'TAGGED'
+JOIN entities t ON t.id = ht.target_id
+WHERE e.type = 'protein'
+  AND t.type = 'tag'
+  AND t.name = 'Ditylenchus destructor'
+"""
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins that have broad homology hits for Ditylenchus destructor")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "AS homolog_organism" in result.sql
+    assert result.results[0]["homolog_organism"] == "Ditylenchus destructor"
+
+
+def test_ask_rewrites_broad_homology_query_to_include_requested_organism_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-homology-organism-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("transcript", "tx-2", name="Transcript 2")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.upsert_entity("comparative_hit", "hit-2", name="Hit 2")
+    db.upsert_entity("tag", "homology-organism:ditylenchus-destructor", name="Ditylenchus destructor")
+    db.upsert_entity("tag", "homology-organism:mus-musculus", name="Mus musculus")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("gene-2", "HAS_TRANSCRIPT", "tx-2")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("tx-2", "TRANSLATED_TO", "prot-2")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("prot-2", "HAS_BROAD_HOMOLOGY_HIT", "hit-2")
+    db.add_relationship("hit-1", "TAGGED", "homology-organism:ditylenchus-destructor")
+    db.add_relationship("hit-2", "TAGGED", "homology-organism:mus-musculus")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships gt ON gt.source_id = e.id AND gt.rel_type = 'HAS_TRANSCRIPT'
+JOIN relationships tp ON tp.source_id = gt.target_id AND tp.rel_type = 'TRANSLATED_TO'
+JOIN relationships ph ON ph.source_id = tp.target_id AND ph.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN entities hit ON hit.id = ph.target_id AND hit.type = 'comparative_hit'
+WHERE e.type = 'gene'
+"""
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select genes that have broad homology hits for Ditylenchus destructor")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "homology-organism:ditylenchus-destructor" in result.sql
+    assert "AS homolog_organism" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1"]
+    assert result.results[0]["homolog_organism"] == "Ditylenchus destructor"
+
+
 def test_synthesizes_gene_bridge_query_from_zero_row_direct_evidence_sql(tmp_path: Path):
     db_path = tmp_path / "chat-synth.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -863,9 +943,10 @@ AND (
 
     assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in sql
     assert "gc.key != json_extract(owner.metadata, '$.organism')" in sql
-    assert "CAST(gc.value AS INTEGER) >= 3" in sql
+    assert "HAVING MAX(CAST(gc.value AS INTEGER)) >= 3" in sql
     assert rows
     assert rows[0]["id"] == "gene-1"
+    assert rows[0]["ortholog_copy_count"] == 3
 
 
 def test_zero_result_count_map_fallback_still_returns_corrected_sql(tmp_path: Path):
@@ -954,10 +1035,55 @@ ORDER BY e.name
     assert result.sql is not None
     assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in result.sql
     assert "JOIN json_each(owner.metadata, '$.gene_counts') gc" in result.sql
-    assert "CAST(gc.value AS INTEGER) >= 2" in result.sql
+    assert "HAVING MAX(CAST(gc.value AS INTEGER)) >= 2" in result.sql
     assert [row["id"] for row in result.results] == ["gene-1"]
     assert result.results[0]["owner_organism"] == "Heterodera glycines"
+    assert result.results[0]["ortholog_copy_count"] == 2
+    assert result.results[0]["ortholog_organisms"] == "Heterodera schachtii"
     assert "Heterodera schachtii" in str(result.results[0]["gene_counts"])
+
+
+def test_ask_rewrites_nonzero_ortholog_count_query_to_gene_counts_owner(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-nonzero-bad.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 2,
+        },
+    })
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    class _BadNonzeroOrthologLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+) >= 2
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadNonzeroOrthologLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "JOIN json_each(owner.metadata, '$.gene_counts') gc" in result.sql
+    assert "HAVING MAX(CAST(gc.value AS INTEGER)) >= 2" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1"]
+    assert result.results[0]["ortholog_copy_count"] == 2
 
 
 def test_synthesizes_gene_query_from_owner_side_orthogroup_count_sql(tmp_path: Path):
@@ -999,7 +1125,7 @@ ORDER BY e.name
 
     assert "JOIN relationships p1 ON p1.source_id = e.id AND p1.rel_type = 'BELONGS_TO_ORTHOGROUP'" in sql
     assert "JOIN entities owner ON owner.id = p1.target_id AND owner.type = 'orthogroup'" in sql
-    assert "CAST(gc.value AS INTEGER) >= 3" in sql
+    assert "HAVING MAX(CAST(gc.value AS INTEGER)) >= 3" in sql
     assert rows
     assert rows[0]["id"] == "gene-1"
 

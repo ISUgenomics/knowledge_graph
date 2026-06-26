@@ -244,7 +244,14 @@ class ChatToSQL:
         if result is None:
             return None
         if isinstance(result, str):
-            return {"sql": result}
+            normalized = {"sql": str(result)}
+            evidence_columns = getattr(result, "evidence_columns", None)
+            semantic_trace = getattr(result, "semantic_trace", None)
+            if isinstance(evidence_columns, list):
+                normalized["evidence_columns"] = list(evidence_columns)
+            if isinstance(semantic_trace, dict):
+                normalized["semantic_trace"] = dict(semantic_trace)
+            return normalized
         if isinstance(result, dict):
             sql = str(result.get("sql", "") or "").strip()
             if not sql:
@@ -729,16 +736,7 @@ class ChatToSQL:
                             f"  AND t.name = '{literal}'",
                         ]
                     )
-                    return {
-                        "sql": rendered_sql,
-                        "evidence_columns": [("t.name", "tag_name")],
-                        "semantic_trace": {
-                            "kind": "typed_path_tag_bridge",
-                            "requested_type": requested_type,
-                            "rel_type": rel_type,
-                            "tag_name": literal,
-                        },
-                    }
+                    return rendered_sql
         return None
 
     # Keywords that indicate a schema/meta question (no SQL needed)

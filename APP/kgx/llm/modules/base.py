@@ -6,6 +6,20 @@ if TYPE_CHECKING:
     from kgx.llm.chat_sql import ChatToSQL
 
 
+class SynthesisSQL(str):
+    def __new__(
+        cls,
+        sql: str,
+        *,
+        evidence_columns: list[tuple[str, str]] | None = None,
+        semantic_trace: dict[str, Any] | None = None,
+    ):
+        obj = str.__new__(cls, str(sql))
+        obj.evidence_columns = list(evidence_columns or [])
+        obj.semantic_trace = dict(semantic_trace or {})
+        return obj
+
+
 class ChatModule:
     def corpus_section(self) -> str | None:
         return None
@@ -85,13 +99,12 @@ class RegistryChatModule(ChatModule):
         *,
         evidence_columns: list[tuple[str, str]] | None = None,
         semantic_trace: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        result: dict[str, Any] = {"sql": str(sql)}
-        if evidence_columns:
-            result["evidence_columns"] = list(evidence_columns)
-        if semantic_trace:
-            result["semantic_trace"] = dict(semantic_trace)
-        return result
+    ) -> SynthesisSQL:
+        return SynthesisSQL(
+            str(sql),
+            evidence_columns=evidence_columns,
+            semantic_trace=semantic_trace,
+        )
 
     @staticmethod
     def _select_clause_with_evidence(evidence_columns: list[tuple[str, str]]) -> str:
