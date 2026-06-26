@@ -1,0 +1,15 @@
+source_file: /workspace/KnowledgeGraph/sample_data/1_source/genomics_bison/DATA.tsv
+rows: 24
+columns: 60
+primary_record_entity: transcript
+id_column: Mrna
+gene_column: Gene
+group_counts:
+  gene: 0
+  transcript: 56
+  protein: 2
+annotation_bins: []
+tag_bins: []
+boolean_tags: []
+value_presence_tags: []
+notes: []

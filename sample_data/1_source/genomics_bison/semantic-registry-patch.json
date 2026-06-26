@@ -1,0 +1,167 @@
+{
+  "artifact_version": "semantic-registry-patch.v1",
+  "domain": "genomics",
+  "source_artifact_version": "semantics-onboarding.v1",
+  "review_status": "draft",
+  "summary": {
+    "activate_count": 4,
+    "fragment_count": 4
+  },
+  "registry_patch": {
+    "categories": {
+      "sequence": {
+        "entity_types": [
+          "protein"
+        ],
+        "metadata_fields": [
+          "protein_sequence",
+          "length"
+        ],
+        "relationship_types": []
+      },
+      "location": {
+        "entity_types": [
+          "chromosome"
+        ],
+        "metadata_fields": [
+          "chromosome"
+        ]
+      },
+      "expression": {
+        "entity_types": [
+          "expression_measure"
+        ],
+        "metadata_fields": []
+      },
+      "differential_expression": {
+        "entity_types": [
+          "contrast_definition"
+        ],
+        "metadata_fields": []
+      }
+    },
+    "metadata_hints": {
+      "sequence": {
+        "preferred_fields": [
+          "protein_sequence",
+          "length"
+        ],
+        "target_entity_types": [
+          "protein"
+        ],
+        "query_style": "json_extract"
+      },
+      "location": {
+        "preferred_fields": [
+          "chromosome"
+        ],
+        "target_entity_types": [
+          "chromosome"
+        ],
+        "query_style": "json_extract"
+      }
+    },
+    "operators": {
+      "renderers": {
+        "metadata": {
+          "where_templates": [
+            "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+          ],
+          "validation_signatures": [
+            "$.{field}",
+            "{value}"
+          ]
+        }
+      },
+      "parsers": {
+        "field_value": {
+          "mode": "field_value",
+          "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+        }
+      },
+      "specs": {
+        "metadata_filters": {
+          "protein_sequence": {
+            "field": "protein_sequence",
+            "aliases": [
+              "protein_sequence"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "protein",
+            "category": "sequence",
+            "display": {
+              "alias": "protein_sequence"
+            }
+          },
+          "length": {
+            "field": "length",
+            "aliases": [
+              "length"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "protein",
+            "category": "sequence",
+            "display": {
+              "alias": "length"
+            }
+          },
+          "chromosome": {
+            "field": "label",
+            "aliases": [
+              "chromosome"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "chromosome",
+            "category": "location",
+            "display": {
+              "alias": "chromosome"
+            }
+          }
+        }
+      },
+      "condition_handlers": {
+        "expression_measurement": "expression_measurement",
+        "dge_contrast": "dge_contrast"
+      }
+    },
+    "relation_families": {
+      "expression_measurement": [
+        {
+          "id": "expression_measurement",
+          "category": "expression",
+          "aliases": [
+            "expression",
+            "abundance",
+            "tpm",
+            "fpkm"
+          ],
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_SUMMARY",
+          "owner_type": "transcript",
+          "target_types": [
+            "expression_measure"
+          ]
+        }
+      ],
+      "dge_contrast": [
+        {
+          "id": "dge_contrast",
+          "category": "differential_expression",
+          "aliases": [
+            "differential expression",
+            "dge",
+            "contrast",
+            "upregulated",
+            "downregulated"
+          ],
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_CONTRAST",
+          "owner_type": "transcript",
+          "target_types": [
+            "contrast_definition"
+          ]
+        }
+      ]
+    }
+  }
+}

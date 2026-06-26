@@ -1,0 +1,9 @@
+extends: ../../../APP/config/genomics.yaml
+
+db:
+  path: ../../3_db/genomics_bison.db
+
+ui:
+  semantic_registry_overlays:
+    - ../../../APP/config/semantic_overlays/genomics-generated-runtime.json
+    - semantic-registry-patch.json

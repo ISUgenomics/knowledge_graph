@@ -1,0 +1,802 @@
+contract:
+  name: functional_genomics
+  version: 1
+  path: /workspace/KnowledgeGraph/skills/genomics/contracts/functional_genomics.yaml
+  module: genomics
+  core_entities:
+  - organism
+  - dataset
+  - chromosome
+  - gene
+  - transcript
+  - protein
+  optional_entities:
+  - orthogroup
+  - bcn_gene
+  - comparative_hit
+  - hgt_donor
+  - annotation_term
+  - localization_call
+  - prediction_call
+  - expression_measure
+  - contrast_definition
+  required_relationships:
+  - &id001
+    source: dataset
+    type: ABOUT_ORGANISM
+    target: organism
+  - &id002
+    source: gene
+    type: FROM_ORGANISM
+    target: organism
+  - &id003
+    source: organism
+    type: HAS_CHROMOSOME
+    target: chromosome
+  - &id004
+    source: chromosome
+    type: HAS_GENE
+    target: gene
+  - &id005
+    source: gene
+    type: HAS_TRANSCRIPT
+    target: transcript
+  - &id006
+    source: transcript
+    type: TRANSLATED_TO
+    target: protein
+  - &id007
+    source: gene
+    type: IN_DATASET
+    target: dataset
+raw:
+  data_path: DATA.tsv
+  delimiter: \t
+  column_order:
+  - Mrna
+  - Gene
+  - Module
+  - Annotations
+  - Uniprot terms
+  - Kegg Terms
+  - GO terms
+  - Orthogroup
+  - Orthologous Uniprot Annotations
+  - Orthologous NR Annotations
+  - Immune System?
+  - Location
+  - MRNA
+  - Protein
+  - Cattle
+  - Bison
+  - Elk
+  - NCBI_Bison
+  - Cattle.1
+  - Bison.1
+  - Elk.1
+  - NCBI_Bison.1
+  - KidneyToLiverSignificant_LogFoldChange
+  - KidneyToLungSignificant_LogFoldChange
+  - KidneyToMuscleSignificant_LogFoldChange
+  - KidneyToNodeSignificant_LogFoldChange
+  - KidneyToSpleenSignificant_LogFoldChange
+  - LiverToMuscleSignificant_LogFoldChange
+  - LiverToNodeSignificant_LogFoldChange
+  - LiverToSpleenSignificant_LogFoldChange
+  - LungToMuscleSignificant_LogFoldChange
+  - LungToNodeSignificant_LogFoldChange
+  - LungToSpleenSignificant_LogFoldChange
+  - MuscleToNodeSignificant_LogFoldChange
+  - MuscleToSpleenSignificant_LogFoldChange
+  - NodeToSpleenSignificant_LogFoldChange
+  - AdultFemaleKidneySRR1659047
+  - AdultFemaleKidneySRR1659048
+  - AdultFemaleKidneySRR1659049
+  - AdultFemaleKidneySRR1659050
+  - AdultFemaleLiverSRR1659051
+  - AdultFemaleLiverSRR1659052
+  - AdultFemaleLiverSRR1659053
+  - AdultFemaleLiverSRR1659054
+  - AdultFemaleLungSRR1659055
+  - AdultFemaleLungSRR1659056
+  - AdultFemaleLungSRR1659057
+  - AdultFemaleLungSRR1659058
+  - AdultFemaleSkeletalMuscleSRR1659059
+  - AdultFemaleSkeletalMuscleSRR1659060
+  - AdultFemaleSkeletalMuscleSRR1659061
+  - AdultFemaleSkeletalMuscleSRR1659062
+  - AdultFemaleSupramammaryLymphNodeSRR1659063
+  - AdultFemaleSupramammaryLymphNodeSRR1659064
+  - AdultFemaleSupramammaryLymphNodeSRR1659065
+  - AdultFemaleSupramammaryLymphNodeSRR1659066
+  - AdultFemaleSpleenSRR1659067
+  - AdultFemaleSpleenSRR1659068
+  - AdultFemaleSpleenSRR1659069
+  - AdultFemaleSpleenSRR1659070
+entity_model:
+  primary_record_entity: transcript
+  entities:
+    organism:
+      entity_type: organism
+      entity_id: organism:bison-bison-query
+      name: Bison bison
+      metadata:
+        scientific_name: Bison bison
+        source_alias: Bison
+        role: query_assembly
+        assembly_namespace: bisbis
+    dataset:
+      entity_type: dataset
+      entity_id: dataset:genomics_bison
+      name: Bison functional genomics sample
+    chromosome:
+      entity_type: chromosome
+      source_column: Location
+      id_template: chromosome:bison-bison-query:{chromosome}
+      name_template: '{chromosome}'
+    gene:
+      entity_type: gene
+      id_column: Gene
+      name_column: Gene
+      metadata_columns: []
+    transcript:
+      entity_type: transcript
+      id_column: Mrna
+      name_column: Mrna
+      metadata_columns:
+      - Module
+      - Annotations
+      - Location
+      - KidneyToLiverSignificant_LogFoldChange
+      - KidneyToLungSignificant_LogFoldChange
+      - KidneyToMuscleSignificant_LogFoldChange
+      - KidneyToNodeSignificant_LogFoldChange
+      - KidneyToSpleenSignificant_LogFoldChange
+      - LiverToMuscleSignificant_LogFoldChange
+      - LiverToNodeSignificant_LogFoldChange
+      - LiverToSpleenSignificant_LogFoldChange
+      - LungToMuscleSignificant_LogFoldChange
+      - LungToNodeSignificant_LogFoldChange
+      - LungToSpleenSignificant_LogFoldChange
+      - MuscleToNodeSignificant_LogFoldChange
+      - MuscleToSpleenSignificant_LogFoldChange
+      - NodeToSpleenSignificant_LogFoldChange
+      - AdultFemaleKidneySRR1659047
+      - AdultFemaleKidneySRR1659048
+      - AdultFemaleKidneySRR1659049
+      - AdultFemaleKidneySRR1659050
+      - AdultFemaleLiverSRR1659051
+      - AdultFemaleLiverSRR1659052
+      - AdultFemaleLiverSRR1659053
+      - AdultFemaleLiverSRR1659054
+      - AdultFemaleLungSRR1659055
+      - AdultFemaleLungSRR1659056
+      - AdultFemaleLungSRR1659057
+      - AdultFemaleLungSRR1659058
+      - AdultFemaleSkeletalMuscleSRR1659059
+      - AdultFemaleSkeletalMuscleSRR1659060
+      - AdultFemaleSkeletalMuscleSRR1659061
+      - AdultFemaleSkeletalMuscleSRR1659062
+      - AdultFemaleSupramammaryLymphNodeSRR1659063
+      - AdultFemaleSupramammaryLymphNodeSRR1659064
+      - AdultFemaleSupramammaryLymphNodeSRR1659065
+      - AdultFemaleSupramammaryLymphNodeSRR1659066
+      - AdultFemaleSpleenSRR1659067
+      - AdultFemaleSpleenSRR1659068
+      - AdultFemaleSpleenSRR1659069
+      - AdultFemaleSpleenSRR1659070
+      - MRNA
+    protein:
+      entity_type: protein
+      id_template: '{Mrna}:protein'
+      name_template: '{Gene} protein'
+      naming:
+        priority_labels:
+        - column: glycines_effectors_dna
+          label: SCN known (N)
+        - column: glycines_effectors_prot
+          label: SCN known (P)
+        fallback_column: Mrna
+        fallback_prefix: Unknown
+      metadata_columns:
+      - Orthogroup
+      - Uniprot terms
+      - Kegg Terms
+      - GO terms
+      - Immune System?
+      sequence_column: Protein
+  relationships:
+  - *id001
+  - *id002
+  - *id003
+  - *id004
+  - *id005
+  - *id006
+  - *id007
+promoted_entities:
+  shared:
+    orthogroup:
+      source_column: Orthogroup
+      entity_type: orthogroup
+      id_template: orthogroup:{value}
+      name_template: '{value}'
+      attach_from: gene
+      relationship_type: BELONGS_TO_ORTHOGROUP
+      metadata_columns: []
+      metadata_bindings:
+      - field: ortholog_count_bos_taurus
+        source_column: Cattle
+        cast: int
+      - field: ortholog_count_bison_local
+        source_column: Bison
+        cast: int
+      - field: ortholog_count_cervus_canadensis
+        source_column: Elk
+        cast: int
+      - field: ortholog_count_bison_refseq
+        source_column: NCBI_Bison
+        cast: int
+      - field: ortholog_member_ids_bos_taurus
+        source_column: Cattle.1
+        parser: csv_term_list
+        zero_as_empty: true
+      - field: ortholog_member_ids_bison_local
+        source_column: Bison.1
+        parser: csv_term_list
+        zero_as_empty: true
+      - field: ortholog_member_ids_cervus_canadensis
+        source_column: Elk.1
+        parser: csv_term_list
+        zero_as_empty: true
+      - field: ortholog_member_ids_bison_refseq
+        source_column: NCBI_Bison.1
+        parser: csv_term_list
+        zero_as_empty: true
+      - field: orthologous_uniprot_summary
+        source_column: Orthologous Uniprot Annotations
+      - field: orthologous_nr_summary
+        source_column: Orthologous NR Annotations
+  dataset_specific: {}
+comparative_entities:
+  shared: {}
+  dataset_specific:
+    bos_taurus_member:
+      source_column: Cattle.1
+      entity_type: comparative_hit
+      id_template: comparative_hit:bos_taurus:{value}
+      name_template: '{value}'
+      attach_from: orthogroup
+      relationship_type: HAS_ORTHOLOG_MEMBER
+      target_organism: Bos taurus
+      parser: csv_term_list
+      metadata:
+        external_record_type: protein
+        identifier_namespace: bos_taurus_assembly_protein_model
+      excluded_values:
+      - '0'
+    cervus_canadensis_member:
+      source_column: Elk.1
+      entity_type: comparative_hit
+      id_template: comparative_hit:cervus_canadensis:{value}
+      name_template: '{value}'
+      attach_from: orthogroup
+      relationship_type: HAS_ORTHOLOG_MEMBER
+      target_organism: Cervus canadensis
+      parser: csv_term_list
+      metadata:
+        external_record_type: transcript
+        identifier_namespace: cervus_canadensis_assembly_transcript_model
+      excluded_values:
+      - '0'
+    bison_refseq_member:
+      source_column: NCBI_Bison.1
+      entity_type: comparative_hit
+      id_template: comparative_hit:bison_refseq:{value}
+      name_template: '{value}'
+      attach_from: orthogroup
+      relationship_type: HAS_REFERENCE_MEMBER
+      target_organism: Bison bison
+      target_organism_entity:
+        entity_id: organism:bison-bison-ncbi-reference
+        name: NCBI_Bison reference
+        metadata:
+          scientific_name: Bison bison
+          source_alias: NCBI_Bison
+          role: reference_annotation
+          provider: NCBI RefSeq
+      parser: csv_term_list
+      metadata:
+        external_record_type: protein
+        identifier_namespace: refseq_protein
+      excluded_values:
+      - '0'
+annotation_bins:
+  shared: []
+  dataset_specific:
+  - column: GO terms
+    namespace: go
+    parser: go_plain
+    attach_to: protein
+    parent_tag: go-annotation
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: Kegg Terms
+    namespace: kegg
+    parser: term_list
+    attach_to: protein
+    parent_tag: kegg-pathway
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+  - column: Uniprot terms
+    namespace: uniprot
+    parser: term_list
+    attach_to: protein
+    parent_tag: uniprot-entry
+    category: functional_annotation
+    promoted_entity_type: annotation_term
+    promoted_relation_type: HAS_ANNOTATION
+    promoted_id_template: annotation:{namespace}:{id}
+tag_bins:
+  shared: []
+  dataset_specific: []
+boolean_tags:
+  shared: []
+  dataset_specific:
+  - column: Immune System?
+    truthy:
+    - 'true'
+    - 'yes'
+    - '1'
+    - y
+    - immune
+    tag_id: immune-system-candidate
+    label: Immune System Candidate
+    attach_to: protein
+    parent_tag: immune-hypothesis
+value_presence_tags:
+  shared: []
+  dataset_specific:
+  - column: Orthologous Uniprot Annotations
+    tag_id: orthology-uniprot-summary
+    label: Orthology UniProt Summary
+    attach_to: orthogroup
+    parent_tag: orthology-annotation
+  - column: Orthologous NR Annotations
+    tag_id: orthology-nr-summary
+    label: Orthology NR Summary
+    attach_to: orthogroup
+    parent_tag: orthology-annotation
+tag_hierarchy:
+  shared:
+    genomics:
+      name: Genomics
+      category: domain
+      parent: ''
+    genes-and-transcripts:
+      name: Genes And Transcripts
+      category: field
+      parent: genomics
+    protein-features:
+      name: Protein Features
+      category: field
+      parent: genomics
+    functional-annotations:
+      name: Functional Annotations
+      category: field
+      parent: protein-features
+    subcellular-localization:
+      name: Subcellular Localization
+      category: field
+      parent: protein-features
+    localization-signal:
+      name: Localization Signals
+      category: topic
+      parent: subcellular-localization
+    functional-prediction:
+      name: Functional Predictions
+      category: topic
+      parent: functional-annotations
+    go-annotation:
+      name: GO Annotation
+      category: topic
+      parent: functional-annotations
+    interpro-domain:
+      name: InterPro Domain
+      category: topic
+      parent: functional-annotations
+    pfam-family:
+      name: Pfam Family
+      category: topic
+      parent: functional-annotations
+    smart-domain:
+      name: SMART Domain
+      category: topic
+      parent: functional-annotations
+    funfam-family:
+      name: FunFam Family
+      category: topic
+      parent: functional-annotations
+    panther-family:
+      name: PANTHER Family
+      category: topic
+      parent: functional-annotations
+    expression:
+      name: Expression
+      category: field
+      parent: genomics
+    expression-bin:
+      name: Expression Bin
+      category: topic
+      parent: expression
+    differential-expression:
+      name: Differential Expression
+      category: field
+      parent: expression
+    homology:
+      name: Homology
+      category: field
+      parent: genomics
+    homology-organism:
+      name: Homology Organism
+      category: topic
+      parent: homology
+    homology-scope:
+      name: Homology Scope
+      category: topic
+      parent: homology
+    homology-scope-broad-parasitism:
+      name: Broad Parasitism
+      category: topic
+      parent: homology-scope
+    homology-scope-nematode:
+      name: Nematode
+      category: topic
+      parent: homology-scope
+    homology-scope-cyst-nematode:
+      name: Cyst Nematode
+      category: topic
+      parent: homology-scope-nematode
+    homology-scope-bcn-ortholog:
+      name: BCN Ortholog
+      category: topic
+      parent: homology-scope-cyst-nematode
+    effectors:
+      name: Effectors
+      category: field
+      parent: genomics
+    effector-evidence:
+      name: Effector Evidence
+      category: topic
+      parent: effectors
+  dataset_specific:
+    functional-evidence:
+      name: Functional Evidence
+      category: field
+      parent: functional-annotations
+    effectors:
+      name: Effectors
+      category: field
+      parent: functional-evidence
+    effector-evidence:
+      name: Effector Evidence
+      category: topic
+      parent: effectors
+    immune-hypothesis:
+      name: Immune Hypothesis
+      category: field
+      parent: functional-evidence
+    kegg-pathway:
+      name: KEGG Pathway
+      category: topic
+      parent: functional-annotations
+    uniprot-entry:
+      name: UniProt Entry
+      category: topic
+      parent: functional-annotations
+    orthology-annotation:
+      name: Orthology Annotation
+      category: field
+      parent: homology
+expression_entities:
+  summaries:
+    shared: []
+    dataset_specific:
+    - label: Adult Female Kidney
+      column: AdultFemaleKidneySRR1659047
+      attach_to: transcript
+      measure_type: summary
+      order_index: 0
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleKidneySRR1659047
+      - AdultFemaleKidneySRR1659048
+      - AdultFemaleKidneySRR1659049
+      - AdultFemaleKidneySRR1659050
+      sample_count: 4
+    - label: Adult Female Liver
+      column: AdultFemaleLiverSRR1659051
+      attach_to: transcript
+      measure_type: summary
+      order_index: 1
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleLiverSRR1659051
+      - AdultFemaleLiverSRR1659052
+      - AdultFemaleLiverSRR1659053
+      - AdultFemaleLiverSRR1659054
+      sample_count: 4
+    - label: Adult Female Lung
+      column: AdultFemaleLungSRR1659055
+      attach_to: transcript
+      measure_type: summary
+      order_index: 2
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleLungSRR1659055
+      - AdultFemaleLungSRR1659056
+      - AdultFemaleLungSRR1659057
+      - AdultFemaleLungSRR1659058
+      sample_count: 4
+    - label: Adult Female Skeletal Muscle
+      column: AdultFemaleSkeletalMuscleSRR1659059
+      attach_to: transcript
+      measure_type: summary
+      order_index: 3
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleSkeletalMuscleSRR1659059
+      - AdultFemaleSkeletalMuscleSRR1659060
+      - AdultFemaleSkeletalMuscleSRR1659061
+      - AdultFemaleSkeletalMuscleSRR1659062
+      sample_count: 4
+    - label: Adult Female Spleen
+      column: AdultFemaleSpleenSRR1659067
+      attach_to: transcript
+      measure_type: summary
+      order_index: 4
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleSpleenSRR1659067
+      - AdultFemaleSpleenSRR1659068
+      - AdultFemaleSpleenSRR1659069
+      - AdultFemaleSpleenSRR1659070
+      sample_count: 4
+    - label: Adult Female Supramammary Lymph Node
+      column: AdultFemaleSupramammaryLymphNodeSRR1659063
+      attach_to: transcript
+      measure_type: summary
+      order_index: 5
+      entity_type: expression_measure
+      relation_type: HAS_EXPRESSION_SUMMARY
+      id_template: expression_measure:{label_slug}
+      value_key: expression_value
+      parent_tag: expression
+      sample_columns:
+      - AdultFemaleSupramammaryLymphNodeSRR1659063
+      - AdultFemaleSupramammaryLymphNodeSRR1659064
+      - AdultFemaleSupramammaryLymphNodeSRR1659065
+      - AdultFemaleSupramammaryLymphNodeSRR1659066
+      sample_count: 4
+  contrasts:
+    shared: []
+    dataset_specific:
+    - label: Kidney vs Liver
+      column: KidneyToLiverSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 0
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Kidney
+      source_summary_column: AdultFemaleKidneySRR1659047
+      target_summary_label: Adult Female Liver
+      target_summary_column: AdultFemaleLiverSRR1659051
+    - label: Kidney vs Lung
+      column: KidneyToLungSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 1
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Kidney
+      source_summary_column: AdultFemaleKidneySRR1659047
+      target_summary_label: Adult Female Lung
+      target_summary_column: AdultFemaleLungSRR1659055
+    - label: Kidney vs Muscle
+      column: KidneyToMuscleSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 2
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Kidney
+      source_summary_column: AdultFemaleKidneySRR1659047
+      target_summary_label: Adult Female Skeletal Muscle
+      target_summary_column: AdultFemaleSkeletalMuscleSRR1659059
+    - label: Kidney vs Node
+      column: KidneyToNodeSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 3
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Kidney
+      source_summary_column: AdultFemaleKidneySRR1659047
+      target_summary_label: Adult Female Supramammary Lymph Node
+      target_summary_column: AdultFemaleSupramammaryLymphNodeSRR1659063
+    - label: Kidney vs Spleen
+      column: KidneyToSpleenSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 4
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Kidney
+      source_summary_column: AdultFemaleKidneySRR1659047
+      target_summary_label: Adult Female Spleen
+      target_summary_column: AdultFemaleSpleenSRR1659067
+    - label: Liver vs Muscle
+      column: LiverToMuscleSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 5
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Liver
+      source_summary_column: AdultFemaleLiverSRR1659051
+      target_summary_label: Adult Female Skeletal Muscle
+      target_summary_column: AdultFemaleSkeletalMuscleSRR1659059
+    - label: Liver vs Node
+      column: LiverToNodeSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 6
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Liver
+      source_summary_column: AdultFemaleLiverSRR1659051
+      target_summary_label: Adult Female Supramammary Lymph Node
+      target_summary_column: AdultFemaleSupramammaryLymphNodeSRR1659063
+    - label: Liver vs Spleen
+      column: LiverToSpleenSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 7
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Liver
+      source_summary_column: AdultFemaleLiverSRR1659051
+      target_summary_label: Adult Female Spleen
+      target_summary_column: AdultFemaleSpleenSRR1659067
+    - label: Lung vs Muscle
+      column: LungToMuscleSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 8
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Lung
+      source_summary_column: AdultFemaleLungSRR1659055
+      target_summary_label: Adult Female Skeletal Muscle
+      target_summary_column: AdultFemaleSkeletalMuscleSRR1659059
+    - label: Lung vs Node
+      column: LungToNodeSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 9
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Lung
+      source_summary_column: AdultFemaleLungSRR1659055
+      target_summary_label: Adult Female Supramammary Lymph Node
+      target_summary_column: AdultFemaleSupramammaryLymphNodeSRR1659063
+    - label: Lung vs Spleen
+      column: LungToSpleenSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 10
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Lung
+      source_summary_column: AdultFemaleLungSRR1659055
+      target_summary_label: Adult Female Spleen
+      target_summary_column: AdultFemaleSpleenSRR1659067
+    - label: Muscle vs Node
+      column: MuscleToNodeSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 11
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Skeletal Muscle
+      source_summary_column: AdultFemaleSkeletalMuscleSRR1659059
+      target_summary_label: Adult Female Supramammary Lymph Node
+      target_summary_column: AdultFemaleSupramammaryLymphNodeSRR1659063
+    - label: Muscle vs Spleen
+      column: MuscleToSpleenSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 12
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Skeletal Muscle
+      source_summary_column: AdultFemaleSkeletalMuscleSRR1659059
+      target_summary_label: Adult Female Spleen
+      target_summary_column: AdultFemaleSpleenSRR1659067
+    - label: Node vs Spleen
+      column: NodeToSpleenSignificant_LogFoldChange
+      attach_to: transcript
+      measure_type: contrast
+      order_index: 13
+      entity_type: contrast_definition
+      relation_type: HAS_EXPRESSION_CONTRAST
+      id_template: contrast_definition:{label_slug}
+      value_key: log2_fold_change
+      parent_tag: differential-expression
+      source_summary_label: Adult Female Supramammary Lymph Node
+      source_summary_column: AdultFemaleSupramammaryLymphNodeSRR1659063
+      target_summary_label: Adult Female Spleen
+      target_summary_column: AdultFemaleSpleenSRR1659067

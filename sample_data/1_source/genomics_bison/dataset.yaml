@@ -1,0 +1,32 @@
+dataset:
+  id: genomics_bison
+  name: Bison functional genomics sample
+  module: genomics
+  extension: functional_genomics
+  profile: data
+  organism: Bison bison
+  description: Locally inferred genomics dataset metadata from a user-provided source
+    table.
+  raw_sources:
+  - path: DATA.tsv
+    kind: tsv
+    role: primary_matrix
+  standardized_sources:
+    schema: schema.yaml
+  primary_record:
+    entity_type: transcript
+    id_column: Mrna
+    gene_id_column: Gene
+    protein_id_template: '{Mrna}:protein'
+  llm_context:
+    summary: Inferred genomics dataset built from DATA.tsv with primary transcript
+      records.
+    glossary:
+      orthogroup: Comparative gene family assignment across related organisms.
+      dge: Differential gene expression represented as log2 fold-change contrasts.
+  ui_hints:
+    default_focus: gene-centric
+    recommended_focus_modes:
+    - gene-centric
+    - functional-annotation-centric
+    - expression-centric

@@ -1,0 +1,909 @@
+{
+  "artifact_version": "semantics-onboarding.v1",
+  "domain": "genomics",
+  "review_status": "draft",
+  "signals": {
+    "entity_types": [
+      "chromosome",
+      "contrast_definition",
+      "dataset",
+      "expression_measure",
+      "gene",
+      "organism",
+      "orthogroup",
+      "protein",
+      "tag",
+      "transcript"
+    ],
+    "relationship_types": [
+      "ABOUT_ORGANISM",
+      "BELONGS_TO_ORTHOGROUP",
+      "BROADER",
+      "FROM_ORGANISM",
+      "HAS_CHROMOSOME",
+      "HAS_EXPRESSION_CONTRAST",
+      "HAS_EXPRESSION_SUMMARY",
+      "HAS_GENE",
+      "HAS_TRANSCRIPT",
+      "IN_DATASET",
+      "TAGGED",
+      "TRANSLATED_TO"
+    ],
+    "metadata_keys": [
+      "adultfemalekidneysrr1659047",
+      "adultfemalekidneysrr1659048",
+      "adultfemalekidneysrr1659049",
+      "adultfemalekidneysrr1659050",
+      "adultfemaleliversrr1659051",
+      "adultfemaleliversrr1659052",
+      "adultfemaleliversrr1659053",
+      "adultfemaleliversrr1659054",
+      "adultfemalelungsrr1659055",
+      "adultfemalelungsrr1659056",
+      "adultfemalelungsrr1659057",
+      "adultfemalelungsrr1659058",
+      "adultfemaleskeletalmusclesrr1659059",
+      "adultfemaleskeletalmusclesrr1659060",
+      "adultfemaleskeletalmusclesrr1659061",
+      "adultfemaleskeletalmusclesrr1659062",
+      "adultfemalespleensrr1659067",
+      "adultfemalespleensrr1659068",
+      "adultfemalespleensrr1659069",
+      "adultfemalespleensrr1659070",
+      "adultfemalesupramammarylymphnodesrr1659063",
+      "adultfemalesupramammarylymphnodesrr1659064",
+      "adultfemalesupramammarylymphnodesrr1659065",
+      "adultfemalesupramammarylymphnodesrr1659066",
+      "annotations",
+      "bison",
+      "bison.1",
+      "category",
+      "cattle",
+      "cattle.1",
+      "contrast_order",
+      "dataset",
+      "datasets",
+      "description",
+      "elk",
+      "elk.1",
+      "extension",
+      "gene_counts",
+      "gene_ids",
+      "go terms",
+      "kegg terms",
+      "kidneytoliversignificant_logfoldchange",
+      "kidneytolungsignificant_logfoldchange",
+      "kidneytomusclesignificant_logfoldchange",
+      "kidneytonodesignificant_logfoldchange",
+      "kidneytospleensignificant_logfoldchange",
+      "label",
+      "length",
+      "livertomusclesignificant_logfoldchange",
+      "livertonodesignificant_logfoldchange",
+      "livertospleensignificant_logfoldchange",
+      "location",
+      "lungtomusclesignificant_logfoldchange",
+      "lungtonodesignificant_logfoldchange",
+      "lungtospleensignificant_logfoldchange",
+      "module",
+      "mrna",
+      "muscletonodesignificant_logfoldchange",
+      "muscletospleensignificant_logfoldchange",
+      "ncbi_bison",
+      "ncbi_bison.1",
+      "nodetospleensignificant_logfoldchange",
+      "order_index",
+      "organism",
+      "orthogroup",
+      "orthologous nr annotations",
+      "orthologous uniprot annotations",
+      "profile",
+      "protein_sequence",
+      "source_column",
+      "stage_order",
+      "uniprot terms"
+    ],
+    "tag_ids": [
+      "differential-expression",
+      "effector-evidence",
+      "effectors",
+      "expression",
+      "expression-bin",
+      "functional-annotations",
+      "functional-prediction",
+      "funfam-family",
+      "genes-and-transcripts",
+      "genomics",
+      "go-annotation",
+      "homology",
+      "homology-organism",
+      "homology-scope",
+      "homology-scope-bcn-ortholog",
+      "homology-scope-broad-parasitism",
+      "homology-scope-cyst-nematode",
+      "homology-scope-nematode",
+      "interpro-domain",
+      "localization-signal",
+      "panther-family",
+      "pfam-family",
+      "protein-features",
+      "smart-domain",
+      "subcellular-localization"
+    ],
+    "table_names": [
+      "aliases",
+      "chat_history",
+      "contact_info",
+      "embeddings",
+      "entities",
+      "entity_topics",
+      "relationships",
+      "research_interests",
+      "saved_views",
+      "schema_version",
+      "snippets",
+      "sources",
+      "sqlite_sequence"
+    ],
+    "contact_fields": []
+  },
+  "summary": {
+    "active_count": 5,
+    "activate_count": 4,
+    "consider_count": 0,
+    "weak_count": 0
+  },
+  "decisions": {
+    "active_now": [
+      {
+        "template_id": "orthology_membership",
+        "label": "Orthology Membership",
+        "confidence": "high",
+        "score": 6,
+        "optional": false,
+        "matched_signals": {
+          "entity_types": [
+            "gene",
+            "orthogroup"
+          ],
+          "relationship_types_any": [
+            "BELONGS_TO_ORTHOGROUP"
+          ]
+        }
+      },
+      {
+        "template_id": "effector_evidence",
+        "label": "Effector Evidence",
+        "confidence": "medium",
+        "score": 5,
+        "optional": true,
+        "matched_signals": {
+          "relationship_types_any": [
+            "TAGGED",
+            "BROADER"
+          ],
+          "tag_prefixes_any": [
+            "effector"
+          ]
+        }
+      },
+      {
+        "template_id": "taxonomy_scope",
+        "label": "Taxonomy Scope",
+        "confidence": "medium",
+        "score": 4,
+        "optional": true,
+        "matched_signals": {
+          "entity_types": [
+            "organism"
+          ],
+          "tag_prefixes_any": [
+            "homology-organism",
+            "organism"
+          ]
+        }
+      },
+      {
+        "template_id": "horizontal_gene_transfer",
+        "label": "Horizontal Gene Transfer",
+        "confidence": "none",
+        "score": 0,
+        "optional": false,
+        "matched_signals": {}
+      },
+      {
+        "template_id": "homology_evidence",
+        "label": "Homology Evidence",
+        "confidence": "none",
+        "score": 0,
+        "optional": false,
+        "matched_signals": {}
+      }
+    ],
+    "activate_candidates": [
+      {
+        "template_id": "sequence_feature",
+        "label": "Sequence Feature",
+        "confidence": "high",
+        "score": 6,
+        "optional": true,
+        "matched_signals": {
+          "entity_types": [
+            "protein"
+          ],
+          "metadata_fields_any": [
+            "protein_sequence",
+            "length"
+          ]
+        },
+        "draft_binding": {
+          "category": "sequence",
+          "template_id": "sequence_feature",
+          "optional": true,
+          "activation_reason": "high-confidence detection from dataset signals",
+          "matched_signals": {
+            "entity_types": [
+              "protein"
+            ],
+            "metadata_fields_any": [
+              "protein_sequence",
+              "length"
+            ]
+          }
+        },
+        "draft_registry_fragment": {
+          "categories": {
+            "sequence": {
+              "entity_types": [
+                "protein"
+              ],
+              "metadata_fields": [
+                "protein_sequence",
+                "length"
+              ],
+              "relationship_types": []
+            }
+          },
+          "metadata_hints": {
+            "sequence": {
+              "preferred_fields": [
+                "protein_sequence",
+                "length"
+              ],
+              "target_entity_types": [
+                "protein"
+              ],
+              "query_style": "json_extract"
+            }
+          },
+          "operators": {
+            "renderers": {
+              "metadata": {
+                "where_templates": [
+                  "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+                ],
+                "validation_signatures": [
+                  "$.{field}",
+                  "{value}"
+                ]
+              }
+            },
+            "parsers": {
+              "field_value": {
+                "mode": "field_value",
+                "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+              }
+            },
+            "specs": {
+              "metadata_filters": {
+                "protein_sequence": {
+                  "field": "protein_sequence",
+                  "aliases": [
+                    "protein_sequence"
+                  ],
+                  "parser_kind": "field_value",
+                  "owner_type": "protein",
+                  "category": "sequence",
+                  "display": {
+                    "alias": "protein_sequence"
+                  }
+                },
+                "length": {
+                  "field": "length",
+                  "aliases": [
+                    "length"
+                  ],
+                  "parser_kind": "field_value",
+                  "owner_type": "protein",
+                  "category": "sequence",
+                  "display": {
+                    "alias": "length"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "template_id": "genomic_location",
+        "label": "Genomic Location",
+        "confidence": "high",
+        "score": 6,
+        "optional": true,
+        "matched_signals": {
+          "entity_types": [
+            "chromosome"
+          ],
+          "relationship_types_any": [
+            "HAS_CHROMOSOME"
+          ]
+        },
+        "draft_binding": {
+          "category": "location",
+          "template_id": "genomic_location",
+          "optional": true,
+          "activation_reason": "high-confidence detection from dataset signals",
+          "matched_signals": {
+            "entity_types": [
+              "chromosome"
+            ],
+            "relationship_types_any": [
+              "HAS_CHROMOSOME"
+            ]
+          }
+        },
+        "draft_registry_fragment": {
+          "categories": {
+            "location": {
+              "entity_types": [
+                "chromosome"
+              ],
+              "metadata_fields": [
+                "chromosome"
+              ]
+            }
+          },
+          "metadata_hints": {
+            "location": {
+              "preferred_fields": [
+                "chromosome"
+              ],
+              "target_entity_types": [
+                "chromosome"
+              ],
+              "query_style": "json_extract"
+            }
+          },
+          "operators": {
+            "renderers": {
+              "metadata": {
+                "where_templates": [
+                  "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+                ],
+                "validation_signatures": [
+                  "$.{field}",
+                  "{value}"
+                ]
+              }
+            },
+            "parsers": {
+              "field_value": {
+                "mode": "field_value",
+                "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+              }
+            },
+            "specs": {
+              "metadata_filters": {
+                "chromosome": {
+                  "field": "label",
+                  "aliases": [
+                    "chromosome"
+                  ],
+                  "parser_kind": "field_value",
+                  "owner_type": "chromosome",
+                  "category": "location",
+                  "display": {
+                    "alias": "chromosome"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "template_id": "expression_measurement",
+        "label": "Expression Measurement",
+        "confidence": "high",
+        "score": 6,
+        "optional": true,
+        "matched_signals": {
+          "entity_types": [
+            "expression_measure"
+          ],
+          "relationship_types_any": [
+            "HAS_EXPRESSION_SUMMARY"
+          ]
+        },
+        "draft_binding": {
+          "category": "expression",
+          "template_id": "expression_measurement",
+          "optional": true,
+          "activation_reason": "high-confidence detection from dataset signals",
+          "matched_signals": {
+            "entity_types": [
+              "expression_measure"
+            ],
+            "relationship_types_any": [
+              "HAS_EXPRESSION_SUMMARY"
+            ]
+          }
+        },
+        "draft_registry_fragment": {
+          "categories": {
+            "expression": {
+              "entity_types": [
+                "expression_measure"
+              ],
+              "metadata_fields": []
+            }
+          },
+          "relation_families": {
+            "expression_measurement": [
+              {
+                "id": "expression_measurement",
+                "category": "expression",
+                "aliases": [
+                  "expression",
+                  "abundance",
+                  "tpm",
+                  "fpkm"
+                ],
+                "parser_kind": "alias_match",
+                "rel_type": "HAS_EXPRESSION_SUMMARY",
+                "owner_type": "transcript",
+                "target_types": [
+                  "expression_measure"
+                ]
+              }
+            ]
+          },
+          "operators": {
+            "condition_handlers": {
+              "expression_measurement": "expression_measurement"
+            }
+          }
+        }
+      },
+      {
+        "template_id": "dge_contrast",
+        "label": "DGE Contrast",
+        "confidence": "high",
+        "score": 6,
+        "optional": true,
+        "matched_signals": {
+          "entity_types": [
+            "contrast_definition"
+          ],
+          "relationship_types_any": [
+            "HAS_EXPRESSION_CONTRAST"
+          ]
+        },
+        "draft_binding": {
+          "category": "differential_expression",
+          "template_id": "dge_contrast",
+          "optional": true,
+          "activation_reason": "high-confidence detection from dataset signals",
+          "matched_signals": {
+            "entity_types": [
+              "contrast_definition"
+            ],
+            "relationship_types_any": [
+              "HAS_EXPRESSION_CONTRAST"
+            ]
+          }
+        },
+        "draft_registry_fragment": {
+          "categories": {
+            "differential_expression": {
+              "entity_types": [
+                "contrast_definition"
+              ],
+              "metadata_fields": []
+            }
+          },
+          "relation_families": {
+            "dge_contrast": [
+              {
+                "id": "dge_contrast",
+                "category": "differential_expression",
+                "aliases": [
+                  "differential expression",
+                  "dge",
+                  "contrast",
+                  "upregulated",
+                  "downregulated"
+                ],
+                "parser_kind": "alias_match",
+                "rel_type": "HAS_EXPRESSION_CONTRAST",
+                "owner_type": "transcript",
+                "target_types": [
+                  "contrast_definition"
+                ]
+              }
+            ]
+          },
+          "operators": {
+            "condition_handlers": {
+              "dge_contrast": "dge_contrast"
+            }
+          }
+        }
+      }
+    ],
+    "consider_later": [],
+    "weak_signals": []
+  },
+  "proposed_registry_fragments": [
+    {
+      "categories": {
+        "sequence": {
+          "entity_types": [
+            "protein"
+          ],
+          "metadata_fields": [
+            "protein_sequence",
+            "length"
+          ],
+          "relationship_types": []
+        }
+      },
+      "metadata_hints": {
+        "sequence": {
+          "preferred_fields": [
+            "protein_sequence",
+            "length"
+          ],
+          "target_entity_types": [
+            "protein"
+          ],
+          "query_style": "json_extract"
+        }
+      },
+      "operators": {
+        "renderers": {
+          "metadata": {
+            "where_templates": [
+              "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+            ],
+            "validation_signatures": [
+              "$.{field}",
+              "{value}"
+            ]
+          }
+        },
+        "parsers": {
+          "field_value": {
+            "mode": "field_value",
+            "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+          }
+        },
+        "specs": {
+          "metadata_filters": {
+            "protein_sequence": {
+              "field": "protein_sequence",
+              "aliases": [
+                "protein_sequence"
+              ],
+              "parser_kind": "field_value",
+              "owner_type": "protein",
+              "category": "sequence",
+              "display": {
+                "alias": "protein_sequence"
+              }
+            },
+            "length": {
+              "field": "length",
+              "aliases": [
+                "length"
+              ],
+              "parser_kind": "field_value",
+              "owner_type": "protein",
+              "category": "sequence",
+              "display": {
+                "alias": "length"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "categories": {
+        "location": {
+          "entity_types": [
+            "chromosome"
+          ],
+          "metadata_fields": [
+            "chromosome"
+          ]
+        }
+      },
+      "metadata_hints": {
+        "location": {
+          "preferred_fields": [
+            "chromosome"
+          ],
+          "target_entity_types": [
+            "chromosome"
+          ],
+          "query_style": "json_extract"
+        }
+      },
+      "operators": {
+        "renderers": {
+          "metadata": {
+            "where_templates": [
+              "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+            ],
+            "validation_signatures": [
+              "$.{field}",
+              "{value}"
+            ]
+          }
+        },
+        "parsers": {
+          "field_value": {
+            "mode": "field_value",
+            "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+          }
+        },
+        "specs": {
+          "metadata_filters": {
+            "chromosome": {
+              "field": "label",
+              "aliases": [
+                "chromosome"
+              ],
+              "parser_kind": "field_value",
+              "owner_type": "chromosome",
+              "category": "location",
+              "display": {
+                "alias": "chromosome"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "categories": {
+        "expression": {
+          "entity_types": [
+            "expression_measure"
+          ],
+          "metadata_fields": []
+        }
+      },
+      "relation_families": {
+        "expression_measurement": [
+          {
+            "id": "expression_measurement",
+            "category": "expression",
+            "aliases": [
+              "expression",
+              "abundance",
+              "tpm",
+              "fpkm"
+            ],
+            "parser_kind": "alias_match",
+            "rel_type": "HAS_EXPRESSION_SUMMARY",
+            "owner_type": "transcript",
+            "target_types": [
+              "expression_measure"
+            ]
+          }
+        ]
+      },
+      "operators": {
+        "condition_handlers": {
+          "expression_measurement": "expression_measurement"
+        }
+      }
+    },
+    {
+      "categories": {
+        "differential_expression": {
+          "entity_types": [
+            "contrast_definition"
+          ],
+          "metadata_fields": []
+        }
+      },
+      "relation_families": {
+        "dge_contrast": [
+          {
+            "id": "dge_contrast",
+            "category": "differential_expression",
+            "aliases": [
+              "differential expression",
+              "dge",
+              "contrast",
+              "upregulated",
+              "downregulated"
+            ],
+            "parser_kind": "alias_match",
+            "rel_type": "HAS_EXPRESSION_CONTRAST",
+            "owner_type": "transcript",
+            "target_types": [
+              "contrast_definition"
+            ]
+          }
+        ]
+      },
+      "operators": {
+        "condition_handlers": {
+          "dge_contrast": "dge_contrast"
+        }
+      }
+    }
+  ],
+  "proposed_registry_patch": {
+    "categories": {
+      "sequence": {
+        "entity_types": [
+          "protein"
+        ],
+        "metadata_fields": [
+          "protein_sequence",
+          "length"
+        ],
+        "relationship_types": []
+      },
+      "location": {
+        "entity_types": [
+          "chromosome"
+        ],
+        "metadata_fields": [
+          "chromosome"
+        ]
+      },
+      "expression": {
+        "entity_types": [
+          "expression_measure"
+        ],
+        "metadata_fields": []
+      },
+      "differential_expression": {
+        "entity_types": [
+          "contrast_definition"
+        ],
+        "metadata_fields": []
+      }
+    },
+    "metadata_hints": {
+      "sequence": {
+        "preferred_fields": [
+          "protein_sequence",
+          "length"
+        ],
+        "target_entity_types": [
+          "protein"
+        ],
+        "query_style": "json_extract"
+      },
+      "location": {
+        "preferred_fields": [
+          "chromosome"
+        ],
+        "target_entity_types": [
+          "chromosome"
+        ],
+        "query_style": "json_extract"
+      }
+    },
+    "operators": {
+      "renderers": {
+        "metadata": {
+          "where_templates": [
+            "  AND CAST(json_extract(owner.metadata, '$.{field}') AS TEXT) = '{value}'"
+          ],
+          "validation_signatures": [
+            "$.{field}",
+            "{value}"
+          ]
+        }
+      },
+      "parsers": {
+        "field_value": {
+          "mode": "field_value",
+          "split_pattern": "\\s+\\b(?:and|or)\\b|[?!,]"
+        }
+      },
+      "specs": {
+        "metadata_filters": {
+          "protein_sequence": {
+            "field": "protein_sequence",
+            "aliases": [
+              "protein_sequence"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "protein",
+            "category": "sequence",
+            "display": {
+              "alias": "protein_sequence"
+            }
+          },
+          "length": {
+            "field": "length",
+            "aliases": [
+              "length"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "protein",
+            "category": "sequence",
+            "display": {
+              "alias": "length"
+            }
+          },
+          "chromosome": {
+            "field": "label",
+            "aliases": [
+              "chromosome"
+            ],
+            "parser_kind": "field_value",
+            "owner_type": "chromosome",
+            "category": "location",
+            "display": {
+              "alias": "chromosome"
+            }
+          }
+        }
+      },
+      "condition_handlers": {
+        "expression_measurement": "expression_measurement",
+        "dge_contrast": "dge_contrast"
+      }
+    },
+    "relation_families": {
+      "expression_measurement": [
+        {
+          "id": "expression_measurement",
+          "category": "expression",
+          "aliases": [
+            "expression",
+            "abundance",
+            "tpm",
+            "fpkm"
+          ],
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_SUMMARY",
+          "owner_type": "transcript",
+          "target_types": [
+            "expression_measure"
+          ]
+        }
+      ],
+      "dge_contrast": [
+        {
+          "id": "dge_contrast",
+          "category": "differential_expression",
+          "aliases": [
+            "differential expression",
+            "dge",
+            "contrast",
+            "upregulated",
+            "downregulated"
+          ],
+          "parser_kind": "alias_match",
+          "rel_type": "HAS_EXPRESSION_CONTRAST",
+          "owner_type": "transcript",
+          "target_types": [
+            "contrast_definition"
+          ]
+        }
+      ]
+    }
+  }
+}
