@@ -1,0 +1,62 @@
+extends: ../../../APP/config/genomics.yaml
+
+db:
+  path: ../../3_db/genomics_scn.db
+
+ui:
+  detail_layout_source: config.py
+  semantic_registry_overlays:
+    - ../../../APP/config/semantic_overlays/genomics-generated-runtime.json
+    - semantic-registry-overlay.yaml
+  layouts:
+    hierarchical:
+      type_families:
+        bcn_gene: comparative
+        hgt_donor: comparative
+      type_aliases:
+        bcn_gene: gene
+      type_levels:
+        bcn_gene: -0.4
+        hgt_donor: -1.6
+    timeline:
+      layers:
+        bcn_gene:
+          z: 180
+        hgt_donor:
+          z: 145
+
+explore:
+  presets:
+    protein_centric:
+      description: Protein function view with transcript mediation collapsed and effector-aware overlays preserved.
+      included_tag_roots: [functional-annotations, effectors, subcellular-localization]
+    comparative:
+      description: Comparative scaffold combining orthogroup ortholog genes with protein homology, optional HGT donor evidence, and homology-scope ontology.
+      required_node_types_any: [orthogroup, bcn_gene, comparative_hit, hgt_donor]
+      include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, hgt_donor, tag]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, HAS_HGT_DONOR, TAGGED, BROADER]
+      include_rel_patterns:
+        - rel_type: FROM_ORGANISM
+          source_type: bcn_gene
+          target_type: organism
+        - rel_type: FROM_ORGANISM
+          source_type: comparative_hit
+          target_type: organism
+        - source_type: orthogroup
+          target_type: comparative_hit
+        - source_type: orthogroup
+          target_type: bcn_gene
+        - source_type: protein
+          target_type: comparative_hit
+        - source_type: protein
+          target_type: bcn_gene
+      included_tag_roots: [homology-scope]
+
+db_build:
+  skill_contexts:
+    genomics:
+      settings:
+        module: genomics
+        extension: functional_genomics
+        profile: scn_effectors
+        primary_record_entity: transcript
