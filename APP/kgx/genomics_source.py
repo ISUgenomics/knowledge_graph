@@ -4,13 +4,6 @@ from pathlib import Path
 import runpy
 from typing import Any
 
-from kgx.semantic_registry_overlay import load_semantic_registry_overlay, merge_semantic_registry_overlay
-from kgx.semantic_templates import (
-    load_common_semantic_templates,
-    load_domain_semantic_templates,
-    load_domain_template_bindings,
-    load_semantic_template_catalog,
-)
 
 APP_DIR = Path(__file__).resolve().parents[1]
 
@@ -141,13 +134,9 @@ def load_semantic_schema(ui_config: dict[str, Any] | None) -> dict[str, object]:
 def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object]:
     raw = _load_raw_source_config(ui_config)
     semantic_schema = _semantic_schema_from_raw(raw)
-    registry = {
+    return {
         "domain": "genomics",
         "schema": semantic_schema,
-        "template_catalog": load_semantic_template_catalog(),
-        "common_templates": load_common_semantic_templates(),
-        "domain_templates": load_domain_semantic_templates("genomics"),
-        "template_bindings": load_domain_template_bindings("genomics"),
         "categories": {
             "effectors": {
                 "group_ids": ["effectors"],
@@ -172,12 +161,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "rel_type": "HAS_HGT_DONOR",
                     "owner_type": "protein",
                     "target_types": ["hgt_donor"],
-                    "display": [
-                        {
-                            "alias": "hgt_donor",
-                            "expr_template": "(SELECT group_concat(DISTINCT evd.name) FROM relationships evr JOIN entities evd ON evd.id = evr.target_id AND evd.type = '{target_type}' WHERE evr.source_id = {owner_ref} AND evr.rel_type = '{evidence_rel_type}')",
-                        },
-                    ],
                 },
                 {
                     "id": "broad_homology",
@@ -376,12 +359,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 },
                 "orthogroup_filter": {
                     "owner_type": "gene",
-                    "display": [
-                        {
-                            "alias": "orthogroup_label",
-                            "value_ref": "label",
-                        },
-                    ],
                     "steps": [
                         {
                             "kind": "relationship",
@@ -491,12 +468,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",
-                    "display": [
-                        {
-                            "alias": "homology_scope",
-                            "value_source": "tag_name",
-                        },
-                    ],
                 },
                 "homology-scope-nematode": {
                     "evidence_id": "nematode_homology",
@@ -504,12 +475,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",
-                    "display": [
-                        {
-                            "alias": "homology_scope",
-                            "value_source": "tag_name",
-                        },
-                    ],
                 },
                 "homology-scope-cyst-nematode": {
                     "evidence_id": "bcn_homology",
@@ -517,12 +482,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "owner_type": "protein",
                     "target_type": "comparative_hit",
                     "tag_rel_type": "TAGGED",
-                    "display": [
-                        {
-                            "alias": "homology_scope",
-                            "value_source": "tag_name",
-                        },
-                    ],
                 },
             },
         },
@@ -565,4 +524,3 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             ],
         },
     }
-    return merge_semantic_registry_overlay(registry, load_semantic_registry_overlay(ui_config))

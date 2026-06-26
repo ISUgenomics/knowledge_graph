@@ -2,14 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from kgx.semantic_registry_overlay import load_semantic_registry_overlay, merge_semantic_registry_overlay
-from kgx.semantic_templates import (
-    load_common_semantic_templates,
-    load_domain_semantic_templates,
-    load_domain_template_bindings,
-    load_semantic_template_catalog,
-)
-
 
 def load_detail_layouts(ui_config: dict[str, Any] | None) -> dict[str, object]:
     return {}
@@ -43,13 +35,9 @@ def load_semantic_schema(ui_config: dict[str, Any] | None) -> dict[str, object]:
 
 def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object]:
     semantic_schema = load_semantic_schema(ui_config)
-    registry = {
+    return {
         "domain": "people",
         "schema": semantic_schema,
-        "template_catalog": load_semantic_template_catalog(),
-        "common_templates": load_common_semantic_templates(),
-        "domain_templates": load_domain_semantic_templates("people"),
-        "template_bindings": load_domain_template_bindings("people"),
         "categories": {
             "people": {
                 "entity_types": ["person"],
@@ -118,19 +106,16 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                         "field": "title",
                         "aliases": ["title"],
                         "parser_kind": "field_value",
-                        "display": {"alias": "title"},
                     },
                     "department": {
                         "field": "department",
                         "aliases": ["department"],
                         "parser_kind": "field_value",
-                        "display": {"alias": "department"},
                     },
                     "institution": {
                         "field": "institution",
                         "aliases": ["institution"],
                         "parser_kind": "field_value",
-                        "display": {"alias": "institution"},
                     },
                 },
                 "contact_filters": {
@@ -138,13 +123,11 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                         "field": "email",
                         "aliases": ["email"],
                         "parser_kind": "field_value",
-                        "display": {"alias": "email"},
                     },
                     "orcid": {
                         "field": "orcid",
                         "aliases": ["orcid"],
                         "parser_kind": "field_value",
-                        "display": {"alias": "orcid"},
                     },
                 },
                 "relationship_filters": {
@@ -153,7 +136,6 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                         "target_type": "publication",
                         "aliases": ["publication", "publications", "paper", "papers", "authored"],
                         "parser_kind": "presence",
-                        "display": {"alias": "publication_name"},
                     },
                 },
             },
@@ -163,4 +145,3 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             "person->person": [],
         },
     }
-    return merge_semantic_registry_overlay(registry, load_semantic_registry_overlay(ui_config))
