@@ -34,7 +34,7 @@ explore:
       description: Comparative scaffold combining orthogroup ortholog genes with protein homology, optional HGT donor evidence, and homology-scope ontology.
       required_node_types_any: [orthogroup, bcn_gene, comparative_hit, hgt_donor]
       include_node_types: [organism, chromosome, gene, protein, orthogroup, bcn_gene, comparative_hit, hgt_donor, tag]
-      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, HAS_HGT_DONOR, TAGGED, BROADER]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP, HAS_BCN_MEMBER, HAS_BCN_HIT, HAS_NEMATODE_HIT, HAS_BROAD_HOMOLOGY_HIT, HAS_HGT_DONOR, HAS_ORTHOLOG_MEMBER, HAS_REFERENCE_MEMBER, TAGGED, BROADER]
       include_rel_patterns:
         - rel_type: FROM_ORGANISM
           source_type: bcn_gene

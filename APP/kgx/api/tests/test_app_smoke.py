@@ -183,6 +183,8 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
     db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
     db.upsert_entity("bcn_gene", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
     db.upsert_entity("comparative_hit", "comparative_hit:cyst_nematode:hsc-gene-1-t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
+    db.upsert_entity("comparative_hit", "comparative_hit:bos-taurus:hit-1", name="Bos taurus ortholog 1", metadata={"organism": "Bos taurus"})
+    db.upsert_entity("organism", "organism:bos-taurus", name="Bos taurus")
     db.upsert_entity("tag", "homology", name="Homology", metadata={"category": "field"})
     db.upsert_entity("tag", "homology-scope", name="Homology Scope", metadata={"category": "topic"})
     db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode", metadata={"category": "topic"})
@@ -199,9 +201,11 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
     db.add_relationship("gene-1", "FROM_ORGANISM", "organism:heterodera-glycines")
     db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
     db.add_relationship("orthogroup:og1", "HAS_BCN_MEMBER", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "comparative_hit:bos-taurus:hit-1")
     db.add_relationship("prot-1", "HAS_BCN_HIT", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1")
     db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "comparative_hit:cyst_nematode:hsc-gene-1-t1")
     db.add_relationship("bcn_gene:heterodera-schachtii:hsc_gene_1.t1", "FROM_ORGANISM", "organism:heterodera-schachtii")
+    db.add_relationship("comparative_hit:bos-taurus:hit-1", "FROM_ORGANISM", "organism:bos-taurus")
     db.add_relationship("homology-scope", "BROADER", "homology")
     db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
     db.add_relationship("bcn_gene:heterodera-schachtii:hsc_gene_1.t1", "TAGGED", "homology-scope-cyst-nematode")
@@ -302,17 +306,20 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         assert "orthogroup:og1" in node_ids
         assert "bcn_gene:heterodera-schachtii:hsc_gene_1.t1" in node_ids
         assert "comparative_hit:cyst_nematode:hsc-gene-1-t1" in node_ids
+        assert "comparative_hit:bos-taurus:hit-1" in node_ids
         assert "homology-scope-cyst-nematode" in node_ids
         assert "gene-1" in node_ids
         assert "prot-1" in node_ids
         assert "organism:heterodera-glycines" in node_ids
         assert "organism:heterodera-schachtii" in node_ids
+        assert "organism:bos-taurus" in node_ids
         assert "chromosome:heterodera-glycines:chr1" in node_ids
         assert "tx-1" not in node_ids
         assert "HAS_CHROMOSOME" in rel_types
         assert "HAS_GENE" in rel_types
         assert "BELONGS_TO_ORTHOGROUP" in rel_types
         assert "HAS_BCN_MEMBER" in rel_types
+        assert "HAS_ORTHOLOG_MEMBER" in rel_types
         assert "HAS_BCN_HIT" in rel_types
         assert "HAS_BROAD_HOMOLOGY_HIT" in rel_types
         assert "PROTEIN_ORTHOGROUP" in rel_types
