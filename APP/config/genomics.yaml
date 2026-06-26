@@ -32,8 +32,7 @@ ui:
   node_size_by_degree: true
   show_labels: true
   max_visible_nodes: 5000
-  detail_layout_source: ../sample_data/1_source/genomics_scn/config.py
-  semantic_registry_overlay: config/semantic_overlays/genomics-generated-runtime.json
+  semantic_registry_overlay: semantic_overlays/genomics-generated-runtime.json
   layouts:
     hierarchical:
       type_families:
