@@ -235,6 +235,7 @@ class UIConfig(BaseModel):
     edge_filters_default_visible: list[str] = Field(default_factory=list)  # empty = all visible
     detail_layout_source: str = ""
     semantic_registry_overlay: str = ""
+    semantic_registry_overlays: list[str] = Field(default_factory=list)
     layouts: LayoutsConfig | None = Field(
         default_factory=lambda: LayoutsConfig(
             timeline=TimelineLayoutConfig(),
@@ -911,7 +912,104 @@ def _resolve_config_paths(config: KGXConfig, config_path: Path) -> KGXConfig:
     if not skills_dir.is_absolute():
         config.skills.directory = str((base_dir / skills_dir).resolve())
 
+    detail_layout_source = Path(config.ui.detail_layout_source) if config.ui.detail_layout_source else None
+    if detail_layout_source and not detail_layout_source.is_absolute():
+        config.ui.detail_layout_source = str((base_dir / detail_layout_source).resolve())
+
+    overlay_path = Path(config.ui.semantic_registry_overlay) if config.ui.semantic_registry_overlay else None
+    if overlay_path and not overlay_path.is_absolute():
+        config.ui.semantic_registry_overlay = str((base_dir / overlay_path).resolve())
+
+    resolved_overlays: list[str] = []
+    for item in list(config.ui.semantic_registry_overlays or []):
+        text = str(item or "").strip()
+        if not text:
+            continue
+        path = Path(text)
+        resolved_overlays.append(str((base_dir / path).resolve()) if not path.is_absolute() else str(path))
+    config.ui.semantic_registry_overlays = resolved_overlays
+
     return config
+
+
+def _merge_raw_config(base: Any, overlay: Any) -> Any:
+    if isinstance(base, dict) and isinstance(overlay, dict):
+        merged = dict(base)
+        for key, value in overlay.items():
+            if key in merged:
+                merged[key] = _merge_raw_config(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+    return overlay
+
+
+def _resolve_raw_path_value(value: Any, base_dir: Path) -> Any:
+    text = str(value or "").strip()
+    if not text:
+        return value
+    path = Path(text)
+    return str((base_dir / path).resolve()) if not path.is_absolute() else str(path)
+
+
+def _resolve_raw_config_paths(raw: dict[str, Any], base_dir: Path) -> dict[str, Any]:
+    resolved = dict(raw)
+
+    db = dict(resolved.get("db", {}) or {})
+    if "path" in db:
+        db["path"] = _resolve_raw_path_value(db.get("path"), base_dir)
+    if db:
+        resolved["db"] = db
+
+    skills = dict(resolved.get("skills", {}) or {})
+    if "directory" in skills:
+        skills["directory"] = _resolve_raw_path_value(skills.get("directory"), base_dir)
+    if skills:
+        resolved["skills"] = skills
+
+    ui = dict(resolved.get("ui", {}) or {})
+    if "detail_layout_source" in ui:
+        ui["detail_layout_source"] = _resolve_raw_path_value(ui.get("detail_layout_source"), base_dir)
+    if "semantic_registry_overlay" in ui:
+        ui["semantic_registry_overlay"] = _resolve_raw_path_value(ui.get("semantic_registry_overlay"), base_dir)
+    if "semantic_registry_overlays" in ui and isinstance(ui.get("semantic_registry_overlays"), list):
+        ui["semantic_registry_overlays"] = [
+            _resolve_raw_path_value(item, base_dir)
+            for item in list(ui.get("semantic_registry_overlays", []) or [])
+        ]
+    if ui:
+        resolved["ui"] = ui
+
+    return resolved
+
+
+def _load_raw_config(config_path: Path, seen: set[Path] | None = None) -> dict[str, Any]:
+    resolved = config_path.resolve()
+    if seen is None:
+        seen = set()
+    if resolved in seen:
+        chain = " -> ".join(str(path) for path in [*seen, resolved])
+        raise ValueError(f"Config extends cycle detected: {chain}")
+    seen = set(seen)
+    seen.add(resolved)
+
+    raw: dict[str, Any] = yaml.safe_load(resolved.read_text()) or {}
+    extends_value = raw.pop("extends", None)
+    raw = _resolve_raw_config_paths(raw, resolved.parent)
+    if not extends_value:
+        return raw
+
+    extend_items = extends_value if isinstance(extends_value, list) else [extends_value]
+    merged: dict[str, Any] = {}
+    for item in extend_items:
+        parent_text = str(item or "").strip()
+        if not parent_text:
+            continue
+        parent_path = Path(parent_text)
+        if not parent_path.is_absolute():
+            parent_path = (resolved.parent / parent_path).resolve()
+        merged = _merge_raw_config(merged, _load_raw_config(parent_path, seen))
+    return _merge_raw_config(merged, raw)
 
 
 def load_config(path: Path | str | None = None) -> KGXConfig:
@@ -925,7 +1023,7 @@ def load_config(path: Path | str | None = None) -> KGXConfig:
         config_path.write_text(_DEFAULT_YAML)
         print(f"Created default config: {config_path}")
 
-    raw: dict[str, Any] = yaml.safe_load(config_path.read_text()) or {}
+    raw = _load_raw_config(config_path)
     config = KGXConfig(**raw)
     config = _apply_visualization_defaults(config, raw)
     return _resolve_config_paths(config, config_path)

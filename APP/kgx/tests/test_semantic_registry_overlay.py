@@ -32,3 +32,23 @@ def test_genomics_registry_can_load_generated_overlay_patch(tmp_path: Path):
     assert registry["relation_families"]["dge_contrast"][0]["rel_type"] == "HAS_EXPRESSION_CONTRAST"
     assert registry["operators"]["condition_handlers"]["expression_measurement"] == "expression_measurement"
     assert registry["operators"]["condition_handlers"]["dge_contrast"] == "dge_contrast"
+
+
+def test_genomics_registry_can_load_yaml_overlay_patch(tmp_path: Path):
+    overlay_path = tmp_path / "semantic-overlay.yaml"
+    overlay_path.write_text(
+        """
+registry_patch:
+  operators:
+    scope_tags:
+      test-scope:
+        evidence_id: test_evidence
+        parser_kind: scope_tag_alias_match
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    registry = load_semantic_registry({"semantic_registry_overlay": str(overlay_path)})
+
+    assert registry["operators"]["scope_tags"]["test-scope"]["evidence_id"] == "test_evidence"

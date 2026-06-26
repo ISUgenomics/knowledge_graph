@@ -50,7 +50,7 @@ explore:
           target_type: comparative_hit
         - source_type: protein
           target_type: bcn_gene
-      included_tag_roots: [homology-scope]
+      included_tag_roots: [homology-scope, homology-organism]
 
 db_build:
   skill_contexts:
