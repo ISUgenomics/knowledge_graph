@@ -1086,6 +1086,117 @@ ORDER BY e.name
     assert result.results[0]["ortholog_copy_count"] == 2
 
 
+def test_ask_rewrites_bison_style_ortholog_count_query_to_member_edge_count(tmp_path: Path):
+    db_path = tmp_path / "chat-bison-ortholog-member-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Bison bison",
+        "gene_counts": {
+            "Bison bison": 1,
+        },
+    })
+    db.upsert_entity("comparative_hit", "hit-1", name="Bos ortholog 1", metadata={"organism": "Bos taurus"})
+    db.upsert_entity("comparative_hit", "hit-2", name="Bos ortholog 2", metadata={"organism": "Bos taurus"})
+    db.upsert_entity("comparative_hit", "hit-3", name="Bos ortholog 3", metadata={"organism": "Bos taurus"})
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "hit-1")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "hit-2")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "hit-3")
+    db.close()
+
+    class _BadBisonOrthologCountLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+) >= 3
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadBisonOrthologCountLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 3 or more ortholog gene copies")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_ORTHOLOG_MEMBER" in result.sql
+    assert "COUNT(DISTINCT member.id) >= 3" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1"]
+    assert result.results[0]["ortholog_copy_count"] == 3
+    assert "Bos taurus" in str(result.results[0]["ortholog_organisms"])
+
+
+def test_ask_rewrites_bison_style_ortholog_count_query_with_organism_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-bison-ortholog-member-organism-count.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("organism", "organism:cervus-canadensis", name="Cervus canadensis")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Bison bison",
+        "gene_counts": {
+            "Bison bison": 1,
+        },
+    })
+    db.upsert_entity("orthogroup", "orthogroup:og2", name="OG2", metadata={
+        "organism": "Bison bison",
+        "gene_counts": {
+            "Bison bison": 1,
+        },
+    })
+    for idx in range(3):
+        db.upsert_entity(f"comparative_hit", f"cervus-{idx}", name=f"Cervus ortholog {idx}", metadata={"organism": "Cervus canadensis"})
+    db.upsert_entity("comparative_hit", "cervus-x", name="Cervus ortholog x", metadata={"organism": "Cervus canadensis"})
+    db.upsert_entity("comparative_hit", "bos-1", name="Bos ortholog 1", metadata={"organism": "Bos taurus"})
+    db.upsert_entity("comparative_hit", "bos-2", name="Bos ortholog 2", metadata={"organism": "Bos taurus"})
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.add_relationship("gene-2", "BELONGS_TO_ORTHOGROUP", "orthogroup:og2")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "cervus-0")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "cervus-1")
+    db.add_relationship("orthogroup:og1", "HAS_ORTHOLOG_MEMBER", "bos-1")
+    db.add_relationship("orthogroup:og2", "HAS_ORTHOLOG_MEMBER", "cervus-0")
+    db.add_relationship("orthogroup:og2", "HAS_ORTHOLOG_MEMBER", "cervus-1")
+    db.add_relationship("orthogroup:og2", "HAS_ORTHOLOG_MEMBER", "cervus-2")
+    db.add_relationship("orthogroup:og2", "HAS_ORTHOLOG_MEMBER", "cervus-x")
+    db.add_relationship("orthogroup:og2", "HAS_ORTHOLOG_MEMBER", "bos-2")
+    db.close()
+
+    class _BadBisonOrthologOrganismCountLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+AND (
+    SELECT COUNT(*)
+    FROM relationships r
+    WHERE r.source_id = e.id
+) >= 2
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadBisonOrthologOrganismCountLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies from Cervus canadensis")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "json_extract(member.metadata, '$.organism') IN ('Cervus canadensis')" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1", "gene-2"]
+    assert result.results[0]["ortholog_copy_count"] == 2
+    assert result.results[0]["ortholog_organisms"] == "Cervus canadensis"
+    assert result.results[1]["ortholog_copy_count"] == 4
+    assert result.results[1]["ortholog_organisms"] == "Cervus canadensis"
+
+
 def test_synthesizes_gene_query_from_owner_side_orthogroup_count_sql(tmp_path: Path):
     db_path = tmp_path / "chat-owner-side-count.db"
     db = KnowledgeGraphDB(str(db_path))

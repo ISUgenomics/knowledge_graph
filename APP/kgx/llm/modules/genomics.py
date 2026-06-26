@@ -374,6 +374,20 @@ class GenomicsChatModule(RegistryConditionModule):
                 })
         return matches
 
+    def _requested_organism_name_matches(self, chat, message: str) -> list[str]:
+        seen: set[str] = set()
+        names: list[str] = []
+        for phrase in chat._message_candidate_phrases(message):
+            for _entity_id, entity_type, entity_name in chat._entity_name_matches(phrase):
+                if entity_type != "organism":
+                    continue
+                normalized = str(entity_name or "").strip()
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                names.append(normalized)
+        return names
+
     def _schema_group_aliases(self, group_id: str) -> list[str]:
         groups = self._semantic_schema_groups()
         group = groups.get(group_id, {}) if isinstance(groups, dict) else {}
@@ -818,6 +832,41 @@ class GenomicsChatModule(RegistryConditionModule):
             if requested_type == candidate_type or path:
                 return candidate_type, path
         return "", []
+
+    def _owner_has_non_primary_gene_counts(self, chat, owner_type: str) -> bool:
+        if not owner_type:
+            return False
+        try:
+            rows = chat.db.execute_read(
+                """
+                SELECT 1
+                FROM entities owner
+                JOIN json_each(owner.metadata, '$.gene_counts') gc
+                WHERE owner.type = ?
+                  AND gc.key != json_extract(owner.metadata, '$.organism')
+                LIMIT 1
+                """,
+                (owner_type,),
+            )
+        except Exception:
+            return False
+        return bool(rows)
+
+    def _ortholog_member_edge_spec(self, chat, owner_type: str) -> tuple[list[str], list[str]]:
+        rel_types: list[str] = []
+        target_types: list[str] = []
+        registry_rel_type = str(self._ortholog_member_spec().get("rel_type", "") or "").strip().upper()
+        patterns = chat._typed_rel_patterns()
+        for src, rel, dst in patterns:
+            rel_up = str(rel or "").upper()
+            if src != owner_type:
+                continue
+            if rel_up == registry_rel_type or rel_up == "HAS_BCN_MEMBER" or "ORTHOLOG_MEMBER" in rel_up:
+                if rel_up not in rel_types:
+                    rel_types.append(rel_up)
+                if dst not in target_types:
+                    target_types.append(dst)
+        return rel_types, target_types
 
     def _protein_evidence_context(self, cond: dict[str, Any]) -> dict[str, Any]:
         owner_type = next(iter(list(cond.get("owner_types", []) or [cond.get("owner_type", "protein")])), "protein")
@@ -1424,12 +1473,34 @@ class GenomicsChatModule(RegistryConditionModule):
         if not (type_match and rel_match):
             threshold = chat._extract_numeric_threshold(message, sql)
             if "ortholog" in str(message or "").lower() and threshold:
-                if "gene_counts" not in sql_low or "json_each" not in sql_low:
-                    return (
-                        "Wrong counting strategy: ortholog copy counts come from the owner entity's "
-                        "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
-                    )
-                if "ortholog_copy_count" not in sql_low and "gc.value" not in sql_low:
+                owner_type = next(
+                    (
+                        candidate
+                        for candidate in ("orthogroup", "comparative_hit")
+                        if candidate in {row["type"] for row in chat.db.entity_types()}
+                    ),
+                    "",
+                )
+                edge_rel_types, _edge_target_types = self._ortholog_member_edge_spec(chat, owner_type)
+                if self._owner_has_non_primary_gene_counts(chat, owner_type):
+                    if "gene_counts" not in sql_low or "json_each" not in sql_low:
+                        return (
+                            "Wrong counting strategy: ortholog copy counts come from the owner entity's "
+                            "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
+                        )
+                elif edge_rel_types:
+                    if not any(rel_type.lower() in sql_low for rel_type in edge_rel_types):
+                        return (
+                            "Wrong counting strategy: ortholog copy counts in this dataset come from live ortholog-member "
+                            "relationships on the orthogroup, not from a degenerate `gene_counts` map or unrelated edge counts."
+                        )
+                else:
+                    if "gene_counts" not in sql_low or "json_each" not in sql_low:
+                        return (
+                            "Wrong counting strategy: ortholog copy counts come from the owner entity's "
+                            "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
+                        )
+                if "ortholog_copy_count" not in sql_low and "count(" not in sql_low and "gc.value" not in sql_low:
                     return (
                         "Missing ortholog copy-count projection: the SQL applies an ortholog copy-count filter, "
                         "but the final result does not project the matched copy count."
@@ -1441,12 +1512,32 @@ class GenomicsChatModule(RegistryConditionModule):
             return None
         threshold = chat._extract_numeric_threshold(message, sql)
         if threshold:
-            if "gene_counts" not in sql_low or "json_each" not in sql_low:
-                return (
-                    "Wrong counting strategy: ortholog copy counts come from the owner entity's "
-                    "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
-                )
-            if "ortholog_copy_count" not in sql_low and "gc.value" not in sql_low:
+            owner_type_guess, _owner_path = self._ortholog_count_owner_type(
+                chat,
+                requested_type=selected_type,
+                selected_type=selected_type,
+                rel_type=rel_type,
+            )
+            edge_rel_types, _edge_target_types = self._ortholog_member_edge_spec(chat, owner_type_guess or "orthogroup")
+            if self._owner_has_non_primary_gene_counts(chat, owner_type_guess):
+                if "gene_counts" not in sql_low or "json_each" not in sql_low:
+                    return (
+                        "Wrong counting strategy: ortholog copy counts come from the owner entity's "
+                        "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
+                    )
+            elif edge_rel_types:
+                if not any(rel_type_name.lower() in sql_low for rel_type_name in edge_rel_types):
+                    return (
+                        "Wrong counting strategy: ortholog copy counts in this dataset come from live ortholog-member "
+                        "relationships on the orthogroup, not from a degenerate `gene_counts` map or unrelated edge counts."
+                    )
+            else:
+                if "gene_counts" not in sql_low or "json_each" not in sql_low:
+                    return (
+                        "Wrong counting strategy: ortholog copy counts come from the owner entity's "
+                        "`metadata.gene_counts` map, expanded with `json_each(...)`, not by counting raw edges."
+                    )
+            if "ortholog_copy_count" not in sql_low and "gc.value" not in sql_low and "count(" not in sql_low:
                 return (
                     "Missing ortholog copy-count projection: the SQL applies an ortholog copy-count filter, "
                     "but the final result does not project the matched copy count."
@@ -1562,23 +1653,55 @@ class GenomicsChatModule(RegistryConditionModule):
             if requested_type != owner_type
             else f"JOIN entities owner ON owner.id = e.id AND owner.type = '{owner_type}'"
         )
-        evidence_columns = [
-            ("json_extract(owner.metadata, '$.organism')", "owner_organism"),
-            ("json_extract(owner.metadata, '$.gene_counts')", "gene_counts"),
-            ("group_concat(DISTINCT gc.key)", "ortholog_organisms"),
-            ("MAX(CAST(gc.value AS INTEGER))", "ortholog_copy_count"),
-        ]
-        return self._synthesis_result("\n".join([
-            self._select_clause_with_evidence(evidence_columns),
-            "FROM entities e",
-            *joins,
-            owner_join,
-            "JOIN json_each(owner.metadata, '$.gene_counts') gc",
-            f"WHERE e.type = '{requested_type}'",
-            "  AND gc.key != json_extract(owner.metadata, '$.organism')",
-            "GROUP BY e.id, e.name, e.type, json_extract(owner.metadata, '$.organism'), json_extract(owner.metadata, '$.gene_counts')",
-            f"HAVING MAX(CAST(gc.value AS INTEGER)) {op} {value}",
-        ]), evidence_columns=evidence_columns, semantic_trace={"kind": "ortholog_count_map", "requested_type": requested_type, "owner_type": owner_type})
+        if self._owner_has_non_primary_gene_counts(chat, owner_type):
+            evidence_columns = [
+                ("json_extract(owner.metadata, '$.organism')", "owner_organism"),
+                ("json_extract(owner.metadata, '$.gene_counts')", "gene_counts"),
+                ("group_concat(DISTINCT gc.key)", "ortholog_organisms"),
+                ("MAX(CAST(gc.value AS INTEGER))", "ortholog_copy_count"),
+            ]
+            return self._synthesis_result("\n".join([
+                self._select_clause_with_evidence(evidence_columns),
+                "FROM entities e",
+                *joins,
+                owner_join,
+                "JOIN json_each(owner.metadata, '$.gene_counts') gc",
+                f"WHERE e.type = '{requested_type}'",
+                "  AND gc.key != json_extract(owner.metadata, '$.organism')",
+                "GROUP BY e.id, e.name, e.type, json_extract(owner.metadata, '$.organism'), json_extract(owner.metadata, '$.gene_counts')",
+                f"HAVING MAX(CAST(gc.value AS INTEGER)) {op} {value}",
+            ]), evidence_columns=evidence_columns, semantic_trace={"kind": "ortholog_count_map", "requested_type": requested_type, "owner_type": owner_type})
+
+        edge_rel_types, edge_target_types = self._ortholog_member_edge_spec(chat, owner_type)
+        if edge_rel_types and edge_target_types:
+            rel_list = ", ".join(f"'{item}'" for item in edge_rel_types)
+            type_list = ", ".join(f"'{item}'" for item in edge_target_types)
+            requested_organisms = self._requested_organism_name_matches(chat, message)
+            organism_where: list[str] = []
+            organism_group_expr = "group_concat(DISTINCT json_extract(member.metadata, '$.organism'))"
+            if requested_organisms:
+                escaped = ", ".join("'" + name.replace("'", "''") + "'" for name in requested_organisms)
+                organism_where.append(f"  AND json_extract(member.metadata, '$.organism') IN ({escaped})")
+                if len(requested_organisms) == 1:
+                    organism_group_expr = "'" + requested_organisms[0].replace("'", "''") + "'"
+            evidence_columns = [
+                ("owner.name", "orthogroup_label"),
+                (organism_group_expr, "ortholog_organisms"),
+                ("COUNT(DISTINCT member.id)", "ortholog_copy_count"),
+            ]
+            return self._synthesis_result("\n".join([
+                self._select_clause_with_evidence(evidence_columns),
+                "FROM entities e",
+                *joins,
+                owner_join,
+                f"JOIN relationships om ON om.source_id = owner.id AND om.rel_type IN ({rel_list})",
+                f"JOIN entities member ON member.id = om.target_id AND member.type IN ({type_list})",
+                f"WHERE e.type = '{requested_type}'",
+                *organism_where,
+                "GROUP BY e.id, e.name, e.type, owner.name",
+                f"HAVING COUNT(DISTINCT member.id) {op} {value}",
+            ]), evidence_columns=evidence_columns, semantic_trace={"kind": "ortholog_member_edges", "requested_type": requested_type, "owner_type": owner_type, "rel_types": edge_rel_types})
+        return None
 
     def evidence_columns_for_sql(self, chat, message: str, sql: str, requested_types: list[str]) -> list[tuple[str, str]] | None:
         evidence_columns: list[tuple[str, str]] = []
