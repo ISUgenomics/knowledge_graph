@@ -1527,6 +1527,83 @@ WHERE e.type = 'protein'
     assert result.results[0]["orthogroup_label"] == "OG0005830"
 
 
+def test_genomics_module_enriches_valid_llm_sql_with_reordered_select_columns(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-valid-condition-reordered.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og0005830", name="OG0005830")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og0005830")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1")
+    db.close()
+
+    sql = """
+SELECT DISTINCT e.name, e.id, e.type
+FROM entities e
+JOIN relationships p1 ON p1.target_id = e.id AND p1.rel_type = 'TRANSLATED_TO'
+JOIN relationships p2 ON p2.target_id = p1.source_id AND p2.rel_type = 'HAS_TRANSCRIPT'
+JOIN relationships ev3 ON ev3.source_id = e.id AND ev3.rel_type = 'HAS_HGT_DONOR'
+JOIN entities t4 ON t4.id = ev3.target_id AND t4.type = 'hgt_donor'
+JOIN relationships ogm4 ON ogm4.source_id = p2.source_id AND ogm4.rel_type = 'BELONGS_TO_ORTHOGROUP'
+JOIN entities owner5 ON owner5.id = ogm4.target_id AND owner5.type = 'orthogroup'
+WHERE e.type = 'protein'
+  AND (upper(owner5.name) = 'OG0005830' OR upper(owner5.id) = 'ORTHOGROUP:OG0005830')
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=GenomicsChatModule())
+    result = chat.ask("does any protein has HGT donor and belongs to orthogroup OG0005830?")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "hgt_donor" in result.results[0]
+    assert result.results[0]["hgt_donor"] == "WP_194067917"
+    assert result.results[0]["orthogroup_label"] == "OG0005830"
+
+
+def test_genomics_reconciles_same_rows_to_richer_semantic_evidence_sql(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-hgt-orthogroup-evidence-reconcile.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("orthogroup", "orthogroup:og0005830", name="OG0005830")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og0005830")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1")
+    db.close()
+
+    sql = """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships p1 ON p1.target_id = e.id AND p1.rel_type = 'TRANSLATED_TO'
+JOIN relationships p2 ON p2.target_id = p1.source_id AND p2.rel_type = 'HAS_TRANSCRIPT'
+JOIN relationships ev3 ON ev3.source_id = e.id AND ev3.rel_type = 'HAS_HGT_DONOR'
+JOIN entities t4 ON t4.id = ev3.target_id AND t4.type = 'hgt_donor'
+JOIN relationships ogm4 ON ogm4.source_id = p2.source_id AND ogm4.rel_type = 'BELONGS_TO_ORTHOGROUP'
+JOIN entities owner5 ON owner5.id = ogm4.target_id AND owner5.type = 'orthogroup'
+WHERE e.type = 'protein'
+  AND (upper(owner5.name) = 'OG0005830' OR upper(owner5.id) = 'ORTHOGROUP:OG0005830')
+"""
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _StaticSQLLLM(sql), module=GenomicsChatModule())
+    result = chat.ask("does any protein has HGT donor and belongs to orthogroup OG0005830?")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "hgt_donor" in result.sql
+    assert "orthogroup_label" in result.sql
+    assert result.results[0]["hgt_donor"] == "WP_194067917"
+    assert result.results[0]["orthogroup_label"] == "OG0005830"
+
+
 def test_genomics_registry_display_policy_controls_semantic_condition_alias(tmp_path: Path):
     db_path = tmp_path / "chat-genomics-condition-display.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -2079,6 +2156,587 @@ WHERE e.type = 'protein'
 
     assert err is not None
     assert "Unexpected evidence condition" in err or "Unexpected scope filter" in err
+
+
+def test_ask_synthesizes_functional_derived_protein_connections(tmp_path: Path):
+    db_path = tmp_path / "chat-functional-derived-connections.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("annotation_term", "ann-1", name="Secreted")
+    db.upsert_entity("annotation_term", "ann-2", name="Effector-like")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-2")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-2")
+    db.add_relationship("prot-3", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ev1 ON ev1.source_id = e.id AND ev1.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN entities t2 ON t2.id = ev1.target_id AND t2.type = 'comparative_hit'
+WHERE e.type = 'protein'
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("which protein have the most derived cross connections to other proteins")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_ANNOTATION" in result.sql
+    assert "derived_connection_count" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["derived_connection_count"] == 2
+    assert result.results[0]["shared_annotation_count"] == 2
+
+
+def test_ask_synthesizes_functional_annotation_ranking(tmp_path: Path):
+    db_path = tmp_path / "chat-functional-annotation-ranking.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("annotation_term", "ann-1", name="Secreted")
+    db.upsert_entity("annotation_term", "ann-2", name="Effector-like")
+    db.upsert_entity("annotation_term", "ann-3", name="Kinase")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-2")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-3")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ev1 ON ev1.source_id = e.id AND ev1.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN entities t2 ON t2.id = ev1.target_id AND t2.type = 'comparative_hit'
+WHERE e.type = 'protein'
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("which protein have the most functional annotations")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_ANNOTATION" in result.sql
+    assert "functional_annotation_count" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["functional_annotation_count"] == 3
+
+
+def test_ask_synthesizes_functional_annotation_ranking_for_genes_via_proteins(tmp_path: Path):
+    db_path = tmp_path / "chat-functional-annotation-gene-ranking.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("transcript", "tx-1", name="Transcript 1")
+    db.upsert_entity("transcript", "tx-2", name="Transcript 2")
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("annotation_term", "ann-1", name="Secreted")
+    db.upsert_entity("annotation_term", "ann-2", name="Effector-like")
+    db.upsert_entity("annotation_term", "ann-3", name="Kinase")
+    db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
+    db.add_relationship("gene-2", "HAS_TRANSCRIPT", "tx-2")
+    db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("tx-2", "TRANSLATED_TO", "prot-2")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-2")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-3")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("which gene have the most functional annotations")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "p1.rel_type = 'HAS_TRANSCRIPT'" in result.sql
+    assert "p2.rel_type = 'TRANSLATED_TO'" in result.sql
+    assert "HAS_ANNOTATION" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1"]
+    assert result.results[0]["functional_annotation_count"] == 3
+
+
+def test_ask_synthesizes_most_common_go_term_query(tmp_path: Path):
+    db_path = tmp_path / "chat-common-go-term.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("annotation_term", "ann-go-1", name="GO:0008150", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "ann-go-2", name="GO:0003674", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "ann-pfam-1", name="PF00001", metadata={"namespace": "pfam", "category": "domain_annotation"})
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-3", "HAS_ANNOTATION", "ann-go-2")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-pfam-1")
+    db.add_relationship("prot-2", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the most common GO term?")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'annotation_term'" in result.sql
+    assert "json_extract(e.metadata, '$.namespace') = 'go'" in result.sql
+    assert "COUNT(DISTINCT owner.id)" in result.sql
+    assert [row["id"] for row in result.results] == ["ann-go-1"]
+    assert result.results[0]["annotated_entity_count"] == 2
+    assert result.results[0]["annotation_namespace"] == "go"
+
+
+def test_ask_synthesizes_most_common_functional_annotation_term_query(tmp_path: Path):
+    db_path = tmp_path / "chat-common-functional-annotation.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("annotation_term", "ann-go-1", name="GO:0008150", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "ann-go-2", name="GO:0003674", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "ann-pfam-1", name="PF00001", metadata={"namespace": "pfam", "category": "domain_annotation"})
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-go-2")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-pfam-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-pfam-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the most common functional annotation?")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'annotation_term'" in result.sql
+    assert "COUNT(DISTINCT owner.id)" in result.sql
+    assert [row["id"] for row in result.results] == ["ann-go-1"]
+    assert result.results[0]["annotated_entity_count"] == 2
+    assert result.results[0]["annotation_category"] == "functional_annotation"
+
+
+def test_ask_rewrites_wrong_go_category_filter_to_namespace_query(tmp_path: Path):
+    db_path = tmp_path / "chat-common-go-rewrite.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("annotation_term", "ann-go-1", name="GO:0008150", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "ann-go-2", name="GO:0003674", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-go-1")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-go-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT t.name, COUNT(*) as count
+FROM entities e
+JOIN relationships r ON e.id = r.source_id AND r.rel_type = 'HAS_ANNOTATION'
+JOIN entities t ON t.id = r.target_id AND t.type = 'annotation_term'
+WHERE json_extract(t.metadata, '$.category') = 'GO'
+GROUP BY t.name
+ORDER BY count DESC
+LIMIT 1
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the most common GO term?")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "json_extract(e.metadata, '$.namespace') = 'go'" in result.sql
+    assert "json_extract(e.metadata, '$.category') = 'functional_annotation'" in result.sql
+    assert [row["id"] for row in result.results] == ["ann-go-1"]
+    assert result.results[0]["annotated_entity_count"] == 2
+
+
+def test_ask_synthesizes_most_common_localization_assigned_query(tmp_path: Path):
+    db_path = tmp_path / "chat-common-localization.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("localization_call", "loc-1", name="nucleus", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.upsert_entity("localization_call", "loc-2", name="cytoplasm", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.add_relationship("prot-1", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-2", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-3", "HAS_LOCALIZATION", "loc-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is most common localization assigned")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'localization_call'" in result.sql
+    assert "HAS_LOCALIZATION" in result.sql
+    assert "COUNT(DISTINCT owner.id)" in result.sql
+    assert [row["id"] for row in result.results] == ["loc-1"]
+    assert result.results[0]["assigned_entity_count"] == 2
+    assert result.results[0]["call_category"] == "localization"
+
+
+def test_ask_rewrites_wrong_localization_result_shape(tmp_path: Path):
+    db_path = tmp_path / "chat-common-localization-rewrite.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("localization_call", "loc-1", name="nucleus", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.upsert_entity("localization_call", "loc-2", name="cytoplasm", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.add_relationship("prot-1", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-2", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-1", "HAS_LOCALIZATION", "loc-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is most common localization assigned")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'localization_call'" in result.sql
+    assert "json_extract(e.metadata, '$.category') = 'localization'" in result.sql
+    assert [row["id"] for row in result.results] == ["loc-1"]
+    assert result.results[0]["assigned_entity_count"] == 2
+
+
+def test_accepted_sql_reconciles_wrong_common_localization_shape(tmp_path: Path):
+    db_path = tmp_path / "chat-common-localization-accepted-reconcile.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("localization_call", "loc-1", name="nucleus", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.upsert_entity("localization_call", "loc-2", name="cytoplasm", metadata={"category": "localization", "source_column": "dl_localizations"})
+    db.add_relationship("prot-1", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-2", "HAS_LOCALIZATION", "loc-1")
+    db.add_relationship("prot-3", "HAS_LOCALIZATION", "loc-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT json_extract(l.metadata, '$.category') AS localization_category, COUNT(*) AS count
+FROM entities e
+JOIN relationships r ON e.id = r.source_id AND r.rel_type = 'HAS_LOCALIZATION'
+JOIN entities l ON l.id = r.target_id AND l.type = 'localization_call'
+WHERE e.type = 'protein'
+GROUP BY json_extract(l.metadata, '$.category')
+ORDER BY count DESC
+LIMIT 1
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the most common localization")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'localization_call'" in result.sql
+    assert [row["id"] for row in result.results] == ["loc-1"]
+    assert result.results[0]["name"] == "nucleus"
+    assert result.results[0]["assigned_entity_count"] == 2
+
+
+def test_ask_synthesizes_prediction_call_filter_for_proteins(tmp_path: Path):
+    db_path = tmp_path / "chat-prediction-call-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("prediction_call", "pred-1", name="transmembrane_domain", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.upsert_entity("prediction_call", "pred-2", name="signal_peptide", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-2", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-3", "HAS_PREDICTION", "pred-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins predicted as transmembrane domains")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "e.type = 'protein'" in result.sql
+    assert "HAS_PREDICTION" in result.sql
+    assert "pred-1" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
+    assert result.results[0]["matched_call"] == "transmembrane_domain"
+
+
+def test_ask_synthesizes_generic_tag_filter_for_proteins(tmp_path: Path):
+    db_path = tmp_path / "chat-generic-tag-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("tag", "tag-1", name="Membrane")
+    db.upsert_entity("tag", "tag-2", name="Secreted")
+    db.add_relationship("prot-1", "TAGGED", "tag-1")
+    db.add_relationship("prot-2", "TAGGED", "tag-1")
+    db.add_relationship("prot-3", "TAGGED", "tag-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins tagged as membrane")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "TAGGED" in result.sql
+    assert "tag-1" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
+    assert result.results[0]["matched_tag"] == "Membrane"
+
+
+def test_ask_synthesizes_generic_tag_filter_for_genes(tmp_path: Path):
+    db_path = tmp_path / "chat-generic-tag-gene-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("gene", "gene-2", name="Gene 2")
+    db.upsert_entity("gene", "gene-3", name="Gene 3")
+    db.upsert_entity("tag", "effector-island", name="Effector Island")
+    db.add_relationship("gene-1", "TAGGED", "effector-island")
+    db.add_relationship("gene-2", "TAGGED", "effector-island")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select genes tagged as effector island")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "TAGGED" in result.sql
+    assert "effector-island" in result.sql
+    assert [row["id"] for row in result.results] == ["gene-1", "gene-2"]
+    assert result.results[0]["matched_tag"] == "Effector Island"
+
+
+def test_ask_synthesizes_live_discovered_promoted_entity_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-live-promoted-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("custom_measure", "cm-1", name="rare_measurement", metadata={"category": "measurement_feature", "source_column": "rare_measure"})
+    db.upsert_entity("custom_measure", "cm-2", name="other_measurement", metadata={"category": "measurement_feature", "source_column": "rare_measure"})
+    db.add_relationship("prot-1", "HAS_MEASUREMENT", "cm-1")
+    db.add_relationship("prot-2", "HAS_MEASUREMENT", "cm-1")
+    db.add_relationship("prot-1", "HAS_MEASUREMENT", "cm-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins with rare measurement")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_MEASUREMENT" in result.sql
+    assert "cm-1" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
+    assert result.results[0]["matched_call"] == "rare_measurement"
+
+
+def test_accepted_sql_enriches_promoted_call_evidence_columns(tmp_path: Path):
+    db_path = tmp_path / "chat-promoted-call-evidence-enrichment.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("prediction_call", "pred-1", name="transmembrane_domain", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-2", "HAS_PREDICTION", "pred-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships r ON e.id = r.source_id AND r.rel_type = 'HAS_PREDICTION'
+JOIN entities p ON p.id = r.target_id AND p.type = 'prediction_call'
+WHERE e.type = 'protein'
+  AND p.id = 'pred-1'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins predicted as transmembrane domains")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "matched_call" in result.sql
+    assert result.results[0]["matched_call"] == "transmembrane_domain"
+    assert result.results[0]["matched_call_category"] == "prediction_feature"
+
+
+def test_synthesized_sql_enriches_promoted_call_evidence_columns(tmp_path: Path):
+    db_path = tmp_path / "chat-synthesized-promoted-call-evidence.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("prediction_call", "pred-1", name="transmembrane_domain", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-2", "HAS_PREDICTION", "pred-1")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+AND e.name = 'definitely-no-match'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins predicted as transmembrane domains")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "matched_call" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
+    assert result.results[0]["matched_call"] == "transmembrane_domain"
+
+
+def test_accepted_sql_reconciles_non_filtering_promoted_call_results(tmp_path: Path):
+    db_path = tmp_path / "chat-promoted-call-reconcile.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("protein", "prot-3", name="Protein 3")
+    db.upsert_entity("prediction_call", "pred-1", name="transmembrane_domain", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.upsert_entity("prediction_call", "pred-2", name="signal_peptide", metadata={"category": "prediction_feature", "source_column": "dl_signals"})
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-2", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-3", "HAS_PREDICTION", "pred-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+  AND EXISTS (
+      SELECT 1
+      FROM entities call
+      WHERE call.type = 'prediction_call'
+        AND call.id = 'pred-1'
+  )
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins predicted as transmembrane domains")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_PREDICTION" in result.sql
+    assert "pred-1" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
+    assert result.results[0]["matched_call"] == "transmembrane_domain"
 
 
 def test_ask_returns_error_when_validation_fails_and_no_fix_succeeds(tmp_path: Path):
