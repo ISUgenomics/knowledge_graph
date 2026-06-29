@@ -332,6 +332,7 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
         },
         "organisms": {
             "alias_overrides": {
+                "heterodera glycines": ["scn"],
                 "heterodera schachtii": ["bcn"],
             },
         },
@@ -431,10 +432,18 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                                     "primary": [
                                         "putative effector in {organism}",
                                         "putative effectors in {organism}",
+                                        "putative {organism} effector",
+                                        "putative {organism} effectors",
+                                        "{organism} putative effector",
+                                        "{organism} putative effectors",
                                     ],
                                     "secondary": [
                                         "putative effector in {organism}",
                                         "putative effectors in {organism}",
+                                        "putative {organism} effector",
+                                        "putative {organism} effectors",
+                                        "{organism} putative effector",
+                                        "{organism} putative effectors",
                                     ],
                                 },
                             },

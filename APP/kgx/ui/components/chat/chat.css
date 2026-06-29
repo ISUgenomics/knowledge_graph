@@ -137,6 +137,10 @@
     border-collapse: collapse;
     font-size: 11px;
 }
+.chat-result-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
 .chat-result-table th {
     text-align: left;
     padding: 3px 8px 3px 0;

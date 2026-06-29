@@ -403,8 +403,26 @@ export function initChat(container, eventBus, apiClient) {
 
     function buildTable(rows) {
         if (!rows.length) return document.createTextNode('');
-        const keys = Object.keys(rows[0]);
+        const preferredPrefix = ['id', 'name', 'type'];
+        const discoveredKeys = [];
+        const seenKeys = new Set();
+        for (const key of preferredPrefix) {
+            if (rows.some(row => Object.prototype.hasOwnProperty.call(row, key))) {
+                discoveredKeys.push(key);
+                seenKeys.add(key);
+            }
+        }
+        for (const row of rows) {
+            for (const key of Object.keys(row)) {
+                if (seenKeys.has(key)) continue;
+                discoveredKeys.push(key);
+                seenKeys.add(key);
+            }
+        }
+        const keys = discoveredKeys;
         const hasId = keys.includes('id');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chat-result-table-wrap';
         const table = document.createElement('table');
         table.className = 'chat-result-table';
 
@@ -431,7 +449,8 @@ export function initChat(container, eventBus, apiClient) {
             tbody.appendChild(tr);
         }
         table.appendChild(tbody);
-        return table;
+        wrapper.appendChild(table);
+        return wrapper;
     }
 
     function streamJobOutput(job_id, msgEl) {
