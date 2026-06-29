@@ -2528,6 +2528,30 @@ WHERE e.type = 'protein'
     assert result.results[0]["protein_sequence"] == "MSTN"
 
 
+def test_genomics_sequence_alias_drives_runtime_semantics(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-sequence-alias.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1", metadata={"protein_sequence": "MQTPPK", "length": "6"})
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT DISTINCT e.id, e.name, e.type, json_extract(owner.metadata, '$.protein_sequence') AS protein_sequence
+FROM entities e
+JOIN entities owner ON owner.id = e.id AND owner.type = 'protein'
+WHERE e.type = 'protein'
+  AND json_extract(owner.metadata, '$.protein_sequence') = 'MQTPPK'
+""",
+        ["protein"],
+        "select protein with sequence MQTPPK",
+    )
+    db.close()
+
+    assert err is None
+
+
 def test_genomics_expression_stage_ranking_rewrites_broad_query(tmp_path: Path):
     db_path = tmp_path / "chat-genomics-expression-ranking.db"
     db = KnowledgeGraphDB(str(db_path))

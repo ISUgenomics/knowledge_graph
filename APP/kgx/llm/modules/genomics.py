@@ -149,8 +149,29 @@ class GenomicsChatModule(RegistryConditionModule):
             }
             if isinstance(spec.get("display"), dict):
                 item["display"] = dict(spec.get("display", {}) or {})
+            item["aliases"] = self._expanded_metadata_filter_aliases(item)
             items.append(item)
         return items
+
+    @staticmethod
+    def _expanded_metadata_filter_aliases(spec: dict[str, Any]) -> list[str]:
+        aliases = [str(alias) for alias in list(spec.get("aliases", []) or []) if str(alias).strip()]
+        field = str(spec.get("field", "") or "")
+        category = str(spec.get("category", "") or "")
+        if category == "sequence":
+            if field == "protein_sequence":
+                aliases.extend(["protein sequence", "sequence", "amino acid sequence"])
+            elif field == "mrna_sequence":
+                aliases.extend(["mrna sequence", "mrna seq", "rna sequence", "nucleotide sequence"])
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for alias in aliases:
+            norm = alias.strip().lower()
+            if not norm or norm in seen:
+                continue
+            seen.add(norm)
+            ordered.append(norm)
+        return ordered
 
     def _metadata_filter_renderer(self) -> dict[str, Any]:
         operators = self._registry_operators()
