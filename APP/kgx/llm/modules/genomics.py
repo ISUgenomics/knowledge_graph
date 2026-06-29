@@ -242,6 +242,38 @@ class GenomicsChatModule(RegistryConditionModule):
                 seen_aliases.add(alias)
         return evidence_columns
 
+    def _accepted_sql_condition_evidence_columns(
+        self,
+        requested_type: str,
+        conditions: list[dict[str, Any]],
+    ) -> list[tuple[str, str]]:
+        evidence_columns: list[tuple[str, str]] = []
+        seen_aliases: set[str] = set()
+        for cond in conditions:
+            owner_types = [str(item) for item in list(cond.get("owner_types", []) or [cond.get("owner_type", "")]) if str(item).strip()]
+            if requested_type not in owner_types:
+                continue
+            if cond.get("kind") == "protein_evidence":
+                context = {
+                    **self._protein_evidence_context(cond),
+                    "owner_ref": "e.id",
+                }
+            elif cond.get("kind") == "tag_evidence":
+                context = {
+                    **self._tag_evidence_context(cond),
+                    "owner_ref": "e.id",
+                }
+            else:
+                continue
+            for expr, alias in self._condition_display_columns_from_context(cond, context):
+                alias_text = str(alias).strip()
+                expr_text = str(expr).strip()
+                if not alias_text or not expr_text or alias_text in seen_aliases:
+                    continue
+                evidence_columns.append((expr_text, alias_text))
+                seen_aliases.add(alias_text)
+        return evidence_columns
+
     def _requested_metadata_filters(self, message: str) -> list[dict[str, Any]]:
         text = str(message or "").strip()
         requested: list[dict[str, Any]] = []
@@ -436,6 +468,16 @@ class GenomicsChatModule(RegistryConditionModule):
         for spec in specs:
             spec["display"] = self._effector_display_specs(spec)
         return specs
+
+    @staticmethod
+    def _tag_id_to_name_signature(tag_id: str) -> str:
+        text = str(tag_id or "").strip()
+        if not text:
+            return ""
+        if text.startswith("tag:"):
+            text = text[len("tag:"):]
+        text = text.replace("-", " ")
+        return " ".join(word.capitalize() for word in text.split())
 
     @staticmethod
     def _effector_display_specs(spec: dict[str, Any]) -> list[dict[str, str]]:
@@ -1417,8 +1459,16 @@ class GenomicsChatModule(RegistryConditionModule):
                 "Unexpected ortholog-member filter: the SQL requires ortholog members, but the user did not request an ortholog-member condition.",
             ))
         for spec in self._effector_tag_specs(chat):
+            tag_name_signatures = [
+                self._tag_id_to_name_signature(tag_id)
+                for tag_id in list(spec.get("tag_ids", []) or [])
+                if str(tag_id).strip()
+            ]
             unexpected_checks.append((
-                [str(tag_id) for tag_id in list(spec.get("tag_ids", []) or []) if str(tag_id).strip()],
+                [
+                    *[str(tag_id) for tag_id in list(spec.get("tag_ids", []) or []) if str(tag_id).strip()],
+                    *[name for name in tag_name_signatures if name],
+                ],
                 spec["id"] in requested_tag_evidence_ids,
                 (
                     f"Unexpected tag-evidence filter: the SQL constrains '{spec['id']}', but the user did not request that effector/tag evidence."
@@ -1440,11 +1490,20 @@ class GenomicsChatModule(RegistryConditionModule):
                     ),
                 ))
             if cond["kind"] == "tag_evidence":
-                missing_checks.append((
-                    [str(tag_id) for tag_id in list(cond.get("tag_ids", []) or []) if str(tag_id).strip()],
-                    True,
-                    f"Missing tag-evidence condition: the user requested '{cond['id']}', but the SQL does not include the matching normalized effector/tag ids.",
-                ))
+                signatures = [
+                    *[str(tag_id) for tag_id in list(cond.get("tag_ids", []) or []) if str(tag_id).strip()],
+                    *[
+                        name
+                        for tag_id in list(cond.get("tag_ids", []) or [])
+                        if str(tag_id).strip()
+                        if (name := self._tag_id_to_name_signature(tag_id))
+                    ],
+                ]
+                if signatures and not any(signature.upper() in sql_up for signature in signatures):
+                    return (
+                        f"Missing tag-evidence condition: the user requested '{cond['id']}', "
+                        "but the SQL does not include the matching normalized effector/tag ids or tag names."
+                    )
             if cond["kind"] == "scope_tag":
                 missing_checks.append((
                     [str(cond.get("tag_id", "") or "")],
@@ -1730,6 +1789,7 @@ class GenomicsChatModule(RegistryConditionModule):
         if requested_core_type in {"gene", "transcript", "protein"}:
             conditions = self._semantic_conditions(chat, message)
             evidence_columns.extend(self._semantic_condition_evidence_columns(chat, conditions))
+            evidence_columns.extend(self._accepted_sql_condition_evidence_columns(requested_core_type, conditions))
         selected_type = requested_types[0] if requested_types else ""
         if selected_type:
             metadata_filters = self._requested_metadata_filters(message)

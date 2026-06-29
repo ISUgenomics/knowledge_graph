@@ -114,9 +114,17 @@ operators:
               primary:
                 - putative effector in {organism}
                 - putative effectors in {organism}
+                - putative {organism} effector
+                - putative {organism} effectors
+                - "{organism} putative effector"
+                - "{organism} putative effectors"
               secondary:
                 - putative effector in {organism}
                 - putative effectors in {organism}
+                - putative {organism} effector
+                - putative {organism} effectors
+                - "{organism} putative effector"
+                - "{organism} putative effectors"
       collapse:
         mode: flag_family
         when_message_contains:

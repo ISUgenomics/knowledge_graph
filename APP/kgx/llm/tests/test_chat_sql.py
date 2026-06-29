@@ -1,8 +1,9 @@
 from pathlib import Path
 
+from kgx.config import load_config
 from kgx.db import KnowledgeGraphDB
 from kgx.genomics_source import load_semantic_registry
-from kgx.llm import ChatToSQL
+from kgx.llm import ChatToSQL, get_chat_module
 from kgx.llm.modules.genomics import GenomicsChatModule
 from kgx.llm.modules.people import PeopleChatModule
 from kgx.people_source import load_semantic_registry as load_people_semantic_registry
@@ -1686,6 +1687,137 @@ def test_synthesizes_protein_query_for_bcn_putative_effectors(tmp_path: Path):
     assert rows
     assert rows[0]["id"] == "prot-1"
     assert rows[0]["bcn_putative"] == "Hsc_gene_10002;Hsc_gene_10003"
+
+
+def test_accepted_sql_enriches_scn_putative_effector_columns(tmp_path: Path):
+    db_path = tmp_path / "chat-scn-putative-enrichment.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity(
+        "protein",
+        "prot-1",
+        name="SCN candidate",
+        metadata={
+            "effector": "putative_scn_marker",
+        },
+    )
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-putative-effector-hit", name="SCN Putative Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-putative-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-putative-effector-hit")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships tg ON tg.source_id = e.id AND tg.rel_type = 'TAGGED'
+JOIN entities t ON t.id = tg.target_id AND t.type = 'tag'
+WHERE e.type = 'protein'
+  AND t.id = 'tag:scn-putative-effector-hit'
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select all proteins that are putative SCN effectors")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "AS scn_putative" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["scn_putative"] == "putative_scn_marker"
+
+
+def test_accepted_sql_rewrites_mixed_scn_effector_name_filter_to_putative_only(tmp_path: Path):
+    db_path = tmp_path / "chat-scn-putative-mixed-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("protein", "prot-1", name="SCN putative", metadata={"effector": "Yes"})
+    db.upsert_entity("protein", "prot-2", name="SCN protein hit", metadata={"glycines_effectors_prot": "hit"})
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-putative-effector-hit", name="SCN Putative Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-putative-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-putative-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:scn-protein-effector-hit")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships t ON t.source_id = e.id AND t.rel_type = 'TAGGED'
+JOIN entities tag ON tag.id = t.target_id
+WHERE e.type = 'protein'
+  AND (tag.name = 'SCN Putative Effector Hit' OR tag.name = 'SCN Protein Effector Hit')
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select all proteins that are putative SCN effectors")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "AS scn_putative" in result.sql
+    assert "tag:scn-putative-effector-hit" in result.sql
+    assert "tag:scn-protein-effector-hit" not in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["scn_putative"] == "Yes"
+
+
+def test_config_loaded_scn_module_enriches_putative_scn_effectors(tmp_path: Path):
+    db_path = tmp_path / "chat-scn-config-loaded-putative.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("protein", "prot-1", name="SCN putative", metadata={"effector": "Yes"})
+    db.upsert_entity("protein", "prot-2", name="SCN protein hit", metadata={"glycines_effectors_prot": "hit"})
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-putative-effector-hit", name="SCN Putative Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-putative-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-putative-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:scn-protein-effector-hit")
+    db.close()
+
+    cfg = load_config("/workspace/KnowledgeGraph/sample_data/1_source/genomics_scn/app-config.yaml")
+    llm = _StaticSQLLLM(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships t ON t.source_id = e.id AND t.rel_type = 'TAGGED'
+JOIN entities tag ON tag.id = t.target_id
+WHERE e.type = 'protein'
+  AND (tag.name = 'SCN Putative Effector Hit' OR tag.name = 'SCN Protein Effector Hit')
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=get_chat_module(cfg.domain.name, ui_config=cfg.ui.model_dump()))
+    result = chat.ask("select all proteins that are putative SCN effectors")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "AS scn_putative" in result.sql
+    assert "tag:scn-putative-effector-hit" in result.sql
+    assert "tag:scn-protein-effector-hit" not in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["scn_putative"] == "Yes"
 
 
 def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(tmp_path: Path):
