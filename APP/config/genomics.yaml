@@ -148,7 +148,7 @@ explore:
   presets:
     structure:
       label: Structure
-      description: Biological scaffold rooted in organism and flowing through gene, transcript, and protein.
+      description: Structural scaffold rooted in organism and flowing through chromosome, gene, transcript, and protein.
       required_node_types_any: [gene]
       include_node_types: [organism, chromosome, gene, transcript, protein]
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO]
@@ -184,8 +184,8 @@ explore:
       preserve_node_types: [organism]
       skipped_rel_types: []
     protein_centric:
-      label: Protein
-      description: Protein function view with transcript mediation collapsed and functional overlays preserved.
+      label: Functional
+      description: Functional view centered on protein-level annotations, effectors, localization, and prediction overlays.
       required_node_types_any: [protein]
       include_node_types: [organism, gene, protein, annotation_term, localization_call, prediction_call, tag]
       include_rel_types: [FROM_ORGANISM, HAS_ANNOTATION, HAS_LOCALIZATION, HAS_PREDICTION, TAGGED, BROADER]

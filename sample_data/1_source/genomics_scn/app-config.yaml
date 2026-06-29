@@ -28,7 +28,8 @@ ui:
 explore:
   presets:
     protein_centric:
-      description: Protein function view with transcript mediation collapsed and effector-aware overlays preserved.
+      label: Functional
+      description: Functional view with transcript mediation collapsed and effector-aware overlays preserved.
       included_tag_roots: [functional-annotations, effectors, subcellular-localization]
     comparative:
       description: Comparative scaffold combining orthogroup ortholog genes with protein homology, optional HGT donor evidence, and homology-scope ontology.
