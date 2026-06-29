@@ -38,6 +38,21 @@ class GenomicsChatModule(RegistryConditionModule):
     def corpus_section(self) -> str | None:
         return "genomics"
 
+    def reconciliation_semantic_kinds(self) -> set[str]:
+        return {
+            "functional_derived_connections",
+            "functional_annotation_ranking",
+            "common_functional_annotation_terms",
+            "common_promoted_entity_terms",
+            "genomics_metadata_filters",
+            "expression_ranking",
+            "genomics_semantic_conditions",
+            "broad_homology_organism_tags",
+            "hgt_donor_result",
+            "ortholog_count_map",
+            "ortholog_member_edges",
+        }
+
     @staticmethod
     def _message_matches_aliases(message: str, aliases: list[str]) -> bool:
         low = f" {str(message or '').lower()} "
@@ -322,6 +337,540 @@ class GenomicsChatModule(RegistryConditionModule):
             if match:
                 return int(match.group(1))
         return None
+
+    @staticmethod
+    def _requests_functional_derived_connections(message: str, requested_types: list[str]) -> bool:
+        low = f" {str(message or '').lower()} "
+        if "protein" not in requested_types:
+            return False
+        if " connection " not in low and " connections " not in low:
+            return False
+        derived_cue = (
+            " derived " in low
+            or " cross connection " in low
+            or " cross connections " in low
+            or " other proteins " in low
+        )
+        if not derived_cue:
+            return False
+        return (
+            " protein " in low
+            or " proteins " in low
+        )
+
+    def _functional_derived_connection_query(
+        self,
+        chat,
+        message: str,
+        requested_types: list[str],
+    ) -> str | dict[str, Any] | None:
+        if not self._requests_functional_derived_connections(message, requested_types):
+            return None
+        patterns = set(chat._typed_rel_patterns())
+        if ("protein", "HAS_ANNOTATION", "annotation_term") not in patterns:
+            return None
+        limit = self._requested_limit(message)
+        low = f" {str(message or '').lower()} "
+        if limit is None and (" most " in low or " highest " in low):
+            limit = 1
+        evidence_columns = [
+            ("COUNT(DISTINCT other.id)", "derived_connection_count"),
+            ("COUNT(DISTINCT ann.id)", "shared_annotation_count"),
+        ]
+        lines = [
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            "JOIN relationships ha1 ON ha1.source_id = e.id AND ha1.rel_type = 'HAS_ANNOTATION'",
+            "JOIN entities ann ON ann.id = ha1.target_id AND ann.type = 'annotation_term'",
+            "JOIN relationships ha2 ON ha2.target_id = ann.id AND ha2.rel_type = 'HAS_ANNOTATION'",
+            "JOIN entities other ON other.id = ha2.source_id AND other.type = 'protein'",
+            "WHERE e.type = 'protein'",
+            "  AND other.id != e.id",
+            "GROUP BY e.id, e.name, e.type",
+            "ORDER BY derived_connection_count DESC, shared_annotation_count DESC, e.name ASC",
+        ]
+        if limit:
+            lines.append(f"LIMIT {int(limit)}")
+        return self._synthesis_result(
+            "\n".join(lines),
+            evidence_columns=evidence_columns,
+            semantic_trace={"kind": "functional_derived_connections"},
+        )
+
+    @staticmethod
+    def _requests_functional_annotation_ranking(message: str, requested_types: list[str]) -> bool:
+        low = f" {str(message or '').lower()} "
+        if not any(item in {"gene", "transcript", "protein"} for item in requested_types):
+            return False
+        annotation_cue = (
+            " functional annotation " in low
+            or " functional annotations " in low
+            or " annotation " in low
+            or " annotations " in low
+        )
+        ranking_cue = (
+            " most " in low
+            or " highest " in low
+            or " top " in low
+        )
+        return annotation_cue and ranking_cue
+
+    def _functional_annotation_owner_type(
+        self,
+        chat,
+        requested_type: str,
+    ) -> tuple[str, list[tuple[str, str, str]]]:
+        patterns = set(chat._typed_rel_patterns())
+        if (requested_type, "HAS_ANNOTATION", "annotation_term") in patterns:
+            return requested_type, []
+        candidates: list[tuple[int, str, list[tuple[str, str, str]]]] = []
+        for owner_type in ("protein", "transcript", "gene"):
+            if (owner_type, "HAS_ANNOTATION", "annotation_term") not in patterns:
+                continue
+            path = chat._shortest_type_path(requested_type, owner_type)
+            if requested_type == owner_type or path:
+                candidates.append((len(path), owner_type, path))
+        if not candidates:
+            return "", []
+        _distance, owner_type, path = sorted(candidates, key=lambda item: (item[0], item[1]))[0]
+        return owner_type, path
+
+    def _functional_annotation_ranking_query(
+        self,
+        chat,
+        message: str,
+        requested_types: list[str],
+    ) -> str | dict[str, Any] | None:
+        if not self._requests_functional_annotation_ranking(message, requested_types):
+            return None
+        requested_type = self._requested_core_type(requested_types)
+        if requested_type not in {"gene", "transcript", "protein"}:
+            return None
+        owner_type, path = self._functional_annotation_owner_type(chat, requested_type)
+        if not owner_type:
+            return None
+        limit = self._requested_limit(message)
+        low = f" {str(message or '').lower()} "
+        if limit is None and (" most " in low or " highest " in low):
+            limit = 1
+        joins: list[str] = []
+        owner_ref = "e.id"
+        alias_index = 0
+        current_type = requested_type
+        for src, rel, dst in path:
+            if src != current_type:
+                return None
+            alias_index += 1
+            rel_alias = f"p{alias_index}"
+            joins.append(
+                f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {owner_ref} AND {rel_alias}.rel_type = '{rel}'"
+            )
+            owner_ref = f"{rel_alias}.target_id"
+            current_type = dst
+        evidence_columns = [
+            ("COUNT(DISTINCT ann.id)", "functional_annotation_count"),
+        ]
+        lines = [
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            *joins,
+            f"JOIN relationships ha ON ha.source_id = {owner_ref} AND ha.rel_type = 'HAS_ANNOTATION'",
+            "JOIN entities ann ON ann.id = ha.target_id AND ann.type = 'annotation_term'",
+            f"WHERE e.type = '{requested_type}'",
+            "GROUP BY e.id, e.name, e.type",
+            "ORDER BY functional_annotation_count DESC, e.name ASC",
+        ]
+        if limit:
+            lines.append(f"LIMIT {int(limit)}")
+        return self._synthesis_result(
+            "\n".join(lines),
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "functional_annotation_ranking",
+                "requested_type": requested_type,
+                "owner_type": owner_type,
+            },
+        )
+
+    @staticmethod
+    def _functional_annotation_namespace_specs() -> list[dict[str, Any]]:
+        return [
+            {"namespace": "go", "category": "functional_annotation", "aliases": [" go term ", " go terms ", " gene ontology ", " gene ontology term ", " gene ontology terms "]},
+            {"namespace": "interpro", "category": "domain_annotation", "aliases": [" interpro ", " interpro domain ", " interpro domains "]},
+            {"namespace": "pfam", "category": "domain_annotation", "aliases": [" pfam ", " pfam family ", " pfam families "]},
+            {"namespace": "smart", "category": "domain_annotation", "aliases": [" smart domain ", " smart domains ", " smart "]},
+            {"namespace": "funfam", "category": "domain_annotation", "aliases": [" funfam ", " funfam family ", " funfam families "]},
+            {"namespace": "panther", "category": "domain_annotation", "aliases": [" panther ", " panther family ", " panther families "]},
+        ]
+
+    @staticmethod
+    def _common_promoted_entity_specs() -> list[dict[str, Any]]:
+        return [
+            {
+                "result_type": "annotation_term",
+                "rel_type": "HAS_ANNOTATION",
+                "category": "functional_annotation",
+                "aliases": [" functional annotation ", " functional annotations ", " annotation term ", " annotation terms "],
+                "count_alias": "annotated_entity_count",
+            },
+            {
+                "result_type": "localization_call",
+                "rel_type": "HAS_LOCALIZATION",
+                "category": "localization",
+                "aliases": [" localization assigned ", " localization ", " localizations ", " subcellular localization ", " subcellular localizations "],
+                "count_alias": "assigned_entity_count",
+            },
+            {
+                "result_type": "prediction_call",
+                "rel_type": "HAS_PREDICTION",
+                "category": "prediction_feature",
+                "aliases": [" prediction assigned ", " prediction feature ", " prediction features ", " signal assigned ", " signal feature ", " signal features "],
+                "count_alias": "assigned_entity_count",
+            },
+        ]
+
+    def _requested_functional_annotation_namespace(self, message: str) -> dict[str, Any] | None:
+        low = f" {str(message or '').lower()} "
+        for spec in self._functional_annotation_namespace_specs():
+            if any(alias in low for alias in spec["aliases"]):
+                return dict(spec)
+        return None
+
+    def _requested_common_promoted_entity_spec(self, chat, message: str, available_types: list[str]) -> dict[str, Any] | None:
+        low = f" {str(message or '').lower()} "
+        for spec in self._common_promoted_entity_specs_for_chat(chat):
+            if str(spec.get("result_type", "") or "") not in available_types:
+                continue
+            if any(alias in low for alias in list(spec.get("aliases", []) or [])):
+                return dict(spec)
+        return None
+
+    def _live_promoted_entity_specs(self, chat) -> list[dict[str, Any]]:
+        rows = chat.db.execute_read(
+            """
+            SELECT source.type AS owner_type,
+                   target.type AS result_type,
+                   r.rel_type AS rel_type,
+                   json_extract(target.metadata, '$.category') AS category,
+                   json_extract(target.metadata, '$.source_column') AS source_column
+            FROM relationships r
+            JOIN entities source ON source.id = r.source_id
+            JOIN entities target ON target.id = r.target_id
+            WHERE json_extract(target.metadata, '$.category') IS NOT NULL
+              AND target.type != 'tag'
+            GROUP BY source.type, target.type, r.rel_type, category, source_column
+            ORDER BY source.type, target.type, r.rel_type, category, source_column
+            """
+        )
+        specs: list[dict[str, Any]] = []
+        seen: set[tuple[str, str, str, str]] = set()
+        for row in rows:
+            owner_type = str(row.get("owner_type", "") or "").strip()
+            result_type = str(row.get("result_type", "") or "").strip()
+            rel_type = str(row.get("rel_type", "") or "").strip()
+            category = str(row.get("category", "") or "").strip()
+            source_column = str(row.get("source_column", "") or "").strip()
+            if not owner_type or not result_type or not rel_type or not category:
+                continue
+            key = (owner_type, result_type, rel_type, category)
+            if key in seen:
+                continue
+            seen.add(key)
+            specs.append({
+                "owner_type": owner_type,
+                "result_type": result_type,
+                "rel_type": rel_type,
+                "category": category,
+                "source_column": source_column,
+            })
+        return specs
+
+    def _common_promoted_entity_specs_for_chat(self, chat) -> list[dict[str, Any]]:
+        specs = [dict(item) for item in self._common_promoted_entity_specs()]
+        known = {
+            (
+                str(item.get("owner_type", "protein") or "protein"),
+                str(item.get("result_type", "") or ""),
+                str(item.get("rel_type", "") or ""),
+                str(item.get("category", "") or ""),
+            )
+            for item in specs
+        }
+        for item in self._live_promoted_entity_specs(chat):
+            key = (
+                str(item.get("owner_type", "") or ""),
+                str(item.get("result_type", "") or ""),
+                str(item.get("rel_type", "") or ""),
+                str(item.get("category", "") or ""),
+            )
+            if key in known:
+                continue
+            auto = dict(item)
+            category = str(auto.get("category", "") or "")
+            source_column = str(auto.get("source_column", "") or "")
+            auto["aliases"] = [
+                f" {category.replace('_', ' ')} ",
+                f" {source_column.replace('_', ' ')} " if source_column else "",
+            ]
+            auto["count_alias"] = "assigned_entity_count"
+            specs.append(auto)
+        return specs
+
+    @staticmethod
+    def _normalized_prompt_text(text: str) -> str:
+        low = str(text or "").lower().replace("_", " ").replace("-", " ")
+        low = re.sub(r"[^a-z0-9\s]+", " ", low)
+        low = re.sub(r"\s+", " ", low).strip()
+        return f" {low} " if low else " "
+
+    @staticmethod
+    def _promoted_call_name_aliases(name: str) -> set[str]:
+        base = re.sub(r"\s+", " ", str(name or "").lower().replace("_", " ").replace("-", " ")).strip()
+        if not base:
+            return set()
+        aliases = {base}
+        parts = base.split()
+        if parts and parts[-1].endswith("s"):
+            aliases.add(" ".join(parts[:-1] + [parts[-1][:-1]]))
+        if base.endswith(" domain"):
+            aliases.add(base + "s")
+        if base.endswith(" signal"):
+            aliases.add(base + "s")
+        return {alias.strip() for alias in aliases if alias.strip()}
+
+    def _matched_promoted_call_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+        low = self._normalized_prompt_text(message)
+        request_promoted = any(
+            token in low
+            for token in [
+                " predicted ", " prediction ", " predictions ", " signal ",
+                " localization ", " localized ", " assigned ", " measured ",
+                " measurement ", " measurements ", " with ", " having ",
+            ]
+        )
+        if not request_promoted:
+            return []
+        conditions: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for spec in self._common_promoted_entity_specs_for_chat(chat):
+            result_type = str(spec.get("result_type", "") or "")
+            rel_type = str(spec.get("rel_type", "") or "")
+            category = str(spec.get("category", "") or "")
+            owner_type = str(spec.get("owner_type", "protein") or "protein")
+            source_column_hint = str(spec.get("source_column", "") or "").strip()
+            rows = chat.db.execute_read(
+                "SELECT id, name, metadata FROM entities WHERE type = ? ORDER BY id",
+                (result_type,),
+            )
+            for row in rows:
+                entity_id = str(row.get("id", "") or "").strip()
+                entity_name = str(row.get("name", "") or "").strip()
+                if not entity_id or not entity_name:
+                    continue
+                if entity_id in seen_ids:
+                    continue
+                aliases = self._promoted_call_name_aliases(entity_name)
+                if source_column_hint:
+                    aliases.add(source_column_hint.replace("_", " ").strip().lower())
+                if not any(f" {alias} " in low for alias in aliases):
+                    continue
+                conditions.append({
+                    "kind": "promoted_call",
+                    "result_type": result_type,
+                    "rel_type": rel_type,
+                    "entity_id": entity_id,
+                    "entity_name": entity_name,
+                    "category": category,
+                    "owner_type": owner_type,
+                })
+                seen_ids.add(entity_id)
+        return conditions
+
+    def _matched_generic_tag_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+        low = self._normalized_prompt_text(message)
+        if not any(token in low for token in [" tagged ", " tag ", " with tag ", " has tag ", " tagged as ", " tagged with "]):
+            return []
+        rows = chat.db.execute_read(
+            """
+            SELECT DISTINCT source.type AS owner_type, t.id, t.name
+            FROM relationships r
+            JOIN entities source ON source.id = r.source_id
+            JOIN entities t ON t.id = r.target_id
+            WHERE r.rel_type = 'TAGGED' AND t.type = 'tag'
+            ORDER BY source.type, t.id
+            """
+        )
+        conditions: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for row in rows:
+            owner_type = str(row.get("owner_type", "") or "").strip()
+            tag_id = str(row.get("id", "") or "").strip()
+            tag_name = str(row.get("name", "") or "").strip()
+            if not owner_type or not tag_id or not tag_name:
+                continue
+            aliases = self._promoted_call_name_aliases(tag_name)
+            if not any(f" {alias} " in low for alias in aliases):
+                continue
+            key = (owner_type, tag_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            conditions.append({
+                "kind": "generic_tag",
+                "owner_type": owner_type,
+                "tag_id": tag_id,
+                "tag_name": tag_name,
+            })
+        return conditions
+
+    def _requests_functional_annotation_term_result(self, message: str, available_types: list[str]) -> bool:
+        if "annotation_term" not in available_types:
+            return False
+        low = f" {str(message or '').lower()} "
+        if self._requested_functional_annotation_namespace(message):
+            return True
+        return (
+            (" annotation term " in low or " annotation terms " in low)
+            or (
+                (" functional annotation " in low or " functional annotations " in low)
+                and not re.search(r"\b(genes?|proteins?|transcripts?)\b", low)
+            )
+        )
+
+    def _requests_common_functional_annotation_terms(self, message: str, requested_types: list[str]) -> bool:
+        low = f" {str(message or '').lower()} "
+        if "annotation_term" not in requested_types:
+            return False
+        return (
+            " most common " in low
+            or " commonest " in low
+            or " top " in low
+            or " frequent " in low
+            or " frequently " in low
+        )
+
+    @staticmethod
+    def _requests_functional_annotation_category(message: str) -> bool:
+        low = f" {str(message or '').lower()} "
+        return " functional annotation " in low or " functional annotations " in low
+
+    def _common_functional_annotation_terms_query(
+        self,
+        chat,
+        message: str,
+        requested_types: list[str],
+    ) -> str | dict[str, Any] | None:
+        if not self._requests_common_functional_annotation_terms(message, requested_types):
+            return None
+        patterns = set(chat._typed_rel_patterns())
+        if ("protein", "HAS_ANNOTATION", "annotation_term") not in patterns:
+            return None
+        namespace_spec = self._requested_functional_annotation_namespace(message)
+        low = f" {str(message or '').lower()} "
+        limit = self._requested_limit(message)
+        if limit is None and (" most common " in low or " commonest " in low):
+            limit = 1
+        where_lines = ["WHERE e.type = 'annotation_term'"]
+        if namespace_spec:
+            namespace = str(namespace_spec.get("namespace", "") or "").strip()
+            category = str(namespace_spec.get("category", "") or "").strip()
+            if namespace:
+                where_lines.append(f"  AND json_extract(e.metadata, '$.namespace') = '{self._sql_literal(namespace)}'")
+            if category:
+                where_lines.append(f"  AND json_extract(e.metadata, '$.category') = '{self._sql_literal(category)}'")
+        elif self._requests_functional_annotation_category(message):
+            where_lines.append("  AND json_extract(e.metadata, '$.category') = 'functional_annotation'")
+        evidence_columns = [
+            ("COUNT(DISTINCT owner.id)", "annotated_entity_count"),
+            ("json_extract(e.metadata, '$.namespace')", "annotation_namespace"),
+            ("json_extract(e.metadata, '$.category')", "annotation_category"),
+        ]
+        lines = [
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            "JOIN relationships ha ON ha.target_id = e.id AND ha.rel_type = 'HAS_ANNOTATION'",
+            "JOIN entities owner ON owner.id = ha.source_id",
+            *where_lines,
+            "GROUP BY e.id, e.name, e.type",
+            "ORDER BY annotated_entity_count DESC, e.name ASC",
+        ]
+        if limit:
+            lines.append(f"LIMIT {int(limit)}")
+        return self._synthesis_result(
+            "\n".join(lines),
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "common_functional_annotation_terms",
+                "namespace": str((namespace_spec or {}).get("namespace", "") or ""),
+            },
+        )
+
+    def _requests_common_promoted_entity_terms(self, message: str, requested_types: list[str]) -> dict[str, Any] | None:
+        low = f" {str(message or '').lower()} "
+        if not (
+            " most common " in low
+            or " commonest " in low
+            or " top " in low
+            or " frequent " in low
+            or " frequently " in low
+        ):
+            return None
+        requested = set(requested_types)
+        for spec in self._common_promoted_entity_specs():
+            if spec["result_type"] == "annotation_term":
+                continue
+            if spec["result_type"] in requested:
+                return dict(spec)
+        return None
+
+    def _common_promoted_entity_terms_query(
+        self,
+        chat,
+        message: str,
+        requested_types: list[str],
+    ) -> str | dict[str, Any] | None:
+        spec = self._requests_common_promoted_entity_terms(message, requested_types)
+        if not spec:
+            return None
+        rel_type = str(spec.get("rel_type", "") or "")
+        result_type = str(spec.get("result_type", "") or "")
+        count_alias = str(spec.get("count_alias", "assigned_entity_count") or "assigned_entity_count")
+        patterns = set(chat._typed_rel_patterns())
+        if ("protein", rel_type, result_type) not in patterns:
+            return None
+        low = f" {str(message or '').lower()} "
+        limit = self._requested_limit(message)
+        if limit is None and (" most common " in low or " commonest " in low):
+            limit = 1
+        where_lines = [f"WHERE e.type = '{self._sql_literal(result_type)}'"]
+        category = str(spec.get("category", "") or "").strip()
+        if category:
+            where_lines.append(f"  AND json_extract(e.metadata, '$.category') = '{self._sql_literal(category)}'")
+        evidence_columns = [
+            ("COUNT(DISTINCT owner.id)", count_alias),
+            ("json_extract(e.metadata, '$.category')", "call_category"),
+            ("json_extract(e.metadata, '$.source_column')", "source_column"),
+        ]
+        lines = [
+            self._select_clause_with_evidence(evidence_columns),
+            "FROM entities e",
+            f"JOIN relationships pr ON pr.target_id = e.id AND pr.rel_type = '{self._sql_literal(rel_type)}'",
+            "JOIN entities owner ON owner.id = pr.source_id",
+            *where_lines,
+            "GROUP BY e.id, e.name, e.type",
+            f"ORDER BY {count_alias} DESC, e.name ASC",
+        ]
+        if limit:
+            lines.append(f"LIMIT {int(limit)}")
+        return self._synthesis_result(
+            "\n".join(lines),
+            evidence_columns=evidence_columns,
+            semantic_trace={
+                "kind": "common_promoted_entity_terms",
+                "result_type": result_type,
+                "rel_type": rel_type,
+            },
+        )
 
     def _expression_ranking_request(self, chat, message: str, requested_types: list[str]) -> dict[str, str | int] | None:
         low = f" {str(message or '').lower()} "
@@ -751,6 +1300,8 @@ class GenomicsChatModule(RegistryConditionModule):
         if orthogroup_label:
             conditions.append({"kind": "orthogroup_filter", "label": orthogroup_label})
         conditions.extend(self._matched_ortholog_member_conditions(message))
+        conditions.extend(self._matched_promoted_call_conditions(chat, message))
+        conditions.extend(self._matched_generic_tag_conditions(chat, message))
         for tag_id in self._requested_scope_tag_ids(chat, message):
             conditions.append({"kind": "scope_tag", "tag_id": tag_id})
         return conditions
@@ -806,6 +1357,11 @@ class GenomicsChatModule(RegistryConditionModule):
         if "gene" in available_types and re.search(r"\bgenes?\b", low) and " gene transfer " not in low and not requested_hgt_donor:
             preferred.append("gene")
         explicit_core = bool(preferred)
+        if self._requests_functional_annotation_term_result(message, available_types) and not explicit_core:
+            preferred.append("annotation_term")
+        promoted_spec = self._requested_common_promoted_entity_spec(chat, message, available_types)
+        if promoted_spec and promoted_spec["result_type"] != "annotation_term" and not explicit_core:
+            preferred.append(str(promoted_spec["result_type"]))
         if "bcn_gene" in available_types and self._message_matches_aliases(message, self._ortholog_member_aliases()) and not explicit_core:
             preferred.append("bcn_gene")
         if "comparative_hit" in available_types and self._message_matches_aliases(message, ["homology hit", "homology hits"]) and not explicit_core:
@@ -1269,6 +1825,100 @@ class GenomicsChatModule(RegistryConditionModule):
             evidence_columns=state.setdefault("evidence_columns", []),
         )
 
+    def _handle_condition_promoted_call(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        owner_type = str(condition.get("owner_type", "protein") or "protein")
+        owner_ref = "e.id"
+        current_type = requested_type
+        if requested_type != owner_type:
+            path = chat._shortest_type_path(requested_type, owner_type)
+            if not path:
+                return False, alias_index
+            for src, rel, dst in path:
+                if src != current_type:
+                    return False, alias_index
+                alias_index += 1
+                rel_alias = f"pc{alias_index}"
+                joins.append(
+                    f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {owner_ref} AND {rel_alias}.rel_type = '{rel}'"
+                )
+                owner_ref = f"{rel_alias}.target_id"
+                current_type = dst
+        alias_index += 1
+        rel_alias = f"pc{alias_index}"
+        joins.append(
+            f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {owner_ref} AND {rel_alias}.rel_type = '{str(condition.get('rel_type', '') or '')}'"
+        )
+        alias_index += 1
+        target_alias = f"pcall{alias_index}"
+        joins.append(
+            f"JOIN entities {target_alias} ON {target_alias}.id = {rel_alias}.target_id AND {target_alias}.type = '{str(condition.get('result_type', '') or '')}'"
+        )
+        entity_id = str(condition.get("entity_id", "") or "").strip()
+        category = str(condition.get("category", "") or "").strip()
+        if entity_id:
+            where_lines.append(f"  AND {target_alias}.id = '{self._sql_literal(entity_id)}'")
+        if category:
+            where_lines.append(f"  AND json_extract({target_alias}.metadata, '$.category') = '{self._sql_literal(category)}'")
+        state.setdefault("evidence_columns", []).extend([
+            (f"{target_alias}.name", "matched_call"),
+            (f"json_extract({target_alias}.metadata, '$.category')", "matched_call_category"),
+        ])
+        return True, alias_index
+
+    def _handle_condition_generic_tag(
+        self,
+        chat,
+        *,
+        requested_type: str,
+        condition: dict[str, Any],
+        joins: list[str],
+        where_lines: list[str],
+        alias_index: int,
+        state: dict[str, Any],
+    ) -> tuple[bool, int]:
+        owner_type = str(condition.get("owner_type", "") or "").strip()
+        owner_ref = "e.id"
+        current_type = requested_type
+        if requested_type != owner_type:
+            path = chat._shortest_type_path(requested_type, owner_type)
+            if not path:
+                return False, alias_index
+            for src, rel, dst in path:
+                if src != current_type:
+                    return False, alias_index
+                alias_index += 1
+                rel_alias = f"tg{alias_index}"
+                joins.append(
+                    f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {owner_ref} AND {rel_alias}.rel_type = '{rel}'"
+                )
+                owner_ref = f"{rel_alias}.target_id"
+                current_type = dst
+        alias_index += 1
+        rel_alias = f"tg{alias_index}"
+        joins.append(
+            f"JOIN relationships {rel_alias} ON {rel_alias}.source_id = {owner_ref} AND {rel_alias}.rel_type = 'TAGGED'"
+        )
+        alias_index += 1
+        tag_alias = f"tag{alias_index}"
+        joins.append(
+            f"JOIN entities {tag_alias} ON {tag_alias}.id = {rel_alias}.target_id AND {tag_alias}.type = 'tag'"
+        )
+        tag_id = str(condition.get("tag_id", "") or "").strip()
+        if tag_id:
+            where_lines.append(f"  AND {tag_alias}.id = '{self._sql_literal(tag_id)}'")
+        state.setdefault("evidence_columns", []).append((f"{tag_alias}.name", "matched_tag"))
+        return True, alias_index
+
     def _semantic_condition_handlers_map(self) -> dict[str, Any]:
         return {
             "protein_evidence": self._handle_condition_protein_evidence,
@@ -1276,6 +1926,8 @@ class GenomicsChatModule(RegistryConditionModule):
             "ortholog_member": self._handle_condition_ortholog_member,
             "scope_tag": self._handle_condition_scope_tag,
             "tag_evidence": self._handle_condition_tag_evidence,
+            "promoted_call": self._handle_condition_promoted_call,
+            "generic_tag": self._handle_condition_generic_tag,
         }
 
     def _semantic_query(self, chat, message: str, requested_types: list[str]) -> str | dict[str, Any] | None:
@@ -1364,6 +2016,96 @@ class GenomicsChatModule(RegistryConditionModule):
         if not sql or not requested_types:
             return None
         sql_up = sql.upper()
+        if self._requests_functional_derived_connections(message, requested_types):
+            if (
+                "HAS_ANNOTATION" not in sql_up
+                or "COUNT(DISTINCT OTHER.ID)" not in sql_up
+                or "OTHER.TYPE = 'PROTEIN'" not in sql_up
+                or "OTHER.ID != E.ID" not in sql_up
+            ):
+                return (
+                    "Missing functional derived-connection query: the user requested proteins with the most "
+                    "derived cross connections to other proteins, so the SQL must count distinct other protein "
+                    "neighbors connected through shared annotation mediators rather than generic relationship degree."
+                )
+        if self._requests_functional_annotation_ranking(message, requested_types):
+            if (
+                "HAS_ANNOTATION" not in sql_up
+                or "COUNT(DISTINCT ANN.ID)" not in sql_up
+                or "ANNOTATION_TERM" not in sql_up
+            ):
+                return (
+                    "Missing functional-annotation ranking query: the user requested the entity with the most "
+                    "functional annotations, so the SQL must count distinct annotation_term rows reached through "
+                    "HAS_ANNOTATION on the correct typed path."
+                )
+        if self._requests_common_functional_annotation_terms(message, requested_types):
+            namespace_spec = self._requested_functional_annotation_namespace(message)
+            if (
+                "HAS_ANNOTATION" not in sql_up
+                or "COUNT(DISTINCT OWNER.ID)" not in sql_up
+                or "E.TYPE = 'ANNOTATION_TERM'" not in sql_up
+            ):
+                return (
+                    "Missing common annotation-term query: the user requested the most common functional annotation term, "
+                    "so the SQL must return annotation_term rows and count distinct annotated owner entities through "
+                    "HAS_ANNOTATION."
+                )
+            if namespace_spec:
+                namespace = str(namespace_spec.get("namespace", "") or "").upper()
+                category = str(namespace_spec.get("category", "") or "").upper()
+                if namespace and f"$.NAMESPACE') = '{namespace}'" not in sql_up:
+                    return (
+                        "Wrong annotation namespace filter: the user requested a specific annotation family, "
+                        f"so the SQL must constrain annotation_term.metadata.namespace = '{str(namespace_spec.get('namespace', '') or '')}'."
+                    )
+                if category and f"$.CATEGORY') = '{category}'" not in sql_up:
+                    return (
+                        "Wrong annotation category filter: the user requested a specific annotation family, "
+                        f"so the SQL must constrain annotation_term.metadata.category = '{str(namespace_spec.get('category', '') or '')}'."
+                    )
+            elif self._requests_functional_annotation_category(message):
+                if "$.CATEGORY') = 'FUNCTIONAL_ANNOTATION'" not in sql_up:
+                    return (
+                        "Wrong annotation category filter: the user requested functional annotations, "
+                        "so the SQL must constrain annotation_term.metadata.category = 'functional_annotation'."
+                    )
+        promoted_spec = self._requests_common_promoted_entity_terms(message, requested_types)
+        if promoted_spec:
+            rel_type = str(promoted_spec.get("rel_type", "") or "").upper()
+            result_type = str(promoted_spec.get("result_type", "") or "").upper()
+            category = str(promoted_spec.get("category", "") or "").upper()
+            if (
+                rel_type not in sql_up
+                or "COUNT(DISTINCT OWNER.ID)" not in sql_up
+                or f"E.TYPE = '{result_type}'" not in sql_up
+            ):
+                return (
+                    "Missing common promoted-call query: the user requested the most common assigned call, "
+                    f"so the SQL must return {str(promoted_spec.get('result_type', '') or '')} rows and count distinct owner entities through "
+                    f"{str(promoted_spec.get('rel_type', '') or '')}."
+                )
+            if category and f"$.CATEGORY') = '{category}'" not in sql_up:
+                return (
+                    "Wrong promoted-call category filter: the SQL must constrain "
+                    f"{str(promoted_spec.get('result_type', '') or '')}.metadata.category = '{str(promoted_spec.get('category', '') or '')}'."
+                )
+        promoted_call_conditions = [cond for cond in self._semantic_conditions(chat, message) if cond.get("kind") == "promoted_call"]
+        for cond in promoted_call_conditions:
+            rel_type = str(cond.get("rel_type", "") or "").upper()
+            entity_id = str(cond.get("entity_id", "") or "").upper()
+            category = str(cond.get("category", "") or "").upper()
+            if rel_type not in sql_up or entity_id not in sql_up:
+                return (
+                    "Missing promoted-call filter: the user requested a specific predicted/localization call, "
+                    f"so the SQL must bridge through {str(cond.get('rel_type', '') or '')} and constrain "
+                    f"the matched call entity '{str(cond.get('entity_name', '') or '')}'."
+                )
+            if category and f"$.CATEGORY') = '{category}'" not in sql_up:
+                return (
+                    "Wrong promoted-call category filter: the SQL must constrain "
+                    f"{str(cond.get('result_type', '') or '')}.metadata.category = '{str(cond.get('category', '') or '')}'."
+                )
         expression_ranking = self._expression_ranking_request(chat, message, requested_types)
         if expression_ranking:
             expr_id = str(expression_ranking["expr_id"]).upper()
@@ -1653,6 +2395,18 @@ class GenomicsChatModule(RegistryConditionModule):
             expression_sql = self._expression_ranking_query(chat, expression_ranking)
             if expression_sql:
                 return expression_sql
+        common_promoted_sql = self._common_promoted_entity_terms_query(chat, message, requested_types)
+        if common_promoted_sql:
+            return common_promoted_sql
+        common_annotation_term_sql = self._common_functional_annotation_terms_query(chat, message, requested_types)
+        if common_annotation_term_sql:
+            return common_annotation_term_sql
+        functional_annotation_sql = self._functional_annotation_ranking_query(chat, message, requested_types)
+        if functional_annotation_sql:
+            return functional_annotation_sql
+        derived_connection_sql = self._functional_derived_connection_query(chat, message, requested_types)
+        if derived_connection_sql:
+            return derived_connection_sql
         semantic_sql = self._semantic_query(chat, message, requested_types)
         if semantic_sql:
             return semantic_sql
@@ -1790,6 +2544,19 @@ class GenomicsChatModule(RegistryConditionModule):
             conditions = self._semantic_conditions(chat, message)
             evidence_columns.extend(self._semantic_condition_evidence_columns(chat, conditions))
             evidence_columns.extend(self._accepted_sql_condition_evidence_columns(requested_core_type, conditions))
+            for cond in conditions:
+                kind = str(cond.get("kind", "") or "")
+                if kind == "promoted_call":
+                    entity_name = str(cond.get("entity_name", "") or "").strip()
+                    category = str(cond.get("category", "") or "").strip()
+                    if entity_name:
+                        evidence_columns.append((f"'{self._sql_literal(entity_name)}'", "matched_call"))
+                    if category:
+                        evidence_columns.append((f"'{self._sql_literal(category)}'", "matched_call_category"))
+                elif kind == "generic_tag":
+                    tag_name = str(cond.get("tag_name", "") or "").strip()
+                    if tag_name:
+                        evidence_columns.append((f"'{self._sql_literal(tag_name)}'", "matched_tag"))
         selected_type = requested_types[0] if requested_types else ""
         if selected_type:
             metadata_filters = self._requested_metadata_filters(message)

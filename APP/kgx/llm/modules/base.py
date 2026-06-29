@@ -48,6 +48,9 @@ class ChatModule:
     ) -> list[tuple[str, str]] | None:
         return None
 
+    def reconciliation_semantic_kinds(self) -> set[str]:
+        return set()
+
 
 class RegistryChatModule(ChatModule):
     def __init__(
@@ -504,7 +507,12 @@ class RegistryConditionModule(RegistryOperatorModule):
 
     def _semantic_condition_handler_name(self, condition: dict[str, Any]) -> str:
         kind = str(condition.get("kind", "") or "")
-        return self._registry_condition_handlers().get(kind, "")
+        handler_name = self._registry_condition_handlers().get(kind, "")
+        if handler_name:
+            return handler_name
+        if kind and kind in self._semantic_condition_handlers_map():
+            return kind
+        return ""
 
     def _semantic_condition_handlers_map(self) -> dict[str, Any]:
         return {}

@@ -269,28 +269,154 @@ class ChatToSQL:
         if not sql or not evidence_columns:
             return None
         select_match = re.match(
-            r"^\s*SELECT\s+(DISTINCT\s+)?e\.id\s*,\s*e\.name\s*,\s*e\.type\b",
+            r"^\s*SELECT\s+(DISTINCT\s+)?(.+?)\s+FROM\s+entities\s+e\b",
             sql,
-            re.IGNORECASE,
+            re.IGNORECASE | re.DOTALL,
         )
-        if not select_match or not re.search(r"\bFROM\s+entities\s+e\b", sql, re.IGNORECASE):
+        if not select_match:
             return None
+        select_list = str(select_match.group(2) or "").strip()
+        normalized_select = re.sub(r"\s+", "", select_list.lower())
+        required_refs = ["e.id", "e.name", "e.type"]
+        if not all(ref.replace(" ", "") in normalized_select for ref in required_refs):
+            return None
+        existing_aliases = {
+            str(alias).lower()
+            for alias in re.findall(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)\b", sql, re.IGNORECASE)
+        }
         columns_sql = ", ".join(
             f"{str(expr).strip()} AS {str(alias).strip()}"
             for expr, alias in evidence_columns
-            if str(expr).strip() and str(alias).strip()
+            if (
+                str(expr).strip()
+                and str(alias).strip()
+                and str(alias).strip().lower() not in existing_aliases
+            )
         )
         if not columns_sql:
             return None
         distinct = "DISTINCT " if select_match.group(1) else ""
-        replacement = f"SELECT {distinct}e.id, e.name, e.type, {columns_sql}"
+        replacement = f"SELECT {distinct}{select_list}, {columns_sql} FROM entities e"
         return re.sub(
-            r"^\s*SELECT\s+(DISTINCT\s+)?e\.id\s*,\s*e\.name\s*,\s*e\.type\b",
+            r"^\s*SELECT\s+(DISTINCT\s+)?(.+?)\s+FROM\s+entities\s+e\b",
             replacement,
             sql,
             count=1,
-            flags=re.IGNORECASE,
+            flags=re.IGNORECASE | re.DOTALL,
         )
+
+    def _enrich_query_result_with_evidence(
+        self,
+        result: ChatResult,
+        *,
+        message: str,
+        requested_types: list[str],
+        debug_steps: list[dict[str, Any]],
+        step_name: str = "accepted_sql_evidence_enrichment",
+    ) -> ChatResult:
+        if result.intent != "query" or not result.sql or not result.results or not self.module:
+            return result
+        try:
+            evidence_columns = self.module.evidence_columns_for_sql(self, message, result.sql, requested_types)
+        except Exception:
+            evidence_columns = None
+        enriched_sql = self._apply_evidence_columns_to_sql(result.sql, evidence_columns)
+        debug_steps.append({
+            "step": step_name,
+            "sql": enriched_sql,
+            "evidence_columns": evidence_columns,
+        })
+        if enriched_sql and enriched_sql != result.sql:
+            try:
+                enriched_results = self.db.execute_read(enriched_sql)
+            except Exception:
+                enriched_results = []
+            if enriched_results:
+                result.sql = enriched_sql
+                result.results = enriched_results
+        return result
+
+    @staticmethod
+    def _result_identity_signature(rows: list[dict[str, Any]] | None) -> tuple[Any, ...] | None:
+        if not isinstance(rows, list):
+            return None
+        if rows and all(isinstance(row, dict) and "id" in row for row in rows):
+            return tuple(sorted(row["id"] for row in rows))
+        return None
+
+    def _reconcile_query_result_with_synthesized_semantics(
+        self,
+        result: ChatResult,
+        *,
+        message: str,
+        requested_types: list[str],
+        debug_steps: list[dict[str, Any]],
+    ) -> ChatResult:
+        if result.intent != "query" or not result.sql or not result.results or not self.module:
+            return result
+        try:
+            synthesized = self._normalize_synthesized_result(
+                self.module.synthesize_query(self, message, result.sql, requested_types)
+            )
+        except Exception:
+            synthesized = None
+        debug_steps.append({
+            "step": "accepted_sql_semantic_reconciliation_candidate",
+            "sql": synthesized.get("sql") if synthesized else None,
+            "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
+        })
+        if not synthesized:
+            return result
+        semantic_trace = synthesized.get("semantic_trace") if isinstance(synthesized.get("semantic_trace"), dict) else {}
+        semantic_kind = str(semantic_trace.get("kind", "") or "")
+        module_kinds = set(self.module.reconciliation_semantic_kinds())
+        if semantic_kind not in module_kinds:
+            return result
+        try:
+            synthesized_results = self.db.execute_read(str(synthesized["sql"]))
+        except Exception:
+            return result
+        current_signature = self._result_identity_signature(result.results)
+        synthesized_signature = self._result_identity_signature(synthesized_results)
+        debug_steps.append({
+            "step": "accepted_sql_semantic_reconciliation_results",
+            "current_signature": current_signature,
+            "synthesized_signature": synthesized_signature,
+            "current_count": len(result.results),
+            "synthesized_count": len(synthesized_results),
+        })
+        should_replace = False
+        if (
+            synthesized_signature is not None
+            and current_signature is not None
+            and synthesized_signature != current_signature
+        ):
+            should_replace = True
+        elif (
+            synthesized_signature is not None
+            and current_signature is None
+        ):
+            should_replace = True
+        elif (
+            synthesized_signature is not None
+            and current_signature is not None
+            and synthesized_signature == current_signature
+        ):
+            synthesized_sql = str(synthesized.get("sql", "") or "")
+            current_aliases = {
+                str(alias).lower()
+                for alias in re.findall(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)\b", result.sql or "", re.IGNORECASE)
+            }
+            synthesized_aliases = {
+                str(alias).lower()
+                for alias in re.findall(r"\bAS\s+([A-Za-z_][A-Za-z0-9_]*)\b", synthesized_sql, re.IGNORECASE)
+            }
+            if synthesized_aliases - current_aliases:
+                should_replace = True
+        if should_replace:
+            result.sql = str(synthesized["sql"])
+            result.results = synthesized_results
+        return result
 
     @staticmethod
     def _type_name_variants(entity_type: str) -> set[str]:
@@ -899,12 +1025,19 @@ class ChatToSQL:
                 except Exception:
                     count_map_results = []
                 debug_steps.append({"step": "validation_count_map_sql_results", "count": len(count_map_results)})
-                return ChatResult(
+                result = ChatResult(
                     intent="query",
                     content=result.content,
                     sql=str(synthesized["sql"]),
                     results=count_map_results,
                     debug=debug_steps,
+                )
+                return self._enrich_query_result_with_evidence(
+                    result,
+                    message=message,
+                    requested_types=requested_types,
+                    debug_steps=debug_steps,
+                    step_name="validation_count_map_sql_evidence_enrichment",
                 )
             retry_messages = list(messages)
             retry_messages.append({
@@ -949,12 +1082,19 @@ class ChatToSQL:
                 except Exception:
                     count_map_results = []
                 debug_steps.append({"step": "count_map_sql_results", "count": len(count_map_results)})
-                return ChatResult(
+                result = ChatResult(
                     intent="query",
                     content=result.content,
                     sql=str(synthesized["sql"]),
                     results=count_map_results,
                     debug=debug_steps,
+                )
+                return self._enrich_query_result_with_evidence(
+                    result,
+                    message=message,
+                    requested_types=requested_types,
+                    debug_steps=debug_steps,
+                    step_name="count_map_sql_evidence_enrichment",
                 )
             synthesized = self._normalize_synthesized_result(self._synthesize_typed_path_query(result.sql, requested_types))
             debug_steps.append({
@@ -969,12 +1109,19 @@ class ChatToSQL:
                 except Exception:
                     synthesized_results = []
                 debug_steps.append({"step": "synthesized_sql_results", "count": len(synthesized_results)})
-                return ChatResult(
+                result = ChatResult(
                     intent="query",
                     content=result.content,
                     sql=str(synthesized["sql"]),
                     results=synthesized_results,
                     debug=debug_steps,
+                )
+                return self._enrich_query_result_with_evidence(
+                    result,
+                    message=message,
+                    requested_types=requested_types,
+                    debug_steps=debug_steps,
+                    step_name="synthesized_sql_evidence_enrichment",
                 )
             zero_hint = self._zero_result_retry_hint(result.sql, requested_types)
             debug_steps.append({"step": "zero_result_retry_hint", "value": zero_hint})
@@ -993,24 +1140,19 @@ class ChatToSQL:
                     retry_result.debug = debug_steps
                     return retry_result
         if result.intent == "query" and result.sql and result.results and self.module:
-            try:
-                evidence_columns = self.module.evidence_columns_for_sql(self, message, result.sql, requested_types)
-            except Exception:
-                evidence_columns = None
-            enriched_sql = self._apply_evidence_columns_to_sql(result.sql, evidence_columns)
-            debug_steps.append({
-                "step": "accepted_sql_evidence_enrichment",
-                "sql": enriched_sql,
-                "evidence_columns": evidence_columns,
-            })
-            if enriched_sql and enriched_sql != result.sql:
-                try:
-                    enriched_results = self.db.execute_read(enriched_sql)
-                except Exception:
-                    enriched_results = []
-                if enriched_results:
-                    result.sql = enriched_sql
-                    result.results = enriched_results
+            result = self._reconcile_query_result_with_synthesized_semantics(
+                result,
+                message=message,
+                requested_types=requested_types,
+                debug_steps=debug_steps,
+            )
+            result = self._enrich_query_result_with_evidence(
+                result,
+                message=message,
+                requested_types=requested_types,
+                debug_steps=debug_steps,
+                step_name="accepted_sql_evidence_enrichment",
+            )
         result.debug = debug_steps
         return result
 
