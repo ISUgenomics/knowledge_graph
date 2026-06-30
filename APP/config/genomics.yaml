@@ -154,35 +154,6 @@ explore:
       include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO]
       preserve_node_types: [organism]
       skipped_rel_types: []
-    gene_centric:
-      label: Gene
-      description: Gene-anchored view that collapses transcript mediation into direct gene-to-protein focus while keeping family context.
-      required_node_types_any: [gene]
-      include_node_types: [organism, chromosome, gene, protein, orthogroup]
-      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, BELONGS_TO_ORTHOGROUP]
-      preserve_node_types: [organism]
-      mediator_type: orthogroup
-      mediator_edge: BELONGS_TO_ORTHOGROUP
-      derived_edge_type: SHARES_ORTHOGROUP
-      derived_path_edges:
-        - source_type: gene
-          via_type: transcript
-          target_type: protein
-          first_rel_type: HAS_TRANSCRIPT
-          second_rel_type: TRANSLATED_TO
-          edge_type: GENE_PRODUCT
-        - node_types: [protein, transcript, gene, orthogroup]
-          rel_types: [TRANSLATED_TO, HAS_TRANSCRIPT, BELONGS_TO_ORTHOGROUP]
-          edge_type: PROTEIN_ORTHOGROUP
-      skipped_rel_types: []
-    transcript_centric:
-      label: Transcript
-      description: Transcript and isoform view with direct expression summary and contrast semantics preserved.
-      required_node_types_any: [transcript]
-      include_node_types: [organism, chromosome, gene, transcript, protein, expression_measure, contrast_definition]
-      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO, HAS_EXPRESSION_SUMMARY, HAS_EXPRESSION_CONTRAST, CONTRAST_SOURCE, CONTRAST_TARGET]
-      preserve_node_types: [organism]
-      skipped_rel_types: []
     protein_centric:
       label: Functional
       description: Functional view centered on protein-level annotations, effectors, localization, and prediction overlays.
@@ -237,10 +208,10 @@ explore:
       skipped_rel_types: []
     expression_centric:
       label: Expression
-      description: Expression-focused view centered on genes, ordered summaries, and directed contrasts with transcript mediation collapsed.
-      required_node_types_any: [expression_measure, contrast_definition]
-      include_node_types: [organism, gene, expression_measure, contrast_definition]
-      include_rel_types: [FROM_ORGANISM, CONTRAST_SOURCE, CONTRAST_TARGET]
+      description: Expression-focused view preserving transcript and isoform context alongside ordered summaries and directed contrasts.
+      required_node_types_any: [transcript, expression_measure, contrast_definition]
+      include_node_types: [organism, chromosome, gene, transcript, protein, expression_measure, contrast_definition]
+      include_rel_types: [HAS_CHROMOSOME, HAS_GENE, HAS_TRANSCRIPT, TRANSLATED_TO, HAS_EXPRESSION_SUMMARY, HAS_EXPRESSION_CONTRAST, CONTRAST_SOURCE, CONTRAST_TARGET]
       preserve_node_types: [organism]
       derived_path_edges:
         - source_type: gene

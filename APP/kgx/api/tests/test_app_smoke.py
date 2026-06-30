@@ -180,6 +180,8 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
     db.upsert_entity("gene", "gene-1", name="Gene 1")
     db.upsert_entity("transcript", "tx-1", name="Transcript 1", metadata={"expression_bin_13": "bin_a"})
     db.upsert_entity("protein", "prot-1", name="Protein 1", metadata={"pfam": "PF00001"})
+    db.upsert_entity("expression_measure", "expr:egg", name="Egg expression", metadata={"category": "expression", "source_column": "egg", "stage_order": 1})
+    db.upsert_entity("contrast_definition", "contrast:egg-vs-juvenile", name="Egg vs Juvenile", metadata={"category": "expression_contrast"})
     db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1")
     db.upsert_entity("bcn_gene", "bcn_gene:heterodera-schachtii:hsc_gene_1.t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
     db.upsert_entity("comparative_hit", "comparative_hit:cyst_nematode:hsc-gene-1-t1", name="Hsc_gene_1.t1", metadata={"organism": "Heterodera schachtii"})
@@ -196,6 +198,10 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
     db.upsert_entity("tag", "tag:bin_a", name="bin_a", metadata={"category": "topic"})
     db.add_relationship("gene-1", "HAS_TRANSCRIPT", "tx-1")
     db.add_relationship("tx-1", "TRANSLATED_TO", "prot-1")
+    db.add_relationship("tx-1", "HAS_EXPRESSION_SUMMARY", "expr:egg")
+    db.add_relationship("tx-1", "HAS_EXPRESSION_CONTRAST", "contrast:egg-vs-juvenile")
+    db.add_relationship("contrast:egg-vs-juvenile", "CONTRAST_SOURCE", "expr:egg")
+    db.add_relationship("contrast:egg-vs-juvenile", "CONTRAST_TARGET", "expr:egg")
     db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
     db.add_relationship("chromosome:heterodera-glycines:chr1", "HAS_GENE", "gene-1")
     db.add_relationship("gene-1", "FROM_ORGANISM", "organism:heterodera-glycines")
@@ -281,13 +287,29 @@ async def test_graph_explore_presets_filter_types_and_tag_roots(tmp_path):
         rel_types = {e["rel_type"] for e in data["edges"]}
         preset_ids = {p["id"] for p in data["projection"]["available_presets"]}
         assert data["projection"]["active_preset"] == "protein_centric"
-        assert "expression_centric" not in preset_ids
+        assert "expression_centric" in preset_ids
         assert "prot-1" in node_ids
         assert "gene-1" in node_ids
         assert "tx-1" not in node_ids
         assert "pfam:pf00001" in node_ids
         assert "tag:bin_a" not in node_ids
         assert "GENE_PRODUCT" in rel_types
+
+        resp = await client.get("/api/graph", params={"mode": "explore", "preset": "expression_centric"})
+        assert resp.status_code == 200
+        data = resp.json()
+        node_ids = {n["id"] for n in data["nodes"]}
+        rel_types = {e["rel_type"] for e in data["edges"]}
+        assert data["projection"]["active_preset"] == "expression_centric"
+        assert "tx-1" in node_ids
+        assert "prot-1" in node_ids
+        assert "expr:egg" in node_ids
+        assert "contrast:egg-vs-juvenile" in node_ids
+        assert "HAS_EXPRESSION_SUMMARY" in rel_types
+        assert "HAS_EXPRESSION_CONTRAST" in rel_types
+        assert "CONTRAST_SOURCE" in rel_types
+        assert "CONTRAST_TARGET" in rel_types
+        assert "TRANSLATED_TO" in rel_types
 
         resp = await client.get("/api/graph", params={"mode": "display", "preset": "comparative"})
         assert resp.status_code == 200
@@ -361,8 +383,6 @@ async def test_graph_explore_presets_hide_optional_genomics_modes_when_layers_ab
         preset_ids = {item["id"] for item in data["projection"]["available_presets"]}
         assert data["projection"]["active_preset"] == "structure"
         assert "structure" in preset_ids
-        assert "gene_centric" in preset_ids
-        assert "transcript_centric" not in preset_ids
         assert "protein_centric" not in preset_ids
         assert "comparative" not in preset_ids
         assert "expression_centric" not in preset_ids
