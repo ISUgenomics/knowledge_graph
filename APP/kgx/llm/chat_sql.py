@@ -353,6 +353,65 @@ class ChatToSQL:
             return None
         return None
 
+    def _execute_synthesized_result(
+        self,
+        synthesized: dict[str, Any] | None,
+        *,
+        message: str,
+        requested_types: list[str],
+        content: str,
+        debug_steps: list[dict[str, Any]],
+        query_step_name: str,
+        result_step_name: str,
+        enrichment_step_name: str,
+    ) -> ChatResult | None:
+        if not synthesized:
+            return None
+        debug_steps.append({
+            "step": query_step_name,
+            "sql": synthesized.get("sql"),
+            "intent": synthesized.get("intent"),
+            "content": synthesized.get("content"),
+            "semantic_trace": synthesized.get("semantic_trace"),
+            "evidence_columns": synthesized.get("evidence_columns"),
+        })
+        synthesized_answer = self._materialize_synthesized_result(
+            synthesized,
+            content=content,
+            debug_steps=debug_steps,
+        )
+        if synthesized_answer:
+            return synthesized_answer
+        sql = str(synthesized.get("sql", "") or "").strip()
+        if not sql:
+            return None
+        try:
+            synthesized_results = self.db.execute_read(sql)
+        except Exception as e:
+            return ChatResult(
+                intent="answer",
+                content=content,
+                sql=sql,
+                error=f"Query failed: {e}",
+                debug=debug_steps,
+                presentation=self._normalized_result_presentation(intent="answer"),
+            )
+        debug_steps.append({"step": result_step_name, "count": len(synthesized_results)})
+        result = ChatResult(
+            intent="query",
+            content=content,
+            sql=sql,
+            results=synthesized_results,
+            debug=debug_steps,
+        )
+        return self._enrich_query_result_with_evidence(
+            result,
+            message=message,
+            requested_types=requested_types,
+            debug_steps=debug_steps,
+            step_name=enrichment_step_name,
+        )
+
     @staticmethod
     def _apply_evidence_columns_to_sql(sql: str, evidence_columns: list[tuple[str, str]] | None) -> str | None:
         if not sql or not evidence_columns:
@@ -1082,6 +1141,27 @@ class ChatToSQL:
             return fast
 
         debug_steps: list[dict[str, Any]] = []
+        requested_types = self._requested_result_types(message)
+        debug_steps.append({"step": "requested_result_types", "value": requested_types})
+        if self.module:
+            try:
+                deterministic = self._normalize_synthesized_result(
+                    self.module.synthesize_query(self, message, "", requested_types)
+                )
+            except Exception:
+                deterministic = None
+            deterministic_result = self._execute_synthesized_result(
+                deterministic,
+                message=message,
+                requested_types=requested_types,
+                content="",
+                debug_steps=debug_steps,
+                query_step_name="deterministic_first_synthesized",
+                result_step_name="deterministic_first_results",
+                enrichment_step_name="deterministic_first_evidence_enrichment",
+            )
+            if deterministic_result:
+                return deterministic_result
         system = _SYSTEM_TEMPLATE.format(schema_context=self._schema_context())
         messages: list[dict] = [{"role": "system", "content": system}]
         few_shots = prompt_corpus_few_shots(self.module.corpus_section() if self.module else None)
@@ -1092,8 +1172,6 @@ class ChatToSQL:
         for item in few_shots:
             messages.append({"role": "user", "content": item["prompt"] + " /no_think"})
             messages.append({"role": "assistant", "content": f"```sql\n{item['sql']}\n```"})
-        requested_types = self._requested_result_types(message)
-        debug_steps.append({"step": "requested_result_types", "value": requested_types})
         if requested_types:
             messages.append({
                 "role": "system",
@@ -1136,36 +1214,18 @@ class ChatToSQL:
             synthesized = self._normalize_synthesized_result(
                 self.module.synthesize_query(self, message, result.sql or "", requested_types) if self.module else None
             )
-            debug_steps.append({
-                "step": "validation_count_map_sql",
-                "sql": synthesized.get("sql") if synthesized else None,
-                "intent": synthesized.get("intent") if synthesized else None,
-                "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
-                "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
-            })
-            if synthesized:
-                synthesized_answer = self._materialize_synthesized_result(synthesized, content=result.content, debug_steps=debug_steps)
-                if synthesized_answer:
-                    return synthesized_answer
-                try:
-                    count_map_results = self.db.execute_read(str(synthesized["sql"]))
-                except Exception:
-                    count_map_results = []
-                debug_steps.append({"step": "validation_count_map_sql_results", "count": len(count_map_results)})
-                result = ChatResult(
-                    intent="query",
-                    content=result.content,
-                    sql=str(synthesized["sql"]),
-                    results=count_map_results,
-                    debug=debug_steps,
-                )
-                return self._enrich_query_result_with_evidence(
-                    result,
-                    message=message,
-                    requested_types=requested_types,
-                    debug_steps=debug_steps,
-                    step_name="validation_count_map_sql_evidence_enrichment",
-                )
+            synthesized_result = self._execute_synthesized_result(
+                synthesized,
+                message=message,
+                requested_types=requested_types,
+                content=result.content,
+                debug_steps=debug_steps,
+                query_step_name="validation_count_map_sql",
+                result_step_name="validation_count_map_sql_results",
+                enrichment_step_name="validation_count_map_sql_evidence_enrichment",
+            )
+            if synthesized_result:
+                return synthesized_result
             retry_messages = list(messages)
             retry_messages.append({
                 "role": "system",
@@ -1197,36 +1257,18 @@ class ChatToSQL:
             synthesized = self._normalize_synthesized_result(
                 self.module.synthesize_query(self, message, result.sql, requested_types) if self.module else None
             )
-            debug_steps.append({
-                "step": "count_map_sql",
-                "sql": synthesized.get("sql") if synthesized else None,
-                "intent": synthesized.get("intent") if synthesized else None,
-                "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
-                "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
-            })
-            if synthesized:
-                synthesized_answer = self._materialize_synthesized_result(synthesized, content=result.content, debug_steps=debug_steps)
-                if synthesized_answer:
-                    return synthesized_answer
-                try:
-                    count_map_results = self.db.execute_read(str(synthesized["sql"]))
-                except Exception:
-                    count_map_results = []
-                debug_steps.append({"step": "count_map_sql_results", "count": len(count_map_results)})
-                result = ChatResult(
-                    intent="query",
-                    content=result.content,
-                    sql=str(synthesized["sql"]),
-                    results=count_map_results,
-                    debug=debug_steps,
-                )
-                return self._enrich_query_result_with_evidence(
-                    result,
-                    message=message,
-                    requested_types=requested_types,
-                    debug_steps=debug_steps,
-                    step_name="count_map_sql_evidence_enrichment",
-                )
+            synthesized_result = self._execute_synthesized_result(
+                synthesized,
+                message=message,
+                requested_types=requested_types,
+                content=result.content,
+                debug_steps=debug_steps,
+                query_step_name="count_map_sql",
+                result_step_name="count_map_sql_results",
+                enrichment_step_name="count_map_sql_evidence_enrichment",
+            )
+            if synthesized_result:
+                return synthesized_result
             synthesized = self._normalize_synthesized_result(self._synthesize_typed_path_query(result.sql, requested_types))
             debug_steps.append({
                 "step": "synthesized_sql",

@@ -153,12 +153,8 @@ class RegistryOperatorModule(RegistryChatModule):
     #   such as organism aliases.
     # - If a domain needs more than scoped alias inputs, prefer extending this
     #   shared executor before reintroducing semantic family logic locally.
-    def _dynamic_family_source_rows(self, chat: "ChatToSQL", family_id: str) -> list[dict[str, Any]]:
-        family = self._registry_dynamic_family(family_id)
-        source = family.get("source", {}) if isinstance(family, dict) else {}
+    def _branch_tag_source_rows(self, chat: "ChatToSQL", source: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(source, dict):
-            return []
-        if str(source.get("mode", "") or "") != "branch_tags":
             return []
         root_tag_id = str(source.get("root_tag_id", "") or "")
         hierarchy_rel_type = str(source.get("hierarchy_rel_type", "BROADER") or "BROADER")
@@ -177,6 +173,15 @@ class RegistryOperatorModule(RegistryChatModule):
                 continue
             rows.append({"id": entity["id"], "name": entity.get("name", entity["id"])})
         return rows
+
+    def _dynamic_family_source_rows(self, chat: "ChatToSQL", family_id: str) -> list[dict[str, Any]]:
+        family = self._registry_dynamic_family(family_id)
+        source = family.get("source", {}) if isinstance(family, dict) else {}
+        if not isinstance(source, dict):
+            return []
+        if str(source.get("mode", "") or "") != "branch_tags":
+            return []
+        return self._branch_tag_source_rows(chat, source)
 
     @staticmethod
     def _dynamic_family_flag_values(flag_config: dict[str, Any], norm_id: str, norm_name: str) -> dict[str, bool]:
