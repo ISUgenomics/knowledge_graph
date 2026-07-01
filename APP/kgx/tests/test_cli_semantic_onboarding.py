@@ -1,6 +1,9 @@
 import json
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
+import kgx.cli as cli
 from kgx.cli import _build_semantic_onboarding_artifact, _build_semantic_onboarding_patch
 from kgx.config import load_config
 from kgx.db import KnowledgeGraphDB
@@ -64,3 +67,50 @@ def test_build_semantic_onboarding_patch_from_genomics_config(tmp_path: Path):
     assert patch["summary"]["activate_count"] >= 2
     assert patch["registry_patch"]["relation_families"]["expression_measurement"][0]["rel_type"] == "HAS_EXPRESSION_SUMMARY"
     assert patch["registry_patch"]["relation_families"]["dge_contrast"][0]["rel_type"] == "HAS_EXPRESSION_CONTRAST"
+
+
+def test_cli_db_flag_overrides_config_db_path(tmp_path: Path, monkeypatch):
+    override_db = tmp_path / "override.db"
+    override_db.write_text("")
+    captured: dict[str, object] = {}
+
+    class _NoopTimer:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def start(self):
+            return None
+
+    def _fake_create_app(app_config):
+        captured["app_config"] = app_config
+        return SimpleNamespace()
+
+    def _fake_uvicorn_run(app, host, port, log_level):
+        captured["uvicorn"] = {
+            "app": app,
+            "host": host,
+            "port": port,
+            "log_level": log_level,
+        }
+
+    monkeypatch.setattr(cli, "create_app", _fake_create_app)
+    monkeypatch.setattr(cli.uvicorn, "run", _fake_uvicorn_run)
+    monkeypatch.setattr(cli, "Timer", _NoopTimer)
+    monkeypatch.setattr(cli, "_bootstrap_db_from_seed", lambda _path: False)
+    monkeypatch.setattr(cli.webbrowser, "open", lambda _url: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "kgx",
+            "--config",
+            "sample_data/1_source/genomics_scn/app-config.yaml",
+            "--db",
+            str(override_db),
+            "--no-browser",
+        ],
+    )
+
+    cli.main()
+
+    assert captured["app_config"]["db_path"] == str(override_db)
