@@ -258,7 +258,7 @@ export function initChat(container, eventBus, apiClient) {
             } else if (data.intent === 'mutation') {
                 appendMutationPreview(data);
             } else {
-                appendMessage('assistant', data.content || data.error || '(no response)');
+                appendAnswerResult(data);
             }
 
             // Maintain history with the raw user message (not context-injected)
@@ -303,20 +303,84 @@ export function initChat(container, eventBus, apiClient) {
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function normalizedPresentation(data) {
+        const source = (data && typeof data.presentation === 'object' && data.presentation) ? data.presentation : {};
+        const availableViews = Array.isArray(source.available_views) && source.available_views.length
+            ? source.available_views
+            : inferAvailableViews(data);
+        const primaryView = typeof source.primary_view === 'string' && source.primary_view
+            ? source.primary_view
+            : availableViews[0] || 'message';
+        return {
+            ...source,
+            available_views: availableViews,
+            primary_view: primaryView,
+            prefer_summary: Boolean(source.prefer_summary),
+            prefer_table: Boolean(source.prefer_table),
+        };
+    }
+
+    function inferAvailableViews(data) {
+        if (data?.intent === 'query') return ['table'];
+        if (data?.intent === 'mutation') return ['message', 'sql'];
+        if (data?.results && data.results.length > 0) return ['summary', 'table'];
+        return ['message'];
+    }
+
+    function appendAnswerResult(data) {
+        const presentation = normalizedPresentation(data);
+        const div = document.createElement('div');
+        div.className = 'chat-msg chat-msg-result chat-msg-answer';
+
+        const header = buildPresentationHeader(data, presentation);
+        if (header) {
+            div.appendChild(header);
+        }
+
+        if (data.error) {
+            const err = document.createElement('div');
+            err.className = 'chat-result-error';
+            err.textContent = data.error;
+            div.appendChild(err);
+        }
+
+        if (presentation.primary_view === 'summary' || presentation.available_views.includes('summary')) {
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'chat-answer-summary';
+            summaryEl.textContent = data.content || data.error || '(no response)';
+            div.appendChild(summaryEl);
+        } else if (data.content) {
+            const msg = document.createElement('div');
+            msg.className = 'chat-answer-message';
+            msg.textContent = data.content;
+            div.appendChild(msg);
+        }
+
+        if (presentation.available_views.includes('table')) {
+            appendTableSection(div, data, { secondary: presentation.primary_view !== 'table' });
+        } else if (!data.content && (!data.results || data.results.length === 0) && !data.error) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-result-empty';
+            empty.textContent = 'No results';
+            div.appendChild(empty);
+        }
+
+        if (data.artifact && typeof data.artifact === 'object') {
+            div.appendChild(buildArtifactInspector(data.artifact));
+        }
+
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
     function appendQueryResult(data) {
         const div = document.createElement('div');
         div.className = 'chat-msg chat-msg-result';
 
-        const header = document.createElement('div');
-        header.className = 'chat-result-header';
-        header.textContent = `${data.count ?? 0} row${data.count !== 1 ? 's' : ''}`;
-        if (data.sql) {
-            const sqlSpan = document.createElement('code');
-            sqlSpan.className = 'chat-sql-inline';
-            sqlSpan.textContent = data.sql.length > 80 ? data.sql.slice(0, 80) + '…' : data.sql;
-            header.appendChild(sqlSpan);
+        const header = buildPresentationHeader(data, normalizedPresentation(data));
+        if (header) {
+            div.appendChild(header);
         }
-        div.appendChild(header);
 
         if (data.error) {
             const err = document.createElement('div');
@@ -324,50 +388,7 @@ export function initChat(container, eventBus, apiClient) {
             err.textContent = data.error;
             div.appendChild(err);
         } else if (data.results && data.results.length > 0) {
-            div.appendChild(buildTable(data.results.slice(0, 50)));
-            if (data.count > 50) {
-                const more = document.createElement('div');
-                more.className = 'chat-result-more';
-                more.textContent = `…and ${data.count - 50} more rows`;
-                div.appendChild(more);
-            }
-
-            // If results have an 'id' column, offer filter/highlight actions
-            const ids = data.results.map(r => r.id).filter(Boolean);
-            if (ids.length > 0 && data.sql) {
-                const actions = document.createElement('div');
-                actions.className = 'chat-filter-actions';
-                actions.innerHTML = `
-                    <button class="chat-filter-btn" data-action="highlight" title="Highlight these result nodes in the graph">Highlight ${ids.length}</button>
-                    <button class="chat-filter-btn" data-action="apply" title="Hide these result nodes in the graph">Hide ${ids.length}</button>
-                    <button class="chat-filter-btn" data-action="save" title="Save this result query as a reusable SQL filter">Save filter</button>
-                `;
-                const hlBtn = actions.querySelector('[data-action="highlight"]');
-                hlBtn.addEventListener('click', () => {
-                    eventBus.emit('node:highlight', { ids });
-                    hlBtn.textContent = `Highlighted (${ids.length})`;
-                });
-                // Re-enable when highlight is cleared (background click)
-                eventBus.on('node:highlight-cleared', () => {
-                    hlBtn.textContent = `Highlight ${ids.length}`;
-                });
-                actions.querySelector('[data-action="apply"]').addEventListener('click', () => {
-                    const filterId = 'chat-' + Date.now();
-                    eventBus.emit('node:sql-filter', { filter_id: filterId, ids, active: true });
-                    const btn = actions.querySelector('[data-action="apply"]');
-                    btn.textContent = `Hidden (${ids.length})`;
-                    btn.disabled = true;
-                });
-                actions.querySelector('[data-action="save"]').addEventListener('click', () => {
-                    const name = prompt('Filter name:', 'Chat filter');
-                    if (!name) return;
-                    eventBus.emit('chat:save-filter', { name, sql: data.sql });
-                    const btn = actions.querySelector('[data-action="save"]');
-                    btn.textContent = 'Saved!';
-                    btn.disabled = true;
-                });
-                div.appendChild(actions);
-            }
+            appendTableSection(div, data, { secondary: false });
         } else {
             const empty = document.createElement('div');
             empty.className = 'chat-result-empty';
@@ -377,6 +398,115 @@ export function initChat(container, eventBus, apiClient) {
 
         messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function buildPresentationHeader(data, presentation) {
+        const header = document.createElement('div');
+        header.className = 'chat-result-header';
+        const count = Number.isFinite(data.count) ? data.count : (Array.isArray(data.results) ? data.results.length : 0);
+        const meta = [];
+        if (presentation.primary_view === 'summary') {
+            meta.push('Summary');
+        } else if (presentation.primary_view === 'table') {
+            meta.push(`${count} row${count !== 1 ? 's' : ''}`);
+        } else {
+            meta.push('Message');
+        }
+        if (presentation.artifact_kind) {
+            meta.push(presentation.artifact_kind.replace(/_/g, ' '));
+        }
+        if (presentation.summary_style) {
+            meta.push(presentation.summary_style);
+        }
+        header.textContent = meta.join(' · ');
+        if (data.sql) {
+            const sqlSpan = document.createElement('code');
+            sqlSpan.className = 'chat-sql-inline';
+            sqlSpan.textContent = data.sql.length > 80 ? data.sql.slice(0, 80) + '…' : data.sql;
+            header.appendChild(sqlSpan);
+        }
+        return header;
+    }
+
+    function appendTableSection(container, data, { secondary = false } = {}) {
+        const rows = Array.isArray(data.results) ? data.results : [];
+        if (!rows.length) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-result-empty';
+            empty.textContent = 'No results';
+            container.appendChild(empty);
+            return;
+        }
+        const section = document.createElement('div');
+        section.className = secondary ? 'chat-result-section chat-result-section-secondary' : 'chat-result-section';
+        if (secondary) {
+            const label = document.createElement('div');
+            label.className = 'chat-result-section-label';
+            label.textContent = 'Supporting rows';
+            section.appendChild(label);
+        }
+        section.appendChild(buildTable(rows.slice(0, 50)));
+        if ((data.count ?? rows.length) > 50) {
+            const more = document.createElement('div');
+            more.className = 'chat-result-more';
+            more.textContent = `…and ${(data.count ?? rows.length) - 50} more rows`;
+            section.appendChild(more);
+        }
+        appendRowActions(section, data, rows);
+        container.appendChild(section);
+    }
+
+    function appendRowActions(container, data, rows) {
+        const ids = rows.map(r => r.id).filter(Boolean);
+        if (ids.length === 0 || !data.sql) return;
+        const actions = document.createElement('div');
+        actions.className = 'chat-filter-actions';
+        actions.innerHTML = `
+            <button class="chat-filter-btn" data-action="highlight" title="Highlight these result nodes in the graph">Highlight ${ids.length}</button>
+            <button class="chat-filter-btn" data-action="apply" title="Hide these result nodes in the graph">Hide ${ids.length}</button>
+            <button class="chat-filter-btn" data-action="save" title="Save this result query as a reusable SQL filter">Save filter</button>
+        `;
+        const hlBtn = actions.querySelector('[data-action="highlight"]');
+        hlBtn.addEventListener('click', () => {
+            eventBus.emit('node:highlight', { ids });
+            hlBtn.textContent = `Highlighted (${ids.length})`;
+        });
+        eventBus.on('node:highlight-cleared', () => {
+            hlBtn.textContent = `Highlight ${ids.length}`;
+        });
+        actions.querySelector('[data-action="apply"]').addEventListener('click', () => {
+            const filterId = 'chat-' + Date.now();
+            eventBus.emit('node:sql-filter', { filter_id: filterId, ids, active: true });
+            const btn = actions.querySelector('[data-action="apply"]');
+            btn.textContent = `Hidden (${ids.length})`;
+            btn.disabled = true;
+        });
+        actions.querySelector('[data-action="save"]').addEventListener('click', () => {
+            const name = prompt('Filter name:', 'Chat filter');
+            if (!name) return;
+            eventBus.emit('chat:save-filter', { name, sql: data.sql });
+            const btn = actions.querySelector('[data-action="save"]');
+            btn.textContent = 'Saved!';
+            btn.disabled = true;
+        });
+        container.appendChild(actions);
+    }
+
+    function buildArtifactInspector(artifact) {
+        const details = document.createElement('details');
+        details.className = 'chat-artifact-details';
+        const summary = document.createElement('summary');
+        summary.className = 'chat-artifact-summary';
+        const kind = String(artifact.artifact_kind || 'artifact').replace(/_/g, ' ');
+        const rows = Array.isArray(artifact.rows) ? artifact.rows.length : 0;
+        summary.textContent = `Inspect artifact · ${kind} · ${rows} row${rows !== 1 ? 's' : ''}`;
+        details.appendChild(summary);
+
+        const pre = document.createElement('pre');
+        pre.className = 'chat-artifact-json';
+        pre.textContent = JSON.stringify(artifact, null, 2);
+        details.appendChild(pre);
+        return details;
     }
 
     function appendMutationPreview(data) {
