@@ -336,6 +336,105 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 "heterodera schachtii": ["bcn"],
             },
         },
+        "result_type_preferences": {
+            "prefer": [
+                {
+                    "id": "broad_homology_organism_tags",
+                    "phase": "pre_core",
+                    "result_type": "tag",
+                    "available_type": "tag",
+                    "all_alias_groups": [
+                        [" broad homology ", " broad homologies ", " broad parasitism ", " broad parasistism "],
+                        [" organism ", " organisms ", " organism tag ", " organism tags "],
+                    ],
+                    "suppress_result_types": ["organism"],
+                },
+                {
+                    "id": "hgt_donor_results",
+                    "phase": "pre_core",
+                    "result_type": "hgt_donor",
+                    "available_type": "hgt_donor",
+                    "aliases": [
+                        " hgt donor ",
+                        " hgt donors ",
+                        " horizontal gene transfer donor ",
+                        " horizontal gene transfer donors ",
+                    ],
+                    "requires_no_explicit_core_terms": True,
+                    "ignore_terms_for_explicit_core_check": [" horizontal gene transfer ", " hgt "],
+                    "suppress_result_types": ["gene"],
+                },
+                {
+                    "id": "ortholog_member_results",
+                    "phase": "post_core",
+                    "result_type": "bcn_gene",
+                    "available_type": "bcn_gene",
+                    "alias_source_operator": "ortholog_member",
+                },
+                {
+                    "id": "comparative_hit_results",
+                    "phase": "post_core",
+                    "result_type": "comparative_hit",
+                    "available_type": "comparative_hit",
+                    "aliases": ["homology hit", "homology hits"],
+                },
+            ],
+        },
+        "annotation_namespaces": [
+            {
+                "namespace": "go",
+                "category": "functional_annotation",
+                "aliases": [" go term ", " go terms ", " gene ontology ", " gene ontology term ", " gene ontology terms "],
+            },
+            {
+                "namespace": "interpro",
+                "category": "domain_annotation",
+                "aliases": [" interpro ", " interpro domain ", " interpro domains "],
+            },
+            {
+                "namespace": "pfam",
+                "category": "domain_annotation",
+                "aliases": [" pfam ", " pfam family ", " pfam families "],
+            },
+            {
+                "namespace": "smart",
+                "category": "domain_annotation",
+                "aliases": [" smart domain ", " smart domains ", " smart "],
+            },
+            {
+                "namespace": "funfam",
+                "category": "domain_annotation",
+                "aliases": [" funfam ", " funfam family ", " funfam families "],
+            },
+            {
+                "namespace": "panther",
+                "category": "domain_annotation",
+                "aliases": [" panther ", " panther family ", " panther families "],
+            },
+        ],
+        "common_promoted_entities": [
+            {
+                "result_type": "annotation_term",
+                "rel_type": "HAS_ANNOTATION",
+                "category": "functional_annotation",
+                "aliases": [" functional annotation ", " functional annotations ", " annotation term ", " annotation terms "],
+                "count_alias": "annotated_entity_count",
+            },
+            {
+                "result_type": "localization_call",
+                "rel_type": "HAS_LOCALIZATION",
+                "category": "localization",
+                "aliases": [" localization assigned ", " localization ", " localizations ", " subcellular localization ", " subcellular localizations "],
+                "count_alias": "assigned_entity_count",
+            },
+            {
+                "result_type": "prediction_call",
+                "rel_type": "HAS_PREDICTION",
+                "category": "prediction_feature",
+                "aliases": [" prediction assigned ", " prediction feature ", " prediction features ", " signal assigned ", " signal feature ", " signal features "],
+                "count_alias": "assigned_entity_count",
+            },
+        ],
         "operators": {
             "parsers": {
                 "alias_match": {
@@ -378,6 +477,8 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                             "putative": {"any_substrings": ["putative"]},
                             "dna": {"any_substrings": ["dna"]},
                             "protein": {"any_substrings": ["protein"]},
+                            "scn": {"any_substrings": ["scn"]},
+                            "bcn": {"any_substrings": ["bcn"]},
                             "island": {"any_substrings": ["island"]},
                         },
                     },
@@ -461,6 +562,39 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                     "output": {
                         "condition_kind": "tag_evidence",
                     },
+                    "selection": {
+                        "match_groups": ["primary_scoped_aliases", "secondary_scoped_aliases", "generic_aliases"],
+                        "stop_at_first_nonempty_group": True,
+                    },
+                    "display": {
+                        "rules": [
+                            {
+                                "alias": "scn_known_n",
+                                "metadata_field": "glycines_effectors_dna",
+                                "require_all_flags": ["scn", "dna"],
+                            },
+                            {
+                                "alias": "scn_known_p",
+                                "metadata_field": "glycines_effectors_prot",
+                                "require_all_flags": ["scn", "protein"],
+                            },
+                            {
+                                "alias": "bcn_known",
+                                "metadata_field": "schachtii_effectors_known",
+                                "require_all_flags": ["bcn", "known"],
+                            },
+                            {
+                                "alias": "bcn_putative",
+                                "metadata_field": "schachtii_effectors_putative",
+                                "require_all_flags": ["bcn", "putative"],
+                            },
+                            {
+                                "alias": "scn_putative",
+                                "metadata_field": "effector",
+                                "require_all_flags": ["scn", "putative"],
+                            },
+                        ],
+                    },
                 },
             },
             "condition_handlers": {
@@ -469,6 +603,62 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 "ortholog_member": "ortholog_member",
                 "scope_tag": "scope_tag",
                 "tag_evidence": "tag_evidence",
+            },
+            "matchers": {
+                "promoted_call": {
+                    "required_any_message_cues": [
+                        " predicted ",
+                        " prediction ",
+                        " predictions ",
+                        " signal ",
+                        " localization ",
+                        " localized ",
+                        " assigned ",
+                        " measured ",
+                        " measurement ",
+                        " measurements ",
+                        " with ",
+                        " having ",
+                    ],
+                },
+                "generic_tag": {
+                    "required_any_message_cues": [
+                        " tagged ",
+                        " tag ",
+                        " with tag ",
+                        " has tag ",
+                        " tagged as ",
+                        " tagged with ",
+                    ],
+                },
+                "functional_annotation_ranking": {
+                    "required_any_message_cues": [
+                        " functional annotation ",
+                        " functional annotations ",
+                        " annotation ",
+                        " annotations ",
+                    ],
+                    "ranking_any_message_cues": [
+                        " most ",
+                        " highest ",
+                        " top ",
+                    ],
+                },
+                "common_ranking": {
+                    "required_any_message_cues": [
+                        " most common ",
+                        " commonest ",
+                        " top ",
+                        " frequent ",
+                        " frequently ",
+                    ],
+                },
+                "functional_annotation_category": {
+                    "required_any_message_cues": [
+                        " functional annotation ",
+                        " functional annotations ",
+                    ],
+                },
             },
             "specs": {
                 "protein_evidence": {

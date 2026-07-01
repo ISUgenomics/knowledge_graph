@@ -21,6 +21,12 @@ class SynthesisSQL(str):
 
 
 class ChatModule:
+    def analyze_request(self, chat: "ChatToSQL", message: str, requested_types: list[str]) -> dict[str, Any] | None:
+        return None
+
+    def synthesize_analysis(self, chat: "ChatToSQL", analysis: dict[str, Any]) -> str | dict[str, Any] | None:
+        return None
+
     def corpus_section(self) -> str | None:
         return None
 
@@ -107,6 +113,23 @@ class RegistryChatModule(ChatModule):
             str(sql),
             evidence_columns=evidence_columns,
             semantic_trace=semantic_trace,
+        )
+
+    @classmethod
+    def _analysis_synthesis_result(
+        cls,
+        sql: str,
+        *,
+        analysis: dict[str, Any],
+        evidence_columns: list[tuple[str, str]] | None = None,
+        semantic_trace: dict[str, Any] | None = None,
+    ) -> SynthesisSQL:
+        trace = dict(semantic_trace or {})
+        trace["analysis"] = dict(analysis or {})
+        return cls._synthesis_result(
+            sql,
+            evidence_columns=evidence_columns,
+            semantic_trace=trace,
         )
 
     @staticmethod
