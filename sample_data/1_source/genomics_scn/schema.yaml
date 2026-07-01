@@ -590,15 +590,19 @@ tag_bins:
     promoted_id_template: prediction:{category}:{id}
   dataset_specific: []
 boolean_tags:
-  shared: []
-  dataset_specific: []
-value_presence_tags:
   shared:
   - column: effector_islands
+    truthy:
+    - 'true'
+    - 'yes'
+    - '1'
     tag_id: effector-island
     label: Effector Island
     attach_to: gene
     parent_tag: effector-evidence
+  dataset_specific: []
+value_presence_tags:
+  shared:
   - column: schachtii_effectors_known
     tag_id: bcn-known-effector-hit
     label: BCN Known Effector Hit

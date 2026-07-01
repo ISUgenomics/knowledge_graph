@@ -331,6 +331,9 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             },
         },
         "organisms": {
+            "primary_selection": {
+                "relationship_type": "HAS_CHROMOSOME",
+            },
             "alias_overrides": {
                 "heterodera glycines": ["scn"],
                 "heterodera schachtii": ["bcn"],
@@ -919,6 +922,25 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
             },
         },
         "aggregations": {
+            "operations": {
+                "count": {
+                    "operation": "count",
+                    "metric_label": "count",
+                },
+                "average": {
+                    "operation": "average",
+                },
+                "percentile": {
+                    "operation": "percentile",
+                    "requires_percentile": True,
+                },
+                "min": {
+                    "operation": "min",
+                },
+                "max": {
+                    "operation": "max",
+                },
+            },
             "numeric_scalar": {
                 "average": {
                     "metric_label": "average",

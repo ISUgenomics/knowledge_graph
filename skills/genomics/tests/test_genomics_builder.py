@@ -14,6 +14,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from build_genomics_dataset import build_dataset
+from build_genomics_dataset import _seed_tag_hierarchy
 from infer_source_package import infer_source_package
 from apply_schema_patch import apply_schema_patch
 from genomics_contract import combine_section
@@ -248,6 +249,26 @@ def test_build_dataset_creates_core_entities_and_relationships(tmp_path: Path):
     assert (vault_dir / "comparative_hits").exists()
     assert (vault_dir / "hgt_donors").exists()
     assert (vault_dir / "tags").exists()
+
+
+def test_seed_tag_hierarchy_handles_parent_updates_that_preserve_old_order(tmp_path: Path):
+    db_path = tmp_path / "tag-hierarchy.db"
+    hierarchy = {
+        "genomics": {"name": "Genomics", "category": "domain", "parent": ""},
+        "functional-annotations": {"name": "Functional Annotations", "category": "field", "parent": "genomics"},
+        "effectors": {"name": "Effectors", "category": "field", "parent": "functional-evidence"},
+        "functional-evidence": {"name": "Functional Evidence", "category": "field", "parent": "functional-annotations"},
+        "effector-evidence": {"name": "Effector Evidence", "category": "topic", "parent": "effectors"},
+    }
+
+    with KnowledgeGraphDB(db_path) as db:
+        created = _seed_tag_hierarchy(db, hierarchy)
+        assert created["effectors"] == "effectors"
+        assert created["effector-evidence"] == "effector-evidence"
+        effector_parent = db.get_relationships("effectors", "BROADER", direction="outgoing")
+        evidence_parent = db.get_relationships("effector-evidence", "BROADER", direction="outgoing")
+        assert any(rel["target_id"] == "functional-evidence" for rel in effector_parent)
+        assert any(rel["target_id"] == "effectors" for rel in evidence_parent)
 
 
 def test_infer_source_package_from_arbitrary_local_table_and_notes(tmp_path: Path):

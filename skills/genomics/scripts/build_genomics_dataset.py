@@ -479,15 +479,29 @@ def _ensure_tag(db: KnowledgeGraphDB, tag_id: str, *, name: str, category: str, 
 
 def _seed_tag_hierarchy(db: KnowledgeGraphDB, hierarchy: dict[str, dict[str, Any]]) -> dict[str, str]:
     created: dict[str, str] = {}
-    for tag_id, info in hierarchy.items():
-        parent = info.get("parent", "") or ""
-        created[tag_id] = _ensure_tag(
-            db,
-            tag_id,
-            name=info.get("name", _slug_label(tag_id)),
-            category=info.get("category", "topic"),
-            parent=created.get(parent, parent),
+    pending = {str(tag_id): dict(info or {}) for tag_id, info in hierarchy.items()}
+    while pending:
+        progressed = False
+        for tag_id, info in list(pending.items()):
+            parent = str(info.get("parent", "") or "").strip()
+            if parent and parent in pending:
+                continue
+            created[tag_id] = _ensure_tag(
+                db,
+                tag_id,
+                name=info.get("name", _slug_label(tag_id)),
+                category=info.get("category", "topic"),
+                parent=created.get(parent, parent),
+            )
+            pending.pop(tag_id, None)
+            progressed = True
+        if progressed:
+            continue
+        unresolved = ", ".join(
+            f"{tag_id}->{str(info.get('parent', '') or '').strip() or '<root>'}"
+            for tag_id, info in sorted(pending.items())
         )
+        raise ValueError(f"Unresolvable tag hierarchy; possible cycle or missing parent: {unresolved}")
     return created
 
 
