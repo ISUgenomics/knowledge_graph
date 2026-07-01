@@ -206,6 +206,85 @@ def test_requested_result_types_prefers_hgt_donor_alias_over_gene_word(tmp_path:
     assert requested == ["hgt_donor"]
 
 
+def test_genomics_registry_drives_result_type_preference_rules(tmp_path: Path):
+    db_path = tmp_path / "chat-registry-result-type-rules.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    rules = list(registry.get("result_type_preferences", {}).get("prefer", []) or [])
+    comparative_rule = next(rule for rule in rules if rule.get("id") == "comparative_hit_results")
+    comparative_rule["aliases"] = ["custom comparative target", "custom comparative targets"]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    requested = chat._requested_result_types("list custom comparative targets")
+    db.close()
+
+    assert requested == ["comparative_hit"]
+
+
+def test_genomics_registry_drives_generic_tag_request_cues(tmp_path: Path):
+    db_path = tmp_path / "chat-generic-tag-matcher.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("tag", "effector-island", name="Effector Island")
+    db.add_relationship("gene-1", "TAGGED", "effector-island")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["matchers"]["generic_tag"]["required_any_message_cues"] = [" labeled "]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    without_custom_cue = chat.module._semantic_conditions(chat, "select genes tagged as effector island")
+    with_custom_cue = chat.module._semantic_conditions(chat, "select genes labeled effector island")
+    db.close()
+
+    assert not any(cond["kind"] == "generic_tag" for cond in without_custom_cue)
+    assert any(cond["kind"] == "generic_tag" and cond["tag_id"] == "effector-island" for cond in with_custom_cue)
+
+
+def test_genomics_registry_drives_common_ranking_request_cues(tmp_path: Path):
+    db_path = tmp_path / "chat-common-ranking-matcher.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("annotation_term", "ann-1", name="GO:0008150", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["matchers"]["common_ranking"]["required_any_message_cues"] = [" dominant "]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    assert chat.module._requests_common_functional_annotation_terms("what is the most common GO term?", ["annotation_term"]) is False
+    assert chat.module._requests_common_functional_annotation_terms("what is the dominant GO term?", ["annotation_term"]) is True
+    db.close()
+
+
+def test_genomics_registry_drives_annotation_namespace_aliases(tmp_path: Path):
+    db_path = tmp_path / "chat-namespace-aliases.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("annotation_term", "ann-1", name="IPR0001", metadata={"namespace": "interpro", "category": "domain_annotation"})
+    db.close()
+
+    registry = load_semantic_registry(None)
+    for spec in registry["annotation_namespaces"]:
+        if spec.get("namespace") == "interpro":
+            spec["aliases"] = [" protein family domain "]
+            break
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    detected = chat.module._requested_functional_annotation_namespace("what is the most common protein family domain?")
+    db.close()
+
+    assert detected is not None
+    assert detected["namespace"] == "interpro"
+
+
 def test_ask_includes_general_and_module_few_shot_examples(tmp_path: Path):
     db_path = tmp_path / "chat-few-shot.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -859,6 +938,14 @@ WHERE e.type = 'gene'
     assert "AS homolog_organism" in result.sql
     assert [row["id"] for row in result.results] == ["gene-1"]
     assert result.results[0]["homolog_organism"] == "Ditylenchus destructor"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_evidence_homology_organism_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "evidence_homology_organism_filters"
+        and "homology-organism:ditylenchus-destructor" in list(step["semantic_trace"].get("homology_organism_ids", []))
+        for step in result.debug
+    )
 
 
 def test_synthesizes_gene_bridge_query_from_zero_row_direct_evidence_sql(tmp_path: Path):
@@ -1042,6 +1129,13 @@ ORDER BY e.name
     assert result.results[0]["ortholog_copy_count"] == 2
     assert result.results[0]["ortholog_organisms"] == "Heterodera schachtii"
     assert "Heterodera schachtii" in str(result.results[0]["gene_counts"])
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "ortholog_count_map"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "ortholog_count_results"
+        for step in result.debug
+    )
 
 
 def test_ask_rewrites_nonzero_ortholog_count_query_to_gene_counts_owner(tmp_path: Path):
@@ -1196,6 +1290,115 @@ ORDER BY e.name
     assert result.results[0]["ortholog_organisms"] == "Cervus canadensis"
     assert result.results[1]["ortholog_copy_count"] == 4
     assert result.results[1]["ortholog_organisms"] == "Cervus canadensis"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "ortholog_member_edges"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "ortholog_count_results"
+        for step in result.debug
+    )
+
+
+def test_ortholog_count_unknown_requested_organism_returns_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-count-unknown-organism.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    class _BadOrthologCountLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadOrthologCountLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies from Cervus canadensis")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results == []
+    assert "No organism named Cervus canadensis was found in this dataset." == result.content
+
+
+def test_ortholog_count_unknown_requested_lowercase_organism_returns_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-count-unknown-organism-lowercase.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    class _BadOrthologCountLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BadOrthologCountLLM(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies from cervus canadensis")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results == []
+    assert result.content == "No organism named cervus canadensis was found in this dataset."
+
+
+def test_ortholog_count_unknown_requested_organism_reconciles_accepted_sql_to_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-ortholog-count-unknown-organism-accepted-sql.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    class _BroadAcceptedOrthologSQL:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+ORDER BY e.name
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _BroadAcceptedOrthologSQL(), module=GenomicsChatModule())
+    result = chat.ask("select genes with 2 or more ortholog gene copies from Cervus canadensis")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results == []
+    assert result.content == "No organism named Cervus canadensis was found in this dataset."
 
 
 def test_synthesizes_gene_query_from_owner_side_orthogroup_count_sql(tmp_path: Path):
@@ -1429,6 +1632,13 @@ WHERE e.type = 'comparative_hit'
     assert [row["id"] for row in result.results] == ["homology-organism:ditylenchus-destructor"]
     assert result.results[0]["tag_group"] == "Homology Organism"
     assert result.results[0]["homology_scope"] == "Broad Parasitism"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "broad_homology_organism_tags"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "broad_homology_organism_tag_results"
+        for step in result.debug
+    )
 
 
 def test_ask_returns_homology_organism_tags_for_broad_parasitism_driver_tags(tmp_path: Path):
@@ -1489,6 +1699,13 @@ def test_ask_synthesizes_protein_hgt_query_with_orthogroup_filter(tmp_path: Path
     assert "BELONGS_TO_ORTHOGROUP" in (result.sql or "")
     assert "OG0005830" in (result.sql or "")
     assert result.results[0]["orthogroup_label"] == "OG0005830"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_evidence_orthogroup_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "evidence_orthogroup_filters"
+        for step in result.debug
+    )
 
 
 def test_genomics_module_enriches_valid_llm_sql_with_condition_evidence(tmp_path: Path):
@@ -1670,6 +1887,58 @@ AND e.type = 'protein'
     assert "HAS_BROAD_HOMOLOGY_HIT" in (result.sql or "")
     assert result.results[0]["hgt_donor"] == "WP_194067917"
     assert result.results[0]["homology_scope"] == "Broad Parasitism"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_scope_tag_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "scope_tag_filters"
+        and "homology-scope-broad-parasitism" in list(step["semantic_trace"].get("scope_tag_ids", []))
+        and "hgt_donor" in list(step["semantic_trace"].get("evidence_ids", []))
+        and "broad_homology" in list(step["semantic_trace"].get("evidence_ids", []))
+        for step in result.debug
+    )
+
+
+def test_ask_synthesizes_multi_condition_filter_for_prediction_and_hgt(tmp_path: Path):
+    db_path = tmp_path / "chat-multi-condition-prediction-hgt.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("prediction_call", "pred-1", name="transmembrane_domain", metadata={"category": "prediction_feature"})
+    db.upsert_entity("prediction_call", "pred-2", name="signal_peptide", metadata={"category": "prediction_feature"})
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1")
+    db.add_relationship("prot-2", "HAS_PREDICTION", "pred-2")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+ORDER BY e.name
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select proteins predicted as transmembrane domains with HGT donor")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "HAS_PREDICTION" in result.sql
+    assert "HAS_HGT_DONOR" in result.sql
+    assert [row["id"] for row in result.results] == ["prot-1"]
+    assert result.results[0]["matched_call"] == "transmembrane_domain"
+    assert result.results[0]["hgt_donor"] == "WP_194067917"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_multi_condition_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "multi_condition_filters"
+        for step in result.debug
+    )
 
 
 def test_synthesizes_protein_query_for_scn_known_effectors(tmp_path: Path):
@@ -1708,6 +1977,10 @@ def test_synthesizes_protein_query_for_scn_known_effectors(tmp_path: Path):
         ["protein"],
     )
     assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_effector_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "effector_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("families") == ["known"]
     sql = synthesized["sql"] if isinstance(synthesized, dict) else synthesized
     rows = db.execute_read(sql)
     db.close()
@@ -1754,6 +2027,10 @@ def test_synthesizes_protein_query_for_bcn_putative_effectors(tmp_path: Path):
         ["protein"],
     )
     assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_effector_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "effector_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("families") == ["putative"]
     sql = synthesized["sql"] if isinstance(synthesized, dict) else synthesized
     rows = db.execute_read(sql)
     db.close()
@@ -1933,11 +2210,15 @@ def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(
 
     generic_sql = chat.module.synthesize_query(chat, "select all known effectors", "SELECT 1", ["protein"])
     assert generic_sql is not None
-    generic_rows = db.execute_read(generic_sql)
-    assert "tag:bcn-known-effector-hit" in generic_sql
-    assert "tag:scn-dna-effector-hit" in generic_sql
-    assert "tag:scn-protein-effector-hit" in generic_sql
-    assert len([line for line in generic_sql.splitlines() if "JOIN relationships etg" in line]) == 1
+    assert isinstance(generic_sql, dict)
+    assert generic_sql.get("semantic_trace", {}).get("kind") == "genomics_effector_tag_filters"
+    assert generic_sql.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "effector_tag_filters"
+    assert generic_sql.get("semantic_trace", {}).get("families") == ["known"]
+    generic_rows = db.execute_read(generic_sql["sql"])
+    assert "tag:bcn-known-effector-hit" in generic_sql["sql"]
+    assert "tag:scn-dna-effector-hit" in generic_sql["sql"]
+    assert "tag:scn-protein-effector-hit" in generic_sql["sql"]
+    assert len([line for line in generic_sql["sql"].splitlines() if "JOIN relationships etg" in line]) == 1
     assert sorted(row["name"] for row in generic_rows) == ["10A06", "10C01", "16B09", "BCN_ONLY"]
 
     scn_sql = chat.module.synthesize_query(
@@ -1947,10 +2228,12 @@ def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(
         ["protein"],
     )
     assert scn_sql is not None
-    scn_rows = db.execute_read(scn_sql)
-    assert "tag:bcn-known-effector-hit" not in scn_sql
-    assert "tag:scn-dna-effector-hit" in scn_sql
-    assert "tag:scn-protein-effector-hit" in scn_sql
+    assert isinstance(scn_sql, dict)
+    assert scn_sql.get("semantic_trace", {}).get("kind") == "genomics_effector_tag_filters"
+    scn_rows = db.execute_read(scn_sql["sql"])
+    assert "tag:bcn-known-effector-hit" not in scn_sql["sql"]
+    assert "tag:scn-dna-effector-hit" in scn_sql["sql"]
+    assert "tag:scn-protein-effector-hit" in scn_sql["sql"]
     assert sorted(row["name"] for row in scn_rows) == ["10A06", "10C01", "16B09"]
 
     full_scn_sql = chat.module.synthesize_query(
@@ -1960,8 +2243,8 @@ def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(
         ["protein"],
     )
     assert full_scn_sql is not None
-    full_scn_rows = db.execute_read(full_scn_sql)
-    assert "tag:bcn-known-effector-hit" not in full_scn_sql
+    full_scn_rows = db.execute_read(full_scn_sql["sql"] if isinstance(full_scn_sql, dict) else full_scn_sql)
+    assert "tag:bcn-known-effector-hit" not in (full_scn_sql["sql"] if isinstance(full_scn_sql, dict) else full_scn_sql)
     assert sorted(row["name"] for row in full_scn_rows) == ["10A06", "10C01", "16B09"]
 
     bcn_sql = chat.module.synthesize_query(
@@ -1971,10 +2254,10 @@ def test_effector_queries_keep_generic_known_broad_but_organism_scoped_specific(
         ["protein"],
     )
     assert bcn_sql is not None
-    bcn_rows = db.execute_read(bcn_sql)
-    assert "tag:bcn-known-effector-hit" in bcn_sql
-    assert "tag:scn-dna-effector-hit" not in bcn_sql
-    assert "tag:scn-protein-effector-hit" not in bcn_sql
+    bcn_rows = db.execute_read(bcn_sql["sql"] if isinstance(bcn_sql, dict) else bcn_sql)
+    assert "tag:bcn-known-effector-hit" in (bcn_sql["sql"] if isinstance(bcn_sql, dict) else bcn_sql)
+    assert "tag:scn-dna-effector-hit" not in (bcn_sql["sql"] if isinstance(bcn_sql, dict) else bcn_sql)
+    assert "tag:scn-protein-effector-hit" not in (bcn_sql["sql"] if isinstance(bcn_sql, dict) else bcn_sql)
     assert sorted(row["name"] for row in bcn_rows) == ["10C01", "16B09", "BCN_ONLY"]
 
     db.close()
@@ -2019,6 +2302,41 @@ def test_effector_prompts_do_not_mix_in_homology_scope_conditions(tmp_path: Path
     assert any(cond["kind"] == "scope_tag" for cond in homology_conditions)
 
     db.close()
+
+
+def test_synthesizes_protein_query_for_scope_tag_homology_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-scope-tag-homology-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("comparative_hit", "hit-1", name="Cyst Hit 1")
+    db.upsert_entity("comparative_hit", "hit-2", name="Broad Hit 2")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("prot-1", "HAS_BCN_HIT", "hit-1")
+    db.add_relationship("prot-2", "HAS_BCN_HIT", "hit-2")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-cyst-nematode")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    synthesized = chat.module.synthesize_query(chat, "select proteins with cyst nematode homology", "", ["protein"])
+    assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_scope_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "scope_tag_filters"
+    assert synthesized.get("semantic_trace", {}).get("scope_tag_ids") == ["homology-scope-cyst-nematode"]
+    assert "bcn_homology" in synthesized.get("semantic_trace", {}).get("evidence_ids", [])
+    rows = db.execute_read(synthesized["sql"])
+    db.close()
+
+    assert "HAS_BCN_HIT" in synthesized["sql"]
+    assert "homology-scope-cyst-nematode" in synthesized["sql"]
+    assert rows
+    assert rows[0]["id"] == "prot-1"
 
 
 def test_registry_drives_protein_evidence_synthesis_and_validation(tmp_path: Path):
@@ -2158,6 +2476,62 @@ WHERE e.type = 'protein'
     assert "Unexpected evidence condition" in err or "Unexpected scope filter" in err
 
 
+def test_validation_error_rejects_missing_generic_tag_filter(tmp_path: Path):
+    db_path = tmp_path / "chat-missing-generic-tag-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("tag", "effector-island", name="Effector Island")
+    db.add_relationship("gene-1", "TAGGED", "effector-island")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+""",
+        ["gene"],
+        "select genes tagged as Effector Island",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Missing generic-tag filter" in err
+
+
+def test_validation_error_rejects_missing_broad_homology_organism_filter_from_analysis(tmp_path: Path):
+    db_path = tmp_path / "chat-missing-broad-homology-organism-filter.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.upsert_entity("tag", "homology-organism", name="Homology Organism")
+    db.upsert_entity("tag", "homology-organism:ditylenchus-destructor", name="Ditylenchus destructor")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-organism:ditylenchus-destructor")
+    db.add_relationship("homology-organism:ditylenchus-destructor", "BROADER", "homology-organism")
+    db.close()
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
+    err = chat._validate_sql_against_schema(
+        """
+SELECT DISTINCT e.id, e.name, e.type
+FROM entities e
+JOIN relationships ev1 ON ev1.source_id = e.id AND ev1.rel_type = 'HAS_BROAD_HOMOLOGY_HIT'
+JOIN entities t2 ON t2.id = ev1.target_id AND t2.type = 'comparative_hit'
+WHERE e.type = 'protein'
+""",
+        ["protein"],
+        "select proteins with broad homology to Ditylenchus destructor",
+    )
+    db.close()
+
+    assert err is not None
+    assert "Missing broad-homology organism filter" in err
+
+
 def test_ask_synthesizes_functional_derived_protein_connections(tmp_path: Path):
     db_path = tmp_path / "chat-functional-derived-connections.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -2191,6 +2565,12 @@ WHERE e.type = 'protein'
 
     assert result.error is None
     assert result.sql is not None
+    derived_step = next(
+        step for step in result.steps
+        if step.get("semantic_trace", {}).get("kind") == "functional_derived_connections"
+        and step.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "functional_derived_connections"
+    )
+    assert derived_step is not None
     assert "HAS_ANNOTATION" in result.sql
     assert "derived_connection_count" in result.sql
     assert [row["id"] for row in result.results] == ["prot-1"]
@@ -2499,6 +2879,13 @@ LIMIT 1
     assert [row["id"] for row in result.results] == ["loc-1"]
     assert result.results[0]["name"] == "nucleus"
     assert result.results[0]["assigned_entity_count"] == 2
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "common_promoted_entity_terms"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("subject", {}).get("entity_type") == "localization_call"
+        for step in result.debug
+    )
 
 
 def test_ask_synthesizes_prediction_call_filter_for_proteins(tmp_path: Path):
@@ -2534,6 +2921,13 @@ ORDER BY e.name
     assert "pred-1" in result.sql
     assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
     assert result.results[0]["matched_call"] == "transmembrane_domain"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_promoted_call_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "promoted_call_filters"
+        for step in result.debug
+    )
 
 
 def test_ask_synthesizes_generic_tag_filter_for_proteins(tmp_path: Path):
@@ -2568,6 +2962,13 @@ ORDER BY e.name
     assert "tag-1" in result.sql
     assert [row["id"] for row in result.results] == ["prot-1", "prot-2"]
     assert result.results[0]["matched_tag"] == "Membrane"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_generic_tag_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "generic_tag_filters"
+        for step in result.debug
+    )
 
 
 def test_ask_synthesizes_generic_tag_filter_for_genes(tmp_path: Path):
@@ -2600,6 +3001,13 @@ ORDER BY e.name
     assert "effector-island" in result.sql
     assert [row["id"] for row in result.results] == ["gene-1", "gene-2"]
     assert result.results[0]["matched_tag"] == "Effector Island"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_generic_tag_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "generic_tag_filters"
+        for step in result.debug
+    )
 
 
 def test_ask_synthesizes_live_discovered_promoted_entity_filter(tmp_path: Path):
@@ -2763,6 +3171,42 @@ WHERE e.type = 'gene'
     assert "Wrong result type" in result.error
     assert result.results == []
     assert any(step["step"] == "validation_retry_error" for step in result.debug)
+
+
+def test_ask_returns_hgt_donor_result_rows_via_analysis_path(tmp_path: Path):
+    db_path = tmp_path / "chat-hgt-donor-results.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("hgt_donor", "donor-1", name="WP_194067917")
+    db.upsert_entity("hgt_donor", "donor-2", name="XP_123456789")
+    db.add_relationship("prot-1", "HAS_HGT_DONOR", "donor-1")
+    db.add_relationship("prot-2", "HAS_HGT_DONOR", "donor-2")
+    db.close()
+
+    class _WrongHgtDonorLLM:
+        def chat(self, messages):
+            return """```sql
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+```"""
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _WrongHgtDonorLLM(), module=GenomicsChatModule())
+    result = chat.ask("select hgt donors")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert [row["id"] for row in result.results] == ["donor-1", "donor-2"]
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "hgt_donor_result"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "hgt_donor_results"
+        for step in result.debug
+    )
 
 
 def test_genomics_registry_drives_custom_ortholog_alias_and_member_rel(tmp_path: Path):
@@ -3038,6 +3482,140 @@ def test_genomics_registry_drives_effector_template_flag_matches(tmp_path: Path)
         cond["kind"] == "tag_evidence" and "tag:scn-dna-effector-hit" in list(cond.get("tag_ids", []) or [])
         for cond in conditions
     )
+
+
+def test_genomics_registry_drives_effector_collapse_family_matches(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-effector-collapse.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    family = registry["operators"]["dynamic_families"]["effector_evidence"]
+    family["collapse"]["family_flag_matches"] = {
+        "known": ["dna"],
+        "putative": ["putative"],
+        "dna": ["dna"],
+        "protein": ["protein"],
+    }
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    conditions = chat.module._semantic_conditions(chat, "select all known effectors")
+    db.close()
+
+    effector_conditions = [cond for cond in conditions if cond["kind"] == "tag_evidence"]
+    assert len(effector_conditions) == 2
+    known_condition = next(cond for cond in effector_conditions if cond.get("effector_family") == "known")
+    protein_condition = next(cond for cond in effector_conditions if cond.get("effector_family") == "protein")
+    assert known_condition["tag_ids"] == ["tag:scn-dna-effector-hit"]
+    assert protein_condition["tag_ids"] == ["tag:scn-protein-effector-hit"]
+
+
+def test_genomics_registry_drives_effector_display_rules(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-effector-display.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity(
+        "protein",
+        "prot-1",
+        name="10A06",
+        metadata={
+            "glycines_effectors_dna": "dna-hit",
+            "glycines_effectors_prot": "protein-hit",
+        },
+    )
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-protein-effector-hit")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    family = registry["operators"]["dynamic_families"]["effector_evidence"]
+    family["display"]["rules"] = [
+        {
+            "alias": "custom_scn_dna",
+            "metadata_field": "glycines_effectors_dna",
+            "require_all_flags": ["scn", "dna"],
+        }
+    ]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    synthesized = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in H. glycines",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert synthesized is not None
+    sql = synthesized["sql"] if isinstance(synthesized, dict) else synthesized
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert "AS custom_scn_dna" in sql
+    assert "AS scn_known_n" not in sql
+    assert "AS scn_known_p" not in sql
+    assert rows[0]["custom_scn_dna"] == "dna-hit"
+
+
+def test_genomics_registry_drives_effector_selection_precedence(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-effector-selection.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("organism", "organism:heterodera-glycines", name="Heterodera glycines")
+    db.upsert_entity("chromosome", "chromosome:heterodera-glycines:chr1", name="chr1")
+    db.upsert_entity("protein", "prot-1", name="SCN_ONLY")
+    db.upsert_entity("protein", "prot-2", name="BCN_ONLY")
+    db.upsert_entity("tag", "effectors", name="Effectors")
+    db.upsert_entity("tag", "effector-evidence", name="Effector Evidence")
+    db.upsert_entity("tag", "tag:bcn-known-effector-hit", name="BCN Known Effector Hit")
+    db.upsert_entity("tag", "tag:scn-dna-effector-hit", name="SCN DNA Effector Hit")
+    db.upsert_entity("tag", "tag:scn-protein-effector-hit", name="SCN Protein Effector Hit")
+    db.add_relationship("organism:heterodera-glycines", "HAS_CHROMOSOME", "chromosome:heterodera-glycines:chr1")
+    db.add_relationship("effector-evidence", "BROADER", "effectors")
+    db.add_relationship("tag:bcn-known-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-dna-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("tag:scn-protein-effector-hit", "BROADER", "effector-evidence")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-dna-effector-hit")
+    db.add_relationship("prot-1", "TAGGED", "tag:scn-protein-effector-hit")
+    db.add_relationship("prot-2", "TAGGED", "tag:bcn-known-effector-hit")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    family = registry["operators"]["dynamic_families"]["effector_evidence"]
+    family["selection"]["match_groups"] = ["generic_aliases", "primary_scoped_aliases", "secondary_scoped_aliases"]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    synthesized = chat.module.synthesize_query(
+        chat,
+        "select all proteins identified as known effectors in H. glycines",
+        "SELECT 1",
+        ["protein"],
+    )
+    assert synthesized is not None
+    sql = synthesized["sql"] if isinstance(synthesized, dict) else synthesized
+    rows = db.execute_read(sql)
+    db.close()
+
+    assert "tag:bcn-known-effector-hit" in sql
+    assert "tag:scn-dna-effector-hit" in sql
+    assert "tag:scn-protein-effector-hit" in sql
+    assert sorted(row["id"] for row in rows) == ["prot-1", "prot-2"]
 
 
 def test_genomics_overlay_expression_fragment_drives_runtime_semantics(tmp_path: Path):
@@ -3316,6 +3894,13 @@ WHERE e.type = 'protein'
     assert [row["id"] for row in result.results] == ["prot-1"]
     assert "json_extract(owner.metadata, '$.protein_sequence') = 'MSTN'" in str(result.sql or "")
     assert result.results[0]["protein_sequence"] == "MSTN"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_metadata_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "metadata_filters"
+        for step in result.debug
+    )
 
 
 def test_genomics_sequence_alias_drives_runtime_semantics(tmp_path: Path):
@@ -3390,6 +3975,8 @@ WHERE e.type = 'protein'
         step.get("step") == "validation_count_map_sql"
         and isinstance(step.get("semantic_trace"), dict)
         and step["semantic_trace"].get("kind") == "expression_ranking"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_ranking"
         for step in result.debug
     )
 
@@ -3434,6 +4021,300 @@ WHERE e.type = 'gene'
     assert "LIMIT 2" in str(result.sql or "")
     assert [row["expression_condition"] for row in result.results] == ["Heat stress", "Heat stress"]
     assert [row["expression_value"] for row in result.results] == [15.0, 9.0]
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_ranking"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_ranking"
+        for step in result.debug
+    )
+
+
+def test_genomics_expression_ranking_does_not_leak_promoted_call_evidence(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-no-promoted-call-leak.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    values = [
+        ("gene-1", "tx-1", 5.0),
+        ("gene-2", "tx-2", 15.0),
+        ("gene-3", "tx-3", 9.0),
+    ]
+    for gene_id, transcript_id, egg_value in values:
+        db.upsert_entity("gene", gene_id, name=gene_id.upper())
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(gene_id, "HAS_TRANSCRIPT", transcript_id)
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("select top 2 genes with highest expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert [row["id"] for row in result.results] == ["gene-2", "gene-3"]
+    assert "LIMIT 2" in str(result.sql or "")
+    assert "matched_call_category" not in result.results[0]
+    assert [row["expression_condition"] for row in result.results] == ["Egg", "Egg"]
+    assert [row["expression_value"] for row in result.results] == [15.0, 9.0]
+
+
+def test_genomics_expression_average_returns_scalar_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-average.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the average expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert "Average expression in Egg" in result.content
+    assert result.results[0]["metric"] == "average"
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["stat_value"] == 27.5
+    assert result.results[0]["subject_count"] == 4
+    assert "subset_count" not in result.results[0]
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_stats"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_stats"
+        for step in result.debug
+    )
+
+
+def test_genomics_expression_percentile_returns_scalar_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-percentile.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the 90th percentile of expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert "90th percentile expression in Egg" in result.content
+    assert result.results[0]["metric"] == "90th percentile"
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["stat_value"] == 44.0
+    assert result.results[0]["subject_count"] == 4
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_stats"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_stats"
+        for step in result.debug
+    )
+
+
+def test_genomics_expression_average_for_explicit_transcript_subset(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-average-subset.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    values = [
+        ("tx-1", "Transcript Alpha", 10.0),
+        ("tx-2", "Transcript Beta", 50.0),
+        ("tx-3", "Transcript Gamma", 30.0),
+        ("tx-4", "Transcript Delta", 20.0),
+    ]
+    for transcript_id, name, egg_value in values:
+        db.upsert_entity("transcript", transcript_id, name=name, metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the average expression in Egg stage for Transcript Alpha and Transcript Gamma")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["metric"] == "average"
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["stat_value"] == 20.0
+    assert result.results[0]["subject_count"] == 2
+    assert result.results[0]["subset_count"] == 2
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_stats"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and list(step["semantic_trace"]["analysis"].get("subset", {}).get("entity_ids", []))
+        for step in result.debug
+    )
+
+
+def test_genomics_expression_average_for_explicit_gene_subset(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-average-gene-subset.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    values = [
+        ("gene-1", "Gene Alpha", "tx-1", "Transcript Alpha", "prot-1", "Protein Alpha", 10.0),
+        ("gene-2", "Gene Beta", "tx-2", "Transcript Beta", "prot-2", "Protein Beta", 50.0),
+        ("gene-3", "Gene Gamma", "tx-3", "Transcript Gamma", "prot-3", "Protein Gamma", 30.0),
+        ("gene-4", "Gene Delta", "tx-4", "Transcript Delta", "prot-4", "Protein Delta", 20.0),
+    ]
+    for gene_id, gene_name, transcript_id, transcript_name, protein_id, protein_name, egg_value in values:
+        db.upsert_entity("gene", gene_id, name=gene_name)
+        db.upsert_entity("transcript", transcript_id, name=transcript_name, metadata={"avg_egg": egg_value})
+        db.upsert_entity("protein", protein_id, name=protein_name)
+        db.add_relationship(gene_id, "HAS_TRANSCRIPT", transcript_id)
+        db.add_relationship(transcript_id, "TRANSLATED_TO", protein_id)
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the average expression in Egg stage for Gene Alpha and Gene Gamma")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["metric"] == "average"
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["stat_value"] == 20.0
+    assert result.results[0]["subject_count"] == 2
+    assert result.results[0]["subset_count"] == 2
+    assert result.results[0]["subject_type"] == "gene"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_stats"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("subject", {}).get("entity_type") == "gene"
+        and list(step["semantic_trace"]["analysis"].get("subset", {}).get("entity_ids", []))
+        for step in result.debug
+    )
+
+
+def test_genomics_expression_average_for_explicit_protein_subset(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-average-protein-subset.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    values = [
+        ("gene-1", "Gene Alpha", "tx-1", "Transcript Alpha", "prot-1", "Protein Alpha", 10.0),
+        ("gene-2", "Gene Beta", "tx-2", "Transcript Beta", "prot-2", "Protein Beta", 50.0),
+        ("gene-3", "Gene Gamma", "tx-3", "Transcript Gamma", "prot-3", "Protein Gamma", 30.0),
+        ("gene-4", "Gene Delta", "tx-4", "Transcript Delta", "prot-4", "Protein Delta", 20.0),
+    ]
+    for gene_id, gene_name, transcript_id, transcript_name, protein_id, protein_name, egg_value in values:
+        db.upsert_entity("gene", gene_id, name=gene_name)
+        db.upsert_entity("transcript", transcript_id, name=transcript_name, metadata={"avg_egg": egg_value})
+        db.upsert_entity("protein", protein_id, name=protein_name)
+        db.add_relationship(gene_id, "HAS_TRANSCRIPT", transcript_id)
+        db.add_relationship(transcript_id, "TRANSLATED_TO", protein_id)
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the average expression in Egg stage for Protein Alpha and Protein Gamma")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["metric"] == "average"
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["stat_value"] == 20.0
+    assert result.results[0]["subject_count"] == 2
+    assert result.results[0]["subset_count"] == 2
+    assert result.results[0]["subject_type"] == "protein"
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "expression_stats"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("subject", {}).get("entity_type") == "protein"
+        and list(step["semantic_trace"]["analysis"].get("subset", {}).get("entity_ids", []))
+        for step in result.debug
+    )
 
 
 def test_ask_synthesizes_gene_query_for_hgt_and_ortholog_gene(tmp_path: Path):
@@ -3471,6 +4352,13 @@ AND e.type = 'gene'
     assert result.results[0]["id"] == "gene-1"
     assert "HAS_HGT_DONOR" in (result.sql or "")
     assert "HAS_BCN_MEMBER" in (result.sql or "")
+    assert any(
+        isinstance(step.get("semantic_trace"), dict)
+        and step["semantic_trace"].get("kind") == "genomics_evidence_ortholog_member_filters"
+        and isinstance(step["semantic_trace"].get("analysis"), dict)
+        and step["semantic_trace"]["analysis"].get("analysis_kind") == "evidence_ortholog_member_filters"
+        for step in result.debug
+    )
 
 
 def test_semantic_query_for_bcn_homology_and_bcn_orthologs(tmp_path: Path):
@@ -3498,7 +4386,15 @@ def test_semantic_query_for_bcn_homology_and_bcn_orthologs(tmp_path: Path):
 
     db = KnowledgeGraphDB(str(db_path))
     chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
-    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    synthesized = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_comparative_scope_filters"
+    assert synthesized.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "comparative_scope_filters"
+    assert synthesized.get("semantic_trace", {}).get("scope_tag_ids") == ["homology-scope-cyst-nematode"]
+    assert "bcn_homology" in synthesized.get("semantic_trace", {}).get("evidence_ids", [])
+    assert "ortholog_member" in synthesized.get("semantic_trace", {}).get("condition_kinds", [])
+    sql = synthesized["sql"]
     rows = db.execute_read(sql)
     db.close()
 
@@ -3535,7 +4431,11 @@ def test_bcn_homology_and_bcn_orthologs_applies_cyst_scope_on_comparative_hits(t
 
     db = KnowledgeGraphDB(str(db_path))
     chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
-    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    synthesized = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_comparative_scope_filters"
+    sql = synthesized["sql"]
     rows = db.execute_read(sql)
     db.close()
 
@@ -3577,7 +4477,11 @@ def test_bcn_homology_and_bcn_orthologs_returns_zero_when_only_cyst_hit_has_no_o
 
     db = KnowledgeGraphDB(str(db_path))
     chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
-    sql = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    synthesized = chat.module.synthesize_query(chat, "select genes with cyst nematode homology and BCN orthologs", "", ["gene"])
+    assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_comparative_scope_filters"
+    sql = synthesized["sql"]
     rows = db.execute_read(sql)
     db.close()
 
@@ -3611,7 +4515,13 @@ def test_broad_homology_and_bcn_orthologs_does_not_add_cyst_scope_filter(tmp_pat
 
     db = KnowledgeGraphDB(str(db_path))
     chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule())
-    sql = chat.module.synthesize_query(chat, "select genes with broad homology and BCN orthologs", "", ["gene"])
+    synthesized = chat.module.synthesize_query(chat, "select genes with broad homology and BCN orthologs", "", ["gene"])
+    assert synthesized is not None
+    assert isinstance(synthesized, dict)
+    assert synthesized.get("semantic_trace", {}).get("analysis", {}).get("analysis_kind") == "evidence_ortholog_member_filters"
+    assert synthesized.get("semantic_trace", {}).get("kind") == "genomics_evidence_ortholog_member_filters"
+    assert "broad_homology" in synthesized.get("semantic_trace", {}).get("evidence_ids", [])
+    sql = synthesized["sql"]
     rows = db.execute_read(sql)
     db.close()
 
