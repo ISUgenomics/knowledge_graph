@@ -81,7 +81,17 @@ def make_chat_router(db: KnowledgeGraphDB, llm_config: dict, ui_config: dict | N
         if result.debug:
             response["debug"] = result.debug
 
+        if result.artifact is not None:
+            response["artifact"] = result.artifact
+
+        if result.presentation is not None:
+            response["presentation"] = result.presentation
+
         if result.intent == "query":
+            response["results"] = result.results
+            response["count"] = len(result.results)
+
+        elif result.intent == "answer":
             response["results"] = result.results
             response["count"] = len(result.results)
 

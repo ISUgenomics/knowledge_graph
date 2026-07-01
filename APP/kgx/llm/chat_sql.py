@@ -107,6 +107,8 @@ class ChatResult:
     results: list[dict] = field(default_factory=list)
     error: str | None = None
     debug: list[dict[str, Any]] = field(default_factory=list)
+    artifact: dict[str, Any] | None = None
+    presentation: dict[str, Any] | None = None
 
 
 class ChatToSQL:
@@ -268,8 +270,58 @@ class ChatToSQL:
                 normalized["content"] = str(result.get("content", "") or "")
                 if isinstance(result.get("results"), list):
                     normalized["results"] = list(result.get("results", []) or [])
+                if isinstance(result.get("artifact"), dict):
+                    normalized["artifact"] = dict(result.get("artifact", {}) or {})
+                if isinstance(result.get("presentation"), dict):
+                    normalized["presentation"] = dict(result.get("presentation", {}) or {})
             return normalized
         return None
+
+    @staticmethod
+    def _normalized_result_presentation(
+        *,
+        intent: str,
+        results: list[dict[str, Any]] | None = None,
+        artifact: dict[str, Any] | None = None,
+        presentation: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        artifact = dict(artifact or {}) if isinstance(artifact, dict) else {}
+        incoming = dict(presentation or {}) if isinstance(presentation, dict) else {}
+        rows = list(results or [])
+        available_views: list[str] = []
+        primary_view = str(incoming.get("primary_view", "") or "").strip().lower()
+        if intent == "query":
+            available_views = ["table"] if rows else ["message"]
+            primary_view = primary_view or available_views[0]
+        elif intent == "mutation":
+            available_views = ["message", "sql"]
+            primary_view = primary_view or "message"
+        elif artifact:
+            prefer_summary = bool(incoming.get("prefer_summary", True))
+            prefer_table = bool(incoming.get("prefer_table", bool(rows)))
+            available_views = ["summary"]
+            if rows and prefer_table:
+                available_views.append("table")
+            primary_view = primary_view or ("summary" if prefer_summary else available_views[0])
+        else:
+            available_views = ["message"]
+            primary_view = primary_view or "message"
+        normalized = {
+            "primary_view": primary_view,
+            "available_views": available_views,
+            "prefer_summary": primary_view == "summary" or "summary" in available_views,
+            "prefer_table": "table" in available_views,
+        }
+        summary_style = str(incoming.get("summary_style", "") or "").strip()
+        if summary_style:
+            normalized["summary_style"] = summary_style
+        artifact_kind = str(artifact.get("artifact_kind", "") or "").strip()
+        if artifact_kind:
+            normalized["artifact_kind"] = artifact_kind
+        requested_result_kind = str(artifact.get("requested_result_kind", "") or "").strip()
+        if requested_result_kind:
+            normalized["requested_result_kind"] = requested_result_kind
+        return normalized
 
     @staticmethod
     def _materialize_synthesized_result(
@@ -288,6 +340,13 @@ class ChatToSQL:
                 sql=str(synthesized.get("sql", "") or "") or None,
                 results=list(synthesized.get("results", []) or []),
                 debug=debug_steps,
+                artifact=dict(synthesized.get("artifact", {}) or {}) if isinstance(synthesized.get("artifact"), dict) else None,
+                presentation=ChatToSQL._normalized_result_presentation(
+                    intent="answer",
+                    results=list(synthesized.get("results", []) or []),
+                    artifact=dict(synthesized.get("artifact", {}) or {}) if isinstance(synthesized.get("artifact"), dict) else None,
+                    presentation=dict(synthesized.get("presentation", {}) or {}) if isinstance(synthesized.get("presentation"), dict) else None,
+                ),
             )
         sql = str(synthesized.get("sql", "") or "").strip()
         if not sql:
@@ -1004,7 +1063,11 @@ class ChatToSQL:
             )
 
         if parts:
-            return ChatResult(intent="answer", content="\n\n".join(parts))
+            return ChatResult(
+                intent="answer",
+                content="\n\n".join(parts),
+                presentation=self._normalized_result_presentation(intent="answer"),
+            )
         return None
 
     def ask(self, message: str, history: list[dict] | None = None) -> ChatResult:
@@ -1056,7 +1119,13 @@ class ChatToSQL:
         try:
             reply = self.llm.chat(messages)
         except Exception as e:
-            return ChatResult(intent="answer", content="", error=f"LLM error: {e}", debug=debug_steps)
+            return ChatResult(
+                intent="answer",
+                content="",
+                error=f"LLM error: {e}",
+                debug=debug_steps,
+                presentation=self._normalized_result_presentation(intent="answer"),
+            )
 
         result = self._parse(reply)
         debug_steps.append({"step": "initial_sql", "sql": result.sql, "count": len(result.results)})
@@ -1216,6 +1285,12 @@ class ChatToSQL:
                 step_name="accepted_sql_evidence_enrichment",
             )
         result.debug = debug_steps
+        result.presentation = self._normalized_result_presentation(
+            intent=result.intent,
+            results=result.results,
+            artifact=result.artifact,
+            presentation=result.presentation,
+        )
         return result
 
     def _parse(self, reply: str) -> ChatResult:
@@ -1233,7 +1308,11 @@ class ChatToSQL:
         )
 
         if not sql_match:
-            return ChatResult(intent="answer", content=reply)
+            return ChatResult(
+                intent="answer",
+                content=reply,
+                presentation=self._normalized_result_presentation(intent="answer"),
+            )
 
         sql = sql_match.group(1).strip()
         # Remove any trailing non-SQL text after the statement
@@ -1247,14 +1326,26 @@ class ChatToSQL:
         )
 
         if is_mutation:
-            return ChatResult(intent="mutation", content=reply, sql=sql)
+            return ChatResult(
+                intent="mutation",
+                content=reply,
+                sql=sql,
+                presentation=self._normalized_result_presentation(intent="mutation"),
+            )
 
         # SELECT — execute immediately
         try:
             results = self.db.execute_read(sql)
-            return ChatResult(intent="query", content=reply, sql=sql, results=results)
+            return ChatResult(
+                intent="query",
+                content=reply,
+                sql=sql,
+                results=results,
+                presentation=self._normalized_result_presentation(intent="query", results=results),
+            )
         except Exception as e:
             return ChatResult(
                 intent="query", content=reply, sql=sql,
-                error=f"Query failed: {e}"
+                error=f"Query failed: {e}",
+                presentation=self._normalized_result_presentation(intent="query"),
             )

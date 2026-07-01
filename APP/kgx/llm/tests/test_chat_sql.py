@@ -246,6 +246,26 @@ def test_genomics_registry_drives_generic_tag_request_cues(tmp_path: Path):
     assert any(cond["kind"] == "generic_tag" and cond["tag_id"] == "effector-island" for cond in with_custom_cue)
 
 
+def test_genomics_registry_drives_entity_subset_request_cues(tmp_path: Path):
+    db_path = tmp_path / "chat-entity-subset-matcher.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="alpha")
+    db.upsert_entity("gene", "gene-2", name="beta")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["matchers"]["entity_subset"]["required_any_message_cues"] = [" within "]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    without_custom_cue = chat.module._requested_entity_subset_ids(chat, "compare alpha and beta", ["gene"])
+    with_custom_cue = chat.module._requested_entity_subset_ids(chat, "compare within alpha and beta", ["gene"])
+    db.close()
+
+    assert without_custom_cue == []
+    assert with_custom_cue == ["gene-1", "gene-2"]
+
+
 def test_genomics_registry_drives_common_ranking_request_cues(tmp_path: Path):
     db_path = tmp_path / "chat-common-ranking-matcher.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -283,6 +303,73 @@ def test_genomics_registry_drives_annotation_namespace_aliases(tmp_path: Path):
 
     assert detected is not None
     assert detected["namespace"] == "interpro"
+
+
+def test_genomics_registry_drives_live_promoted_entity_alias_fields(tmp_path: Path):
+    db_path = tmp_path / "chat-live-promoted-alias-fields.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity(
+        "prediction_call",
+        "pred-1",
+        name="Signal Peptide",
+        metadata={"category": "prediction_feature", "source_column": "signal_score"},
+    )
+    db.add_relationship("prot-1", "HAS_PREDICTION", "pred-1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["live_promoted_entities"]["alias_fields"] = ["source_column"]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    specs = chat.module._common_promoted_entity_specs_for_chat(chat)
+    db.close()
+
+    live_spec = next(
+        spec for spec in specs
+        if spec.get("result_type") == "prediction_call"
+        and spec.get("rel_type") == "HAS_PREDICTION"
+        and spec.get("category") == "prediction_feature"
+    )
+    assert live_spec["aliases"] == [" signal score "]
+
+
+def test_genomics_registry_drives_analysis_validation_requirements(tmp_path: Path):
+    db_path = tmp_path / "chat-validation-requirements.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("annotation_term", "ann-1", name="GO:0008150", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["validation"]["analysis_requirements"]["functional_annotation_ranking"]["required_sql_up_signatures"] = [
+        "HAS_ANNOTATION",
+        "COUNT(DISTINCT ANN.ID)",
+        "CUSTOM_SIGNATURE",
+    ]
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    err = chat.module.validation_error(
+        chat,
+        """
+SELECT e.id, e.name, e.type, COUNT(DISTINCT ann.id) AS functional_annotation_count
+FROM entities e
+JOIN relationships ha ON ha.source_id = e.id AND ha.rel_type = 'HAS_ANNOTATION'
+JOIN entities ann ON ann.id = ha.target_id AND ann.type = 'annotation_term'
+WHERE e.type = 'protein'
+GROUP BY e.id, e.name, e.type
+ORDER BY functional_annotation_count DESC
+""",
+        ["protein"],
+        "select the protein with the most functional annotations",
+    )
+    db.close()
+
+    assert err is not None
+    assert "functional annotations" in err
 
 
 def test_ask_includes_general_and_module_few_shot_examples(tmp_path: Path):
@@ -1443,6 +1530,50 @@ ORDER BY e.name
     assert "HAVING MAX(CAST(gc.value AS INTEGER)) >= 3" in sql
     assert rows
     assert rows[0]["id"] == "gene-1"
+
+
+def test_genomics_registry_drives_grouped_metric_having_sql(tmp_path: Path):
+    db_path = tmp_path / "chat-owner-side-count-registry-having.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("gene", "gene-1", name="Gene 1")
+    db.upsert_entity("orthogroup", "orthogroup:og1", name="OG1", metadata={
+        "organism": "Heterodera glycines",
+        "gene_counts": {
+            "Heterodera glycines": 1,
+            "Heterodera schachtii": 3,
+        },
+    })
+    db.add_relationship("gene-1", "BELONGS_TO_ORTHOGROUP", "orthogroup:og1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["grouped_metrics"]["ortholog_count_map"]["having_template"] = (
+        "MIN(CAST(gc.value AS INTEGER)) {operator} {value}"
+    )
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    sql = chat.module.synthesize_query(
+        chat,
+        "select genes with 3 or more ortholog gene copies",
+        """
+SELECT e.id, e.name, e.type, json_extract(e.metadata, '$.organism') AS organism, json_extract(e.metadata, '$.gene_counts') AS gene_counts
+FROM entities e
+WHERE e.type = 'orthogroup'
+AND json_extract(e.metadata, '$.gene_counts') IS NOT NULL
+AND (
+    SELECT COUNT(*)
+    FROM json_each(json_extract(e.metadata, '$.gene_counts'))
+    WHERE value > 0
+) >= 1
+ORDER BY e.name
+""",
+        ["gene"],
+    )
+    db.close()
+
+    assert sql is not None
+    assert "HAVING MIN(CAST(gc.value AS INTEGER)) >= 3" in sql
 
 
 def test_validation_error_rejects_counting_orthogroup_edges_for_ortholog_copies(tmp_path: Path):
@@ -2616,6 +2747,65 @@ WHERE e.type = 'protein'
     assert result.results[0]["functional_annotation_count"] == 3
 
 
+def test_genomics_registry_drives_count_distinct_aggregation_sql(tmp_path: Path):
+    db_path = tmp_path / "chat-functional-annotation-ranking-aggregation-spec.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("annotation_term", "ann-1", name="Secreted")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["count_distinct"]["annotation_terms"]["expr_template"] = "COUNT(ann.id)"
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'protein'
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("which protein have the most functional annotations")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "COUNT(ann.id)" in result.sql
+
+
+def test_genomics_registry_drives_ranked_result_ordering(tmp_path: Path):
+    db_path = tmp_path / "chat-common-annotation-ordering-spec.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("protein", "prot-2", name="Protein 2")
+    db.upsert_entity("annotation_term", "ann-1", name="Alpha")
+    db.upsert_entity("annotation_term", "ann-2", name="Beta")
+    db.add_relationship("prot-1", "HAS_ANNOTATION", "ann-1")
+    db.add_relationship("prot-2", "HAS_ANNOTATION", "ann-2")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["ranked_results"]["common_functional_annotation_terms"]["default_order_by"] = ["name DESC"]
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'annotation_term'
+""".strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("what is the most common functional annotation term")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "ORDER BY e.name DESC" in result.sql
+
+
 def test_ask_synthesizes_functional_annotation_ranking_for_genes_via_proteins(tmp_path: Path):
     db_path = tmp_path / "chat-functional-annotation-gene-ranking.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -3449,6 +3639,70 @@ def test_genomics_registry_drives_scope_tag_eligibility_cues(tmp_path: Path):
     assert any(cond["kind"] == "scope_tag" and cond["tag_id"] == "homology-scope-cyst-nematode" for cond in with_cue)
 
 
+def test_genomics_registry_drives_scope_tag_source_fallback(tmp_path: Path):
+    db_path = tmp_path / "chat-custom-scope-source.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("tag", "custom-scope-cyst", name="Cyst Nematode")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["scope_tag_source"] = {
+        "root_tag_id": "custom-scope-root",
+        "hierarchy_rel_type": "BROADER",
+        "fallback_tag_id_pattern": "custom-scope-%",
+    }
+    registry["operators"]["scope_tags"] = {
+        "custom-scope-cyst": {
+            "evidence_id": "bcn_homology",
+            "parser_kind": "scope_tag_alias_match",
+            "owner_type": "protein",
+            "target_type": "comparative_hit",
+            "tag_rel_type": "TAGGED",
+        },
+    }
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    matched = chat.module._requested_scope_tag_ids(chat, "select proteins with cyst nematode homology")
+    db.close()
+
+    assert matched == ["custom-scope-cyst"]
+
+
+def test_genomics_registry_drives_condition_prune_rules(tmp_path: Path):
+    db_path = tmp_path / "chat-condition-prune-rules.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("protein", "prot-1", name="Protein 1")
+    db.upsert_entity("comparative_hit", "hit-1", name="Hit 1")
+    db.upsert_entity("tag", "homology", name="Homology")
+    db.upsert_entity("tag", "homology-scope", name="Homology Scope")
+    db.upsert_entity("tag", "homology-scope-nematode", name="Nematode")
+    db.upsert_entity("tag", "homology-scope-cyst-nematode", name="Cyst Nematode")
+    db.add_relationship("prot-1", "HAS_BROAD_HOMOLOGY_HIT", "hit-1")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-nematode")
+    db.add_relationship("hit-1", "TAGGED", "homology-scope-cyst-nematode")
+    db.add_relationship("homology-scope", "BROADER", "homology")
+    db.add_relationship("homology-scope-nematode", "BROADER", "homology-scope")
+    db.add_relationship("homology-scope-cyst-nematode", "BROADER", "homology-scope")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["operators"]["condition_matching"]["prune_rules"] = []
+
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, _FakeLLM(), module=GenomicsChatModule(semantic_registry=registry))
+    conditions = chat.module._semantic_conditions(chat, "select proteins with cyst nematode homology")
+    db.close()
+
+    evidence_ids = {
+        str(cond.get("id", "") or "")
+        for cond in conditions
+        if cond.get("kind") == "protein_evidence"
+    }
+    assert "bcn_homology" in evidence_ids
+    assert "nematode_homology" in evidence_ids
+
+
 def test_genomics_registry_drives_effector_template_flag_matches(tmp_path: Path):
     db_path = tmp_path / "chat-custom-effector-template-flags.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -4071,6 +4325,417 @@ WHERE e.type = 'gene'
     assert [row["expression_value"] for row in result.results] == [15.0, 9.0]
 
 
+def test_genomics_explanatory_expression_ranking_returns_ranked_summary_artifact(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-ranking-narrative.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for gene_id, transcript_id, egg_value in [("gene-1", "tx-1", 5.0), ("gene-2", "tx-2", 15.0), ("gene-3", "tx-3", 9.0)]:
+        db.upsert_entity("gene", gene_id, name=gene_id.upper())
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(gene_id, "HAS_TRANSCRIPT", transcript_id)
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    analysis = chat.module.analyze_request(chat, "explain the top 1 genes with highest expression in Egg stage", ["gene"])
+    result = chat.ask("explain the top 1 genes with highest expression in Egg stage")
+    db.close()
+
+    assert analysis is not None
+    assert analysis["requested_result_kind"] == "narrative"
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.artifact is not None
+    assert result.artifact["artifact_kind"] == "ranked_summary"
+    assert result.artifact["analysis_kind"] == "expression_ranking"
+    assert result.presentation == {
+        "primary_view": "summary",
+        "available_views": ["summary"],
+        "prefer_summary": True,
+        "prefer_table": False,
+        "summary_style": "explanatory",
+        "artifact_kind": "ranked_summary",
+        "requested_result_kind": "narrative",
+    }
+    assert result.content.startswith("For Egg, the highest-ranked gene is GENE-2")
+
+
+def test_genomics_expression_distribution_returns_summary_artifact(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-distribution.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the distribution of expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.sql is not None
+    assert result.results[0]["expression_condition"] == "Egg"
+    assert result.results[0]["subject_count"] == 4
+    assert result.results[0]["minimum"] == 10.0
+    assert result.results[0]["first_quartile"] == 17.5
+    assert result.results[0]["median"] == 25.0
+    assert result.results[0]["average"] == 27.5
+    assert result.results[0]["third_quartile"] == 35.0
+    assert result.results[0]["maximum"] == 50.0
+    assert result.artifact is not None
+    assert result.artifact["artifact_version"] == "genomics-chat-result-v1"
+    assert result.artifact["artifact_kind"] == "distribution_summary"
+    assert result.artifact["presentation"] == {
+        "prefer_summary": True,
+        "prefer_table": False,
+        "summary_style": "concise",
+    }
+    assert result.artifact["metadata"]["summary_id"] == "expression_numeric"
+    assert result.presentation == {
+        "primary_view": "summary",
+        "available_views": ["summary"],
+        "prefer_summary": True,
+        "prefer_table": False,
+        "summary_style": "concise",
+        "artifact_kind": "distribution_summary",
+        "requested_result_kind": "distribution",
+    }
+
+
+def test_genomics_expression_comparison_returns_summary_artifact(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-comparison.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    db.upsert_entity("expression_measure", "expression_measure:heat-stress", name="Heat stress", metadata={
+        "category": "summary",
+        "source_column": "avg_heat_stress",
+        "label": "Heat stress",
+        "order_index": 1,
+    })
+    for transcript_id, egg_value, heat_value in [
+        ("tx-1", 10.0, 5.0),
+        ("tx-2", 50.0, 15.0),
+        ("tx-3", 30.0, 9.0),
+        ("tx-4", 20.0, 11.0),
+    ]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value, "avg_heat_stress": heat_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:heat-stress")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("compare expression in Egg stage vs Heat stress condition")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["left_condition"] == "Egg"
+    assert result.results[0]["right_condition"] == "Heat stress"
+    assert result.results[0]["average_expression_left"] == 27.5
+    assert result.results[0]["average_expression_right"] == 10.0
+    assert result.results[0]["average_difference"] == 17.5
+    assert result.results[0]["higher_condition"] == "Egg"
+    assert result.artifact is not None
+    assert result.artifact["artifact_kind"] == "comparison_summary"
+    assert result.artifact["metadata"]["comparison_id"] == "expression_numeric"
+
+
+def test_genomics_explanatory_common_functional_term_returns_ranked_summary_artifact(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-common-functional-term-narrative.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("annotation_term", "go:0001", name="GO:0001", metadata={"namespace": "go", "category": "functional_annotation"})
+    db.upsert_entity("annotation_term", "go:0002", name="GO:0002", metadata={"namespace": "go", "category": "functional_annotation"})
+    for protein_id, terms in [("prot-1", ["go:0001"]), ("prot-2", ["go:0001"]), ("prot-3", ["go:0002"])]:
+        db.upsert_entity("protein", protein_id, name=protein_id.upper())
+        for term_id in terms:
+            db.add_relationship(protein_id, "HAS_ANNOTATION", term_id)
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'annotation_term'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    analysis = chat.module.analyze_request(chat, "explain the most common GO term", ["annotation_term"])
+    result = chat.ask("explain the most common GO term")
+    db.close()
+
+    assert analysis is not None
+    assert analysis["requested_result_kind"] == "narrative"
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.artifact is not None
+    assert result.artifact["artifact_kind"] == "ranked_summary"
+    assert result.artifact["analysis_kind"] == "common_functional_annotation_terms"
+    assert result.content.startswith("The most common functional annotation term")
+
+
+def test_genomics_registry_drives_expression_ranking_value_expr(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-ranking-registry.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for gene_id, transcript_id, egg_value in [("gene-1", "tx-1", 5.0), ("gene-2", "tx-2", 15.0)]:
+        db.upsert_entity("gene", gene_id, name=gene_id.upper())
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(gene_id, "HAS_TRANSCRIPT", transcript_id)
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["ranked_results"]["expression_ranking"]["value_expr_template"] = (
+        "ROUND(CAST(json_extract(owner.metadata, '$.{source_column}') AS REAL), 1)"
+    )
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'gene'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("select top 2 genes with highest expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.sql is not None
+    assert "ROUND(CAST(json_extract(owner.metadata, '$.avg_egg') AS REAL), 1)" in result.sql
+
+
+def test_genomics_registry_drives_expression_distribution_metrics(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-distribution-registry.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["distribution_summaries"]["expression_numeric"]["metrics"] = [
+        {"type": "count", "alias": "subject_count"},
+        {"type": "max", "alias": "ceiling"},
+    ]
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("what is the distribution of expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["subject_count"] == 4
+    assert result.results[0]["ceiling"] == 50.0
+    assert "minimum" not in result.results[0]
+
+
+def test_genomics_registry_drives_expression_comparison_aliases(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-comparison-registry.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    db.upsert_entity("expression_measure", "expression_measure:heat-stress", name="Heat stress", metadata={
+        "category": "summary",
+        "source_column": "avg_heat_stress",
+        "label": "Heat stress",
+        "order_index": 1,
+    })
+    for transcript_id, egg_value, heat_value in [("tx-1", 10.0, 5.0), ("tx-2", 50.0, 15.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value, "avg_heat_stress": heat_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:heat-stress")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["comparisons"]["expression_numeric"] = {
+        "metric": {"type": "average", "alias": "mean_expression"},
+        "difference_alias": "mean_gap",
+        "higher_condition_alias": "stronger_condition",
+    }
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("compare expression in Egg stage vs Heat stress condition")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["mean_expression_left"] == 30.0
+    assert result.results[0]["mean_expression_right"] == 10.0
+    assert result.results[0]["mean_gap"] == 20.0
+    assert result.results[0]["stronger_condition"] == "Egg"
+
+
+def test_genomics_registry_drives_expression_comparison_metric_bundle(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-comparison-metrics.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    db.upsert_entity("expression_measure", "expression_measure:heat-stress", name="Heat stress", metadata={
+        "category": "summary",
+        "source_column": "avg_heat_stress",
+        "label": "Heat stress",
+        "order_index": 1,
+    })
+    for transcript_id, egg_value, heat_value in [
+        ("tx-1", 10.0, 5.0),
+        ("tx-2", 50.0, 15.0),
+        ("tx-3", 30.0, 9.0),
+        ("tx-4", 20.0, 11.0),
+    ]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value, "avg_heat_stress": heat_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:heat-stress")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["comparisons"]["expression_numeric"] = {
+        "metrics": [
+            {"type": "average", "alias": "mean_expression"},
+            {"type": "percentile", "percentile": 50, "alias": "median_expression"},
+        ],
+        "difference_metric_alias": "median_expression",
+        "difference_alias": "median_gap",
+        "higher_condition_alias": "stronger_condition",
+    }
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("compare expression in Egg stage vs Heat stress condition")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.results[0]["mean_expression_left"] == 27.5
+    assert result.results[0]["mean_expression_right"] == 10.0
+    assert result.results[0]["median_expression_left"] == 25.0
+    assert result.results[0]["median_expression_right"] == 10.0
+    assert result.results[0]["median_gap"] == 15.0
+    assert result.results[0]["stronger_condition"] == "Egg"
+    assert "median expression was 25.0 for Egg and 10.0 for Heat stress" in result.content
+
+
+def test_genomics_registry_drives_expression_distribution_rendering(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-distribution-rendering.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["distribution_summaries"]["expression_numeric"]["rendering"]["explanatory_template"] = (
+        "Narrative distribution for {measure_label}: {metric_text} from {subject_count} {subject_scope}."
+    )
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("explain the distribution of expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.content.startswith("Narrative distribution for Egg:")
+
+
 def test_genomics_expression_average_returns_scalar_answer(tmp_path: Path):
     db_path = tmp_path / "chat-genomics-expression-average.db"
     db = KnowledgeGraphDB(str(db_path))
@@ -4106,6 +4771,9 @@ WHERE e.type = 'transcript'
     assert result.results[0]["stat_value"] == 27.5
     assert result.results[0]["subject_count"] == 4
     assert "subset_count" not in result.results[0]
+    assert result.artifact is not None
+    assert result.artifact["artifact_kind"] == "scalar_summary"
+    assert result.artifact["metadata"]["metric"] == "average"
     assert any(
         isinstance(step.get("semantic_trace"), dict)
         and step["semantic_trace"].get("kind") == "expression_stats"
@@ -4113,6 +4781,87 @@ WHERE e.type = 'transcript'
         and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_stats"
         for step in result.debug
     )
+
+
+def test_genomics_distribution_and_comparison_analyses_default_to_python_execution(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-analysis-execution.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    db.upsert_entity("expression_measure", "expression_measure:heat-stress", name="Heat stress", metadata={
+        "category": "summary",
+        "source_column": "avg_heat_stress",
+        "label": "Heat stress",
+        "order_index": 1,
+    })
+    db.upsert_entity("transcript", "tx-1", name="TX-1", metadata={"avg_egg": 10.0, "avg_heat_stress": 5.0})
+    db.add_relationship("tx-1", "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.add_relationship("tx-1", "HAS_EXPRESSION_SUMMARY", "expression_measure:heat-stress")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    distribution = chat.module.analyze_request(chat, "what is the distribution of expression in Egg stage", ["transcript"])
+    comparison = chat.module.analyze_request(chat, "compare expression in Egg stage vs Heat stress condition", ["transcript"])
+    db.close()
+
+    assert distribution is not None
+    assert distribution["requested_result_kind"] == "distribution"
+    assert distribution["execution"]["preferred_engine"] == "python"
+    assert distribution["presentation"]["prefer_summary"] is True
+
+    assert comparison is not None
+    assert comparison["requested_result_kind"] == "comparison"
+    assert comparison["execution"]["preferred_engine"] == "python"
+    assert comparison["presentation"]["prefer_summary"] is True
+
+
+def test_genomics_explanatory_expression_distribution_uses_narrative_style(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-distribution-narrative.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    analysis = chat.module.analyze_request(chat, "explain the distribution of expression in Egg stage", ["transcript"])
+    result = chat.ask("explain the distribution of expression in Egg stage")
+    db.close()
+
+    assert analysis is not None
+    assert analysis["requested_result_kind"] == "narrative"
+    assert analysis["presentation"]["summary_style"] == "explanatory"
+    assert result.error is None
+    assert result.intent == "answer"
+    assert result.artifact is not None
+    assert result.artifact["artifact_kind"] == "distribution_summary"
+    assert result.content.startswith("For Egg, the observed expression values span")
 
 
 def test_genomics_expression_percentile_returns_scalar_answer(tmp_path: Path):
@@ -4156,6 +4905,111 @@ WHERE e.type = 'transcript'
         and step["semantic_trace"]["analysis"].get("analysis_kind") == "expression_stats"
         for step in result.debug
     )
+
+
+def test_genomics_expression_minimum_returns_scalar_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-minimum.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the minimum expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert "Minimum expression in Egg" in result.content
+    assert result.results[0]["metric"] == "minimum"
+    assert result.results[0]["stat_value"] == 10.0
+    assert result.results[0]["subject_count"] == 4
+
+
+def test_genomics_expression_maximum_returns_scalar_answer(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-maximum.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule())
+    result = chat.ask("what is the maximum expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.intent == "answer"
+    assert "Maximum expression in Egg" in result.content
+    assert result.results[0]["metric"] == "maximum"
+    assert result.results[0]["stat_value"] == 50.0
+    assert result.results[0]["subject_count"] == 4
+
+
+def test_genomics_registry_drives_numeric_scalar_aggregation_labels(tmp_path: Path):
+    db_path = tmp_path / "chat-genomics-expression-custom-aggregation-label.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+        "stage_order": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    registry = load_semantic_registry(None)
+    registry["aggregations"]["numeric_scalar"]["min"]["metric_label"] = "floor"
+
+    llm = _StaticSQLLLM(
+        """
+SELECT e.id, e.name, e.type
+FROM entities e
+WHERE e.type = 'transcript'
+        """.strip()
+    )
+    db = KnowledgeGraphDB(str(db_path))
+    chat = ChatToSQL(db, llm, module=GenomicsChatModule(semantic_registry=registry))
+    result = chat.ask("what is the minimum expression in Egg stage")
+    db.close()
+
+    assert result.error is None
+    assert result.results[0]["metric"] == "floor"
+    assert "Floor expression in Egg" in result.content
 
 
 def test_genomics_expression_average_for_explicit_transcript_subset(tmp_path: Path):

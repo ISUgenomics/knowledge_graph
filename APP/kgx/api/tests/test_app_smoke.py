@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from kgx.api import create_app
+from kgx.api.routes_chat import OllamaClient
 from kgx.config import load_config
 from kgx.db import KnowledgeGraphDB
 
@@ -386,3 +387,62 @@ async def test_graph_explore_presets_hide_optional_genomics_modes_when_layers_ab
         assert "protein_centric" not in preset_ids
         assert "comparative" not in preset_ids
         assert "expression_centric" not in preset_ids
+
+
+@pytest.mark.asyncio
+async def test_chat_answer_returns_results_and_artifact_for_genomics_summary(tmp_path, monkeypatch):
+    db_path = tmp_path / "genomics-chat-answer.db"
+    db = KnowledgeGraphDB(str(db_path))
+    db.upsert_entity("expression_measure", "expression_measure:egg", name="Egg", metadata={
+        "category": "summary",
+        "source_column": "avg_egg",
+        "label": "Egg",
+        "order_index": 0,
+    })
+    for transcript_id, egg_value in [("tx-1", 10.0), ("tx-2", 50.0), ("tx-3", 30.0), ("tx-4", 20.0)]:
+        db.upsert_entity("transcript", transcript_id, name=transcript_id.upper(), metadata={"avg_egg": egg_value})
+        db.add_relationship(transcript_id, "HAS_EXPRESSION_SUMMARY", "expression_measure:egg")
+    db.close()
+
+    cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/genomics.yaml"))
+    app_config = {
+        "db_path": str(db_path),
+        "server": cfg.server.model_dump(),
+        "ui": cfg.ui.model_dump(),
+        "llm": cfg.llm.model_dump(),
+        "skills": cfg.skills.model_dump(),
+        "explore": cfg.explore.model_dump(),
+        "embedding": cfg.embedding.model_dump(),
+        "domain": cfg.domain.model_dump(),
+        "db_build": cfg.db_build.model_dump(),
+    }
+
+    monkeypatch.setattr(OllamaClient, "is_available", lambda self: True)
+    monkeypatch.setattr(
+        OllamaClient,
+        "chat",
+        lambda self, messages: "```sql\nSELECT e.id, e.name, e.type FROM entities e WHERE e.type = 'transcript'\n```",
+    )
+
+    app = create_app(app_config)
+    transport = httpx.ASGITransport(app=app)
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        resp = await client.post("/api/chat", json={"message": "explain the distribution of expression in Egg stage", "history": []})
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["intent"] == "answer"
+        assert payload["count"] == 1
+        assert payload["results"][0]["expression_condition"] == "Egg"
+        assert payload["artifact"]["artifact_version"] == "genomics-chat-result-v1"
+        assert payload["artifact"]["artifact_kind"] == "distribution_summary"
+        assert payload["presentation"] == {
+            "primary_view": "summary",
+            "available_views": ["summary"],
+            "prefer_summary": True,
+            "prefer_table": False,
+            "summary_style": "explanatory",
+            "artifact_kind": "distribution_summary",
+            "requested_result_kind": "narrative",
+        }
+        assert payload["content"].startswith("For Egg, the observed expression values span")

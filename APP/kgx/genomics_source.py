@@ -604,6 +604,28 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 "scope_tag": "scope_tag",
                 "tag_evidence": "tag_evidence",
             },
+            "condition_matching": {
+                "ordered_builders": [
+                    "protein_evidence",
+                    "effector_tag",
+                    "orthogroup_filter",
+                    "ortholog_member",
+                    "promoted_call",
+                    "generic_tag",
+                    "scope_tag",
+                ],
+                "prune_rules": [
+                    {
+                        "if_present": {"kind": "protein_evidence", "id": "bcn_homology"},
+                        "drop": {"kind": "protein_evidence", "id": "nematode_homology"},
+                    },
+                ],
+            },
+            "scope_tag_source": {
+                "root_tag_id": "homology-scope",
+                "hierarchy_rel_type": "BROADER",
+                "fallback_tag_id_pattern": "homology-scope-%",
+            },
             "matchers": {
                 "promoted_call": {
                     "required_any_message_cues": [
@@ -659,6 +681,31 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                         " functional annotations ",
                     ],
                 },
+                "homology_organism": {
+                    "entity_types": ["tag"],
+                    "entity_id_prefixes": ["homology-organism:"],
+                    "phrase_source": "message_candidates",
+                },
+                "organism_name": {
+                    "entity_types": ["organism"],
+                    "phrase_source": "message_candidates",
+                },
+                "entity_subset": {
+                    "required_any_message_cues": [
+                        " for ",
+                        " among ",
+                        " between ",
+                        ",",
+                    ],
+                    "phrase_source": "message_candidates",
+                },
+            },
+            "live_promoted_entities": {
+                "required_target_metadata_field": "category",
+                "excluded_result_types": ["tag", "expression_measure"],
+                "excluded_rel_types": ["HAS_EXPRESSION_SUMMARY"],
+                "alias_fields": ["category", "source_column"],
+                "default_count_alias": "assigned_entity_count",
             },
             "specs": {
                 "protein_evidence": {
@@ -833,7 +880,234 @@ def load_semantic_registry(ui_config: dict[str, Any] | None) -> dict[str, object
                 },
             },
         },
-        "validation": {},
+        "validation": {
+            "analysis_requirements": {
+                "functional_derived_connections": {
+                    "required_sql_up_signatures": [
+                        "HAS_ANNOTATION",
+                        "COUNT(DISTINCT OTHER.ID)",
+                        "OTHER.TYPE = 'PROTEIN'",
+                        "OTHER.ID != E.ID",
+                    ],
+                    "failure_message": "Missing functional derived-connection query: the user requested proteins with the most derived cross connections to other proteins, so the SQL must count distinct other protein neighbors connected through shared annotation mediators rather than generic relationship degree.",
+                },
+                "functional_annotation_ranking": {
+                    "required_sql_up_signatures": [
+                        "HAS_ANNOTATION",
+                        "COUNT(DISTINCT ANN.ID)",
+                        "ANNOTATION_TERM",
+                    ],
+                    "failure_message": "Missing functional-annotation ranking query: the user requested the entity with the most functional annotations, so the SQL must count distinct annotation_term rows reached through HAS_ANNOTATION on the correct typed path.",
+                },
+                "broad_homology_organism_tag_results": {
+                    "required_sql_up_signatures": [
+                        "E.TYPE = 'TAG'",
+                        "E.ID LIKE 'HOMOLOGY-ORGANISM:%'",
+                        "HAS_BROAD_HOMOLOGY_HIT",
+                        "HOMOLOGY-SCOPE-BROAD-PARASITISM",
+                    ],
+                    "failure_message": "Missing broad-homology organism tag query: the user requested broad homology organism tags, so the SQL must return homology-organism tag rows backed by broad-homology comparative hits.",
+                },
+                "hgt_donor_results": {
+                    "required_sql_up_signatures": [
+                        "HAS_HGT_DONOR",
+                        "R.TARGET_ID = E.ID",
+                        "E.TYPE = 'HGT_DONOR'",
+                    ],
+                    "failure_message": "Missing HGT donor result query: the user requested HGT donor entities, so the SQL must return `hgt_donor` rows reached as targets of `HAS_HGT_DONOR`.",
+                },
+            },
+        },
+        "aggregations": {
+            "numeric_scalar": {
+                "average": {
+                    "metric_label": "average",
+                },
+                "percentile": {
+                    "metric_label_template": "{percentile}th percentile",
+                    "requires_percentile": True,
+                },
+                "min": {
+                    "metric_label": "minimum",
+                },
+                "max": {
+                    "metric_label": "maximum",
+                },
+            },
+            "distribution_summaries": {
+                "expression_numeric": {
+                    "metrics": [
+                        {"type": "count", "alias": "subject_count"},
+                        {"type": "min", "alias": "minimum"},
+                        {"type": "percentile", "percentile": 25, "alias": "first_quartile"},
+                        {"type": "percentile", "percentile": 50, "alias": "median"},
+                        {"type": "average", "alias": "average"},
+                        {"type": "percentile", "percentile": 75, "alias": "third_quartile"},
+                        {"type": "max", "alias": "maximum"},
+                    ],
+                    "rendering": {
+                        "concise_template": "Expression distribution in {measure_label}: {metric_text} across {subject_count} {subject_scope}.",
+                        "subset_template": "Expression distribution in {measure_label}: {metric_text} across {subject_count} matched values in the requested subset.",
+                        "explanatory_template": "For {measure_label}, the observed expression values span {metric_text}. This uses {subject_count} matched {subject_scope}.",
+                        "explanatory_subset_template": "For {measure_label}, the observed expression values span {metric_text}. This uses {subject_count} matched values from the requested subset of {subset_count} entities.",
+                    },
+                },
+            },
+            "comparisons": {
+                "expression_numeric": {
+                    "metric": {"type": "average", "alias": "average_expression"},
+                    "difference_alias": "average_difference",
+                    "higher_condition_alias": "higher_condition",
+                    "rendering": {
+                        "comparative_template": "Compared expression in {left_label} versus {right_label}: {metric_text}; {difference_label} was {difference_value}.",
+                        "explanatory_template": "Comparing {left_label} with {right_label}, {metric_text}. The {difference_label} is {difference_value}, and the stronger condition is {higher_condition}.",
+                    },
+                },
+            },
+            "count_distinct": {
+                "other_proteins": {
+                    "expr_template": "COUNT(DISTINCT other.id)",
+                },
+                "shared_annotation_terms": {
+                    "expr_template": "COUNT(DISTINCT ann.id)",
+                },
+                "annotation_terms": {
+                    "expr_template": "COUNT(DISTINCT ann.id)",
+                },
+                "owner_entities": {
+                    "expr_template": "COUNT(DISTINCT owner.id)",
+                },
+            },
+            "ranked_results": {
+                "functional_derived_connections": {
+                    "default_order_by": [
+                        "derived_connection_count DESC",
+                        "shared_annotation_count DESC",
+                        "name ASC",
+                    ],
+                    "rendering": {
+                        "concise_template": "Top protein by derived connections: {top_name} with {primary_value} derived connections and {secondary_value} shared annotations.",
+                        "explanatory_template": "The leading protein is {top_name}. It has {primary_value} derived connections to other proteins through shared annotations, with {secondary_value} shared annotation terms supporting that ranking.",
+                        "primary_alias": "derived_connection_count",
+                        "secondary_alias": "shared_annotation_count",
+                    },
+                },
+                "functional_annotation_ranking": {
+                    "default_order_by": [
+                        "functional_annotation_count DESC",
+                        "name ASC",
+                    ],
+                    "rendering": {
+                        "concise_template": "Top {subject_type} by functional annotations: {top_name} with {primary_value} annotations.",
+                        "explanatory_template": "The leading {subject_type} is {top_name}, with {primary_value} distinct functional annotations in the deterministic result set.",
+                        "primary_alias": "functional_annotation_count",
+                    },
+                },
+                "expression_ranking": {
+                    "value_expr_template": "CAST(json_extract(owner.metadata, '$.{source_column}') AS REAL)",
+                    "default_order_by": [
+                        "{value_expr} {direction}",
+                    ],
+                    "extra_evidence": [
+                        {
+                            "expr_template": "expr.name",
+                            "alias": "expression_condition",
+                        },
+                        {
+                            "expr_template": "{value_expr}",
+                            "alias": "expression_value",
+                        },
+                    ],
+                    "rendering": {
+                        "concise_template": "Top {subject_type} for {measure_label}: {top_name} at {primary_value}.",
+                        "explanatory_template": "For {measure_label}, the highest-ranked {subject_type} is {top_name} with expression value {primary_value}.",
+                        "primary_alias": "expression_value",
+                    },
+                },
+                "common_functional_annotation_terms": {
+                    "default_order_by": [
+                        "annotated_entity_count DESC",
+                        "name ASC",
+                    ],
+                    "extra_evidence": [
+                        {
+                            "expr_template": "json_extract(e.metadata, '$.namespace')",
+                            "alias": "annotation_namespace",
+                        },
+                        {
+                            "expr_template": "json_extract(e.metadata, '$.category')",
+                            "alias": "annotation_category",
+                        },
+                    ],
+                    "rendering": {
+                        "concise_template": "Most common functional annotation term: {top_name} with {primary_value} annotated entities.",
+                        "explanatory_template": "The most common functional annotation term in the deterministic result set is {top_name}, associated with {primary_value} annotated entities.",
+                        "primary_alias": "annotated_entity_count",
+                    },
+                },
+                "common_promoted_entity_terms": {
+                    "default_order_by": [
+                        "{count_alias} DESC",
+                        "name ASC",
+                    ],
+                    "extra_evidence": [
+                        {
+                            "expr_template": "json_extract(e.metadata, '$.category')",
+                            "alias": "call_category",
+                        },
+                        {
+                            "expr_template": "json_extract(e.metadata, '$.source_column')",
+                            "alias": "source_column",
+                        },
+                    ],
+                    "rendering": {
+                        "concise_template": "Most common assigned {subject_type}: {top_name} with {primary_value} matched owner entities.",
+                        "explanatory_template": "The most common assigned {subject_type} is {top_name}, appearing across {primary_value} matched owner entities in the deterministic result set.",
+                        "primary_alias": "{count_alias}",
+                    },
+                },
+            },
+            "grouped_metrics": {
+                "ortholog_count_map": {
+                    "evidence": [
+                        {
+                            "expr_template": "json_extract(owner.metadata, '$.organism')",
+                            "alias": "owner_organism",
+                        },
+                        {
+                            "expr_template": "json_extract(owner.metadata, '$.gene_counts')",
+                            "alias": "gene_counts",
+                        },
+                        {
+                            "expr_template": "group_concat(DISTINCT gc.key)",
+                            "alias": "ortholog_organisms",
+                        },
+                        {
+                            "expr_template": "MAX(CAST(gc.value AS INTEGER))",
+                            "alias": "ortholog_copy_count",
+                        },
+                    ],
+                    "having_template": "MAX(CAST(gc.value AS INTEGER)) {operator} {value}",
+                },
+                "ortholog_member_count": {
+                    "evidence": [
+                        {
+                            "expr_template": "owner.name",
+                            "alias": "orthogroup_label",
+                        },
+                        {
+                            "expr_template": "{organism_group_expr}",
+                            "alias": "ortholog_organisms",
+                        },
+                        {
+                            "expr_template": "COUNT(DISTINCT member.id)",
+                            "alias": "ortholog_copy_count",
+                        },
+                    ],
+                    "having_template": "COUNT(DISTINCT member.id) {operator} {value}",
+                },
+            },
+        },
         "paths": {
             "gene->gene": [],
             "gene->transcript": [
