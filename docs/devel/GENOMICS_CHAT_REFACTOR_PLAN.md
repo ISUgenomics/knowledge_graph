@@ -252,35 +252,40 @@ Current implementation slice:
 - the structured `analysis` object is attached to `semantic_trace` for debugging and regression tests
 - `analyze_request()` and `synthesize_analysis()` now route through declarative handler tables rather than one handwritten branch ladder per analysis kind
 - remaining major handwritten areas are now narrower:
-  - effector prompts now use a dedicated `effector_tag_filters` analysis path, and most family/selection/display semantics are registry-driven, but the live branch/tag expansion itself is still module-owned
-  - evidence + scope prompts now use `scope_tag_filters`, including mixed cases like HGT donor plus broad parasitism
-  - comparative scope + ortholog prompts now use `comparative_scope_filters`
-  - protein-evidence + named orthogroup prompts now use `evidence_orthogroup_filters`
-  - protein-evidence + ortholog-member prompts now use `evidence_ortholog_member_filters`
-  - protein-evidence + requested homology-organism prompts now use `evidence_homology_organism_filters`
   - `multi_condition_filters` remains an explicit primary analysis kind for genuinely mixed cross-family combinations rather than an implied fallback bucket
   - scalar/stat outputs are now started, but only for expression average / percentile summaries
   - generic scalar/stat result rendering is not yet generalized across domains or metric families
+  - some deterministic execution validation still remains module-owned because it checks runtime thresholds, resolved metadata values, live graph strategy selection, and required projected evidence columns
 
 ### Phase 3. Move semantics from code to data/registry
 
-- [ ] Represent more aliases declaratively
-- [ ] Represent promoted families declaratively from live schema where possible
-- [ ] Represent result-type preferences declaratively
+- [x] Represent more aliases declaratively
+- [x] Represent promoted families declaratively from live schema where possible
+- [x] Represent result-type preferences declaratively
 - [ ] Represent supported aggregations declaratively
-- [ ] Reduce special-case prompt branching in `genomics.py`
-- [ ] Make dataset-specific semantics explicit in source schema/config, not hidden in runtime fallbacks
+- [x] Reduce special-case prompt branching in `genomics.py`
+- [x] Make dataset-specific semantics explicit in source schema/config, not hidden in runtime fallbacks
 
 Current Phase 3 progress:
 - result-type preference/suppression now starts from registry rules for donor/tag/comparative/ortholog cases
 - analysis routing/synthesis dispatch now uses declarative handler tables instead of one manual branch chain
+- condition matching, condition pruning, live promoted-family discovery inputs, and scope-tag source discovery now also read registry-backed matcher/config state rather than parallel handwritten prompt loops
+- accepted-sql evidence enrichment and prompt-side semantic validation now consume the same requested condition bundle instead of independently reconstructing prompt semantics
+- remaining module-owned validation code is now considered intentional deterministic execution logic, not mixed prompt-routing fallback architecture
+
+Phase boundary note:
+- phases 2 and 3 are effectively complete for the current genomics prompt families in the sense intended by this refactor: prompt interpretation, routing, and semantic condition assembly now flow through the structured analysis path and registry-backed matcher/config layers rather than parallel prompt-to-sql branches
+- what remains outside this boundary is primarily dynamic execution validation and broader scalar/stat generalization, which belong to later execution-layer work rather than more phase-2/3 semantic-routing cleanup
 
 ### Phase 4. Deterministic execution layer
 
-- [ ] Compile structured analyses to SQL for row-based and aggregation outputs
-- [ ] Add Python-side deterministic stats where SQL is awkward
-- [ ] Support percentiles, averages, distributions, comparisons, and ranked summaries
-- [ ] Ensure execution artifacts can be reused by both table and summary outputs
+- [x] Compile structured analyses to SQL for row-based and aggregation outputs
+- [x] Add Python-side deterministic stats where SQL is awkward
+- [x] Support percentiles, averages, distributions, comparisons, and ranked summaries
+- [x] Ensure execution artifacts can be reused by both table and summary outputs
+
+Phase-4 status note:
+- For the current genomics prompt families, phase 4 is now effectively complete. The remaining work is no longer execution-path completion for those families; it is phase-5 presentation/narrative behavior plus later cleanup/generalization.
 
 ### Phase 5. Multi-output chat responses
 
@@ -289,6 +294,14 @@ Current Phase 3 progress:
 - [ ] Support narrative summaries over deterministic result artifacts
 - [ ] Decide how UI exposes table vs summary vs both
 - [ ] Keep the raw SQL/result artifact inspectable
+
+Phase-5 progress note:
+- The first slice is now in place for the current genomics summary analyses: explanatory narrative rendering can be produced from the normalized summary artifact, and `/api/chat` answer responses now keep `results` plus `artifact` attached for inspection.
+- Ranked genomics analyses now also support artifact-driven explanatory summary responses for the current ranking families, using deterministic `ranked_summary` artifacts rather than remaining table-only for summary-style prompts.
+- `/api/chat` now also exposes a normalized `presentation` block (`primary_view`, `available_views`, preference flags, summary style, artifact kind, requested result kind) so phase-5 consumers no longer have to infer summary-vs-table behavior from `intent`, prose, and artifact rows alone.
+- the chat UI now consumes that `presentation` block directly for answer-style responses, rendering summary-first cards and only showing supporting tables when the contract explicitly exposes them.
+- the chat UI now also exposes a built-in artifact inspector for summary-style answers, so the normalized deterministic payload is inspectable without leaving the chat surface.
+- for the current genomics prompt families, phase 5 is now effectively complete in the sense intended by this refactor. Remaining work is no longer about whether multi-output deterministic responses exist for those families; it is about later cleanup/generalization and any broader non-genomics adoption.
 
 ### Phase 6. Cleanup and simplification
 
@@ -311,6 +324,13 @@ Current Phase 3 progress:
 - [ ] Binary sample DB fixes should ideally come from source rebuilds, not only manual backfills
 - [ ] Generic tag matching still depends on some explicit wording and could be more semantic
 - [ ] Output model is still primarily table-first
+
+Remaining intentional runtime boundary for the current genomics families:
+- primary/secondary organism alias sets are still chosen from live organism rows in the active graph
+- scope/effector tag discovery still walks the live tag hierarchy in the active graph, with registry config controlling how those discovered tags are interpreted
+- dynamic-family family labels such as `known` and `putative` are still finalized from message phrasing over already live-derived family flags
+
+These are different from accidental runtime semantics. The refactor has already moved most former prompt-routing, validation, artifact-shaping, and presentation choices into the structured analysis contract plus registry-driven config. The remaining question is not whether more code can be deleted blindly; it is whether these live-data decisions should stay runtime-owned or be pushed into source/build-time semantics without making the system more brittle.
 
 ## Design Rules For Future Sessions
 
@@ -374,5 +394,32 @@ Use this section to append short progress notes across sessions.
 - 2026-06-30: Matcher cleanup: promoted-call and generic-tag request cue vocabularies now come from semantic-registry matcher config instead of hardcoded token lists in the module, so wording-gate behavior for those families is now overrideable and regression-testable.
 - 2026-06-30: Matcher cleanup: functional-annotation ranking cues, common-ranking cues, and functional-annotation category cues now also come from semantic-registry matcher config instead of module-local token lists, further shrinking the remaining handwritten language-detection surface.
 - 2026-06-30: Semantic-spec cleanup: annotation-namespace alias specs and common-promoted entity specs now come from the semantic registry instead of static module lists, so those selection vocabularies are overrideable and no longer duplicated in code.
+- 2026-07-01: Matcher cleanup: homology-organism lookup, organism-name lookup, and entity-subset gating now share the same registry-backed matcher helper path instead of three separate prompt-entity loops, and subset cue detection is now configurable from semantic-registry matcher specs too.
+- 2026-07-01: Live-promoted cleanup: runtime promoted-entity discovery now reads registry config for excluded relation/result types, alias-field synthesis, and default count aliases, and ortholog-member matching now shares the same relation-family matcher helper path as evidence-family matching instead of a bespoke alias/exclusion branch.
+- 2026-07-01: Condition-bundle cleanup: semantic-condition assembly now follows an ordered registry `condition_matching` plan with declarative prune rules, and both `validation_error()` and `evidence_columns_for_sql()` now consume the same requested condition bundle instead of independently re-deriving prompt semantics.
+- 2026-07-01: Live-tag cleanup: dynamic-family condition assembly now goes through one generic helper keyed by registry `output.condition_kind`, and homology-scope branch discovery now reads its root/hierarchy/fallback source from registry config instead of a fixed module-local root id.
+- 2026-07-01: Validation cleanup: the simpler analysis-kind SQL requirements (`functional_derived_connections`, `functional_annotation_ranking`, `broad_homology_organism_tag_results`, `hgt_donor_results`) now come from semantic-registry validation config instead of only from the module’s handwritten validator block.
+- 2026-07-01: Phase-4 start: expression scalar execution now uses a shared numeric aggregation helper for `average`, `percentile`, `min`, and `max` instead of embedding each statistic directly in the expression-specific executor, establishing the first reusable aggregation path under the `analysis` contract.
+- 2026-07-01: Phase-4 follow-up: supported numeric scalar aggregations now also read registry-backed aggregation specs for metric labeling, so the first reusable execution slice depends on declarative aggregation metadata rather than only on hardcoded reducer branches.
+- 2026-07-01: Phase-4 follow-up: grouped `count_distinct` aggregations used by current ranked genomics queries now also read registry-backed aggregation expression specs, so ranked count-style execution has started moving onto the same declarative aggregation layer as scalar reducers.
+- 2026-07-01: Phase-4 follow-up: ranked grouped aggregations now also read registry-backed default ordering and extra evidence-column metadata, so shared row-shaping has started moving off analysis-kind-specific SQL builders too.
+- 2026-07-01: Phase-4 follow-up: ortholog grouped threshold strategies now also read registry-backed grouped-metric evidence and `HAVING` specs, extending the shared execution layer beyond ranked counts into grouped filter metrics.
+- 2026-07-01: Phase-4 follow-up: expression ranking now also reads registry-backed numeric value-expression, evidence-column, and ordering specs, so ranked numeric row outputs have joined the same declarative execution layer as ranked count outputs.
+- 2026-07-01: Phase-4 follow-up: expression distributions now execute through a structured `distribution` analysis kind with registry-backed summary metrics, giving the execution layer its first deterministic non-scalar summary artifact.
+- 2026-07-01: Phase-4 follow-up: expression comparisons now execute through a structured `comparison` analysis kind with registry-backed metric aliases, giving the execution layer its first deterministic comparison artifact on top of the shared expression-value path.
+- 2026-07-01: Phase-4 follow-up: distribution/comparison artifact evidence fields now derive from the same registry-backed execution specs used to compute them, eliminating another hardcoded result-shape seam in the expression analysis builders.
+- 2026-07-01: Phase-4 follow-up: comparison specs now support registry-driven metric bundles plus a declarative `difference_metric_alias`, so one comparison artifact can expose multiple computed metrics while still keeping a deterministic headline gap/winner field.
+- 2026-07-01: Phase-4 completion for the current genomics families: deterministic summary outputs now emit a normalized `genomics-chat-result-v1` artifact payload, and non-tabular summary analyses now default to Python execution at analysis-normalization time instead of relying on per-analysis engine overrides.
+- 2026-07-01: Phase-5 start for the current genomics families: explanatory summary/narrative prose can now be rendered from `genomics-chat-result-v1` artifacts for expression scalar/distribution/comparison outputs, and `/api/chat` now preserves `results`, `count`, and `artifact` for answer responses so summary artifacts stay inspectable end to end.
+- 2026-07-01: Phase-5 follow-up: current ranked genomics analyses can now upgrade explanatory prompts into deterministic `ranked_summary` answer artifacts, including expression ranking and common-term/owner-count ranking families, so ranked outputs are no longer inherently table-only.
+- 2026-07-01: Phase-5 interface follow-up: synthesized summary answers now preserve normalized presentation preferences end to end, and `/api/chat` exposes them as an explicit `presentation` contract instead of requiring clients to infer summary-vs-table availability from `intent` and artifact rows.
+- 2026-07-01: Phase-5 consumer follow-up: the chat panel now renders answer responses through the normalized `presentation` contract, so summary-vs-table behavior is controlled by the same deterministic metadata on both the API and UI sides.
+- 2026-07-01: Phase-5 inspectability follow-up: the chat panel now exposes raw `genomics-chat-result-v1` artifacts inline for answer-style responses, closing the current-family inspectability gap between API contract and user-visible surface.
+- 2026-07-01: Phase-6 cleanup start: ortholog copy-count validation now uses one shared strategy/projection check instead of duplicating the same dataset-specific logic across multiple branches, and accepted-SQL metadata evidence enrichment now relies on structured `metadata_filters` analyses instead of reparsing prompt text at the enrichment step.
+- 2026-07-01: Phase-6 cleanup follow-up: genomics result-type preference no longer duplicates core `gene`/`protein`/`transcript` regex inference inside the module, and HGT-donor result routing now reuses the registry-backed result-type rule instead of maintaining a second handwritten phrase matcher.
+- 2026-07-01: Phase-6 cleanup follow-up: single-condition generic-tag and promoted-call analyses now consume the shared condition-builder dispatcher instead of invoking separate direct matcher paths, reducing another redundant message-to-condition interpretation seam inside the genomics module.
+- 2026-07-01: Phase-6 cleanup follow-up: `effector_tag_filters` now uses the shared semantic-condition route analysis/compile helpers rather than its own bespoke route wrapper, with only the effector-family labeling pass still kept local because it depends on dynamic-family message interpretation.
+- 2026-07-01: Phase-6 cleanup follow-up: scope/comparative/effector semantic-condition routes now also share one normalized synthesized-result contract (`sql` plus semantic trace/evidence metadata) instead of each route family relying on slightly different direct-call return shapes.
+- 2026-07-01: Phase-6 cleanup follow-up: the remaining dynamic-family family-labeling logic is now factored into smaller reusable helpers (message-family selection plus flag-family matching) instead of one intertwined method, narrowing the last message-dependent handwritten boundary without changing the live discovery model.
 - 2026-06-30: Validation cleanup: validation for migrated ranking/metadata/expression families now begins from `analyze_request()` plus analysis-kind-specific checks instead of fully re-deriving those semantics from prompt-only branching, reducing the remaining parallel interpretation path.
 - 2026-06-30: Validation cleanup: generic-tag, orthogroup-label, broad-homology-organism, direct `hgt_donor` result, broad-homology tag result, and ortholog copy-count checks now consume structured analysis data directly (condition signatures, homology organisms, owner/strategy/threshold) instead of rediscovering those semantics from prompt text inside `validation_error()`.
