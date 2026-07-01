@@ -124,8 +124,8 @@ This should be rich enough to support both:
 - [x] Add lossless post-LLM reconciliation for genomics chat paths
 - [x] Preserve and enrich evidence columns on accepted/repaired SQL
 - [x] Add regression coverage for current repaired prompt families
-- [ ] Rebuild sample DBs from corrected source/schema where needed
-- [ ] Mark which current repairs are temporary bridges vs acceptable steady-state behavior
+- [x] Rebuild sample DBs from corrected source/schema where needed
+- [x] Mark which current repairs are temporary bridges vs acceptable steady-state behavior
 
 ### Phase 1. Inventory current semantics
 
@@ -262,7 +262,7 @@ Current implementation slice:
 - [x] Represent more aliases declaratively
 - [x] Represent promoted families declaratively from live schema where possible
 - [x] Represent result-type preferences declaratively
-- [ ] Represent supported aggregations declaratively
+- [x] Represent supported aggregations declaratively
 - [x] Reduce special-case prompt branching in `genomics.py`
 - [x] Make dataset-specific semantics explicit in source schema/config, not hidden in runtime fallbacks
 
@@ -308,8 +308,87 @@ Phase-5 progress note:
 - [ ] Retire redundant prompt-family repairs once covered by the structured model
 - [ ] Remove genomics-only special cases that become declarative
 - [ ] Shrink shared/core logic back to generic orchestration primitives
-- [ ] Audit performance and token usage before/after refactor
+- [x] Audit performance and token usage before/after refactor
 - [ ] Remove temporary bridges once demos are stable on the primary path
+
+### Next Task Queue
+
+1. Deterministic-first execution for supported genomics prompt families
+   Goal:
+   - if `analyze_request()` + `synthesize_query()` can fully resolve the prompt, execute that path before calling the LLM
+   Why this is the next safe optimization:
+   - it reduces prompt size losslessly instead of trimming schema context blindly
+   - it makes the primary path truly primary for already-migrated prompt families
+   Validation:
+   - preserve current user-visible results for ranking/filter/stat/comparison prompt families already covered by the structured analysis model
+   - keep the current LLM path as fallback for unsupported or unresolved prompts
+   Status:
+   - completed on 2026-07-01 in `ChatToSQL.ask()`: the module now attempts deterministic synthesis before building the LLM prompt, and representative ranking/stat prompts have regression coverage asserting zero model calls
+
+2. Conditional prompt compaction for fallback-only paths
+   Goal:
+   - once deterministic-first is in place, re-measure and only then decide whether the remaining schema snapshot or few-shot payload can be trimmed safely for prompts that still require the LLM
+   Lossless guardrails:
+   - do not remove live schema details that are still required for unsupported prompt families
+   - prefer conditional omission over global prompt trimming
+   - any compaction must be paired with side-by-side regression prompts covering typed joins, requested result types, and evidence-heavy routes
+
+3. Residual bridge retirement
+   Goal:
+   - remove accepted-SQL rescue logic that becomes unreachable or redundant once deterministic-first execution covers the intended primary-path families
+
+### Current Recorded Progress
+
+Completed in the current cleanup / lossless pass:
+- `ChatToSQL.ask()` now attempts module deterministic synthesis before building the LLM prompt, so supported genomics prompt families can skip prompt construction entirely
+- supported ranking and scalar-summary prompts now have regression coverage asserting zero LLM calls on the deterministic-first path
+- explicit dataset-semantic mismatches now return deterministic answers instead of falling through to speculative SQL for:
+  - expression condition names
+  - ortholog-count organism names
+  - broad-homology organism names
+- explicit condition-name matching was tightened so wrong cross-dataset phrases no longer collapse to shorter partial labels
+- rebuilt SCN and Bison smoke checks now verify both:
+  - valid dataset-native prompts still resolve deterministically
+  - wrong dataset-native prompts return live alternative previews instead of broader fallback results
+
+Next targets:
+1. Audit fallback-only prompt dependencies
+   - measure which live schema snapshot sections and few-shot examples are still actually needed once deterministic-first removes the supported prompt families from prompt assembly
+2. Extend deterministic mismatch handling to other live semantic branches
+   - especially named scope tags or dynamic-family targets that users can mention explicitly even when the active dataset does not contain them
+3. Retire residual accepted-SQL rescue only where deterministic-first coverage is proven
+   - keep rescue logic for unresolved prompt families until equivalent deterministic coverage exists
+
+### Lossless Compaction Workstream
+
+Use this list for the next cleanup/optimization sessions so safe prompt reduction stays ordered and auditable.
+
+1. Primary-path coverage audit
+   - enumerate the current genomics prompt families that already resolve deterministically before LLM invocation
+   - add one representative no-LLM regression per family class where coverage is still thin
+   - explicitly document unsupported prompt shapes that must still take the fallback prompt path
+   - explicitly separate unresolved wording from explicit dataset-semantic mismatches; prompts that name a condition/entity family not present in the active dataset should return a deterministic mismatch answer rather than falling through to speculative LLM SQL
+
+2. Fallback prompt dependency audit
+   - identify which parts of the current system prompt are still exercised by prompts that genuinely require LLM SQL
+   - separate required live schema facts from fixed explanatory ballast such as unconditional examples
+   - record any fallback prompts that fail if typed-pattern or metadata-key context is reduced
+
+3. Conditional compaction implementation
+   - only build the full schema snapshot when deterministic synthesis does not resolve the prompt
+   - then test whether few-shot examples can be reduced or selected by module/family instead of always included
+   - keep `requested_result_types`, entity-match hints, and module-specific steering intact unless regression evidence shows they are unnecessary
+
+4. Bridge retirement after evidence
+   - remove accepted-SQL semantic rescue only for prompt families proven to stay on the deterministic-first path
+   - keep fallback rescue for unresolved families until equivalent deterministic coverage or stronger validation exists
+   - re-run demo-critical prompts on rebuilt sample DBs after each retirement slice
+
+5. Final lossless verification
+   - compare supported-prompt outputs before/after compaction on rebuilt SCN and BCN sample DBs
+   - verify that supported prompts still make zero LLM calls and unsupported prompts still receive the required schema guidance
+   - verify that obviously wrong dataset-native condition names produce a deterministic mismatch answer listing active alternatives instead of collapsing to a shorter partial match
+   - update this plan with measured prompt-size deltas and any intentionally retained fallback complexity
 
 ## Non-Goals
 
@@ -331,6 +410,77 @@ Remaining intentional runtime boundary for the current genomics families:
 - dynamic-family family labels such as `known` and `putative` are still finalized from message phrasing over already live-derived family flags
 
 These are different from accidental runtime semantics. The refactor has already moved most former prompt-routing, validation, artifact-shaping, and presentation choices into the structured analysis contract plus registry-driven config. The remaining question is not whether more code can be deleted blindly; it is whether these live-data decisions should stay runtime-owned or be pushed into source/build-time semantics without making the system more brittle.
+
+### Current Boundary Classification
+
+Acceptable steady-state behavior for now:
+- live organism alias collection from current `organism` rows
+- live branch/tag discovery when the active graph hierarchy is the source of truth
+- final family selection over already live-derived dynamic-family flags when prompt phrasing legitimately changes the requested subset
+- owner-type / count-strategy selection that depends on active graph content such as `gene_counts` presence versus live member edges
+- deterministic rejection of explicit dataset-semantic mismatches when the active graph clearly lacks the named expression condition or analogous live semantic target
+
+Temporary bridges to remove when the primary path is fully stable:
+- any accepted-SQL semantic reconciliation that compensates for LLM SQL choosing the wrong typed bridge or evidence path when the structured analysis already knows the correct route
+- prompt wording gates that exist only to protect a still-ambiguous matcher and do not correspond to a stable domain concept
+- dataset-specific sample semantics that can be represented in source schema, semantic overlays, or deterministic build outputs instead of runtime rescue logic
+- any DB-level backfill or checked-in binary fix that is not reproducible from `sample_data/1_source/*`
+
+Bridges already retired in this refactor:
+- duplicated prompt-family route wrappers for scope/comparative/effector analyses
+- separate handwritten aggregation execution branches for current scalar/distribution/comparison summaries
+- hardcoded primary-organism selection by `HAS_CHROMOSOME`
+- duplicated live branch walkers for homology scope versus dynamic-family tag discovery
+
+### Performance / Token Audit Baseline
+
+Audit date: 2026-07-01
+Environment:
+- rebuilt `sample_data/3_db/genomics_scn.db`
+- sample app config from `sample_data/1_source/genomics_scn/app-config.yaml`
+- stub LLM returning an empty-result SQL shell so timings reflect prompt assembly, validation, deterministic synthesis, and DB execution rather than local-model inference
+
+Representative prompt baseline:
+- functional-annotation ranking:
+  - prompt payload: ~3,131 approximate input tokens
+  - system/schema portion: ~2,547 approximate tokens
+  - average end-to-end latency: ~13.66 ms
+- promoted-call filter:
+  - prompt payload: ~3,131 approximate input tokens
+  - average end-to-end latency: ~38.20 ms
+- known-effector filter:
+  - prompt payload: ~3,134 approximate input tokens
+  - average end-to-end latency: ~12.66 ms
+- expression percentile summary:
+  - prompt payload: ~3,133 approximate input tokens
+  - average end-to-end latency: ~24.97 ms
+- expression comparison summary:
+  - prompt payload: ~3,163 approximate input tokens
+  - average end-to-end latency: ~34.36 ms
+
+Observed hotspots from this baseline:
+- the live schema snapshot dominates input size (~2.5k of ~3.1k approximate tokens for these prompts)
+- few-shot examples are always present and contribute a fixed multi-message cost even when the deterministic synthesis path handles the request after a no-result SQL shell
+- promoted-call and expression-comparison paths are currently the slower representative deterministic routes in this no-model baseline
+
+Interpretation note:
+- these measurements are useful for relative orchestration/regression tracking, not for predicting real user latency with Ollama or another local model
+- real end-to-end latency will still be dominated by model inference time, but this baseline now makes prompt-size regressions and deterministic-path overhead measurable
+
+Post-baseline update:
+- as of 2026-07-01, supported structured-analysis prompts now attempt deterministic synthesis before prompt construction in `ChatToSQL.ask()`
+- representative regressions now prove zero LLM calls for at least:
+  - functional-annotation ranking
+  - expression percentile scalar summaries
+- rebuilt-SCN smoke audit also confirms zero LLM calls for:
+  - `which proteins have the most functional annotations`
+  - `what is 90th percentil of expression in ppJ2 stage?`
+- cross-dataset smoke audit now also confirms deterministic mismatch handling for explicit wrong condition names:
+  - SCN rejects `Adult Female Liver` as an expression condition and lists live SCN alternatives
+  - Bison rejects `ppJ2` as an expression condition and lists live Bison alternatives
+- ortholog-count prompts with explicit unknown organism names now also return deterministic mismatch answers with live organism alternatives sourced from active semantics (`organism` rows, `metadata.organism`, and `gene_counts` keys)
+- broad-homology organism prompts with explicit unknown organism names now also return deterministic mismatch answers with live homology-organism alternatives sourced from active homology tags and comparative-hit metadata
+- the next measurement to capture is fallback-only prompt payload size after excluding supported deterministic families from prompt assembly entirely
 
 ## Design Rules For Future Sessions
 
@@ -393,6 +543,11 @@ Use this section to append short progress notes across sessions.
 - 2026-06-30: Result-type cleanup: alias-based result-type preference/suppression for broad-homology organism tags, HGT donors, ortholog-member targets, and comparative-hit prompts now starts from registry rules instead of only module branching, while the plain explicit `gene/protein/transcript` noun heuristic still remains local code.
 - 2026-06-30: Matcher cleanup: promoted-call and generic-tag request cue vocabularies now come from semantic-registry matcher config instead of hardcoded token lists in the module, so wording-gate behavior for those families is now overrideable and regression-testable.
 - 2026-06-30: Matcher cleanup: functional-annotation ranking cues, common-ranking cues, and functional-annotation category cues now also come from semantic-registry matcher config instead of module-local token lists, further shrinking the remaining handwritten language-detection surface.
+- 2026-07-01: Safe prompt-reduction slice landed in shared orchestration: `ChatToSQL.ask()` now executes module-synthesized deterministic results before building the LLM prompt, and representative ranking/stat regressions assert zero LLM calls for supported genomics prompts.
+- 2026-07-01: Rebuilt-SCN smoke audit confirmed the same zero-LLM behavior on representative live-data prompts for functional-annotation ranking and `ppJ2` percentile summaries, so the deterministic-first optimization is now verified beyond fixture-only tests.
+- 2026-07-01: Expression-condition resolution was tightened to be dataset-aware and exact for explicit condition phrases. Cross-dataset wrong prompts such as SCN `Adult Female Liver` or Bison `ppJ2` now return deterministic mismatch answers with live condition previews instead of falling through to LLM SQL or collapsing to shorter partial labels.
+- 2026-07-01: Ortholog-count organism mismatches now follow the same deterministic dataset-aware rule: explicit unknown organism names return a direct answer with live organism alternatives from the active dataset instead of a generic fallback or speculative SQL path.
+- 2026-07-01: Broad-homology organism mismatches now follow the same rule: explicit unknown homology-organism names return a deterministic answer with live homology-organism alternatives instead of silently degrading to a broader homology query.
 - 2026-06-30: Semantic-spec cleanup: annotation-namespace alias specs and common-promoted entity specs now come from the semantic registry instead of static module lists, so those selection vocabularies are overrideable and no longer duplicated in code.
 - 2026-07-01: Matcher cleanup: homology-organism lookup, organism-name lookup, and entity-subset gating now share the same registry-backed matcher helper path instead of three separate prompt-entity loops, and subset cue detection is now configurable from semantic-registry matcher specs too.
 - 2026-07-01: Live-promoted cleanup: runtime promoted-entity discovery now reads registry config for excluded relation/result types, alias-field synthesis, and default count aliases, and ortholog-member matching now shares the same relation-family matcher helper path as evidence-family matching instead of a bespoke alias/exclusion branch.
@@ -421,5 +576,13 @@ Use this section to append short progress notes across sessions.
 - 2026-07-01: Phase-6 cleanup follow-up: `effector_tag_filters` now uses the shared semantic-condition route analysis/compile helpers rather than its own bespoke route wrapper, with only the effector-family labeling pass still kept local because it depends on dynamic-family message interpretation.
 - 2026-07-01: Phase-6 cleanup follow-up: scope/comparative/effector semantic-condition routes now also share one normalized synthesized-result contract (`sql` plus semantic trace/evidence metadata) instead of each route family relying on slightly different direct-call return shapes.
 - 2026-07-01: Phase-6 cleanup follow-up: the remaining dynamic-family family-labeling logic is now factored into smaller reusable helpers (message-family selection plus flag-family matching) instead of one intertwined method, narrowing the last message-dependent handwritten boundary without changing the live discovery model.
+- 2026-07-01: Aggregation cleanup: supported deterministic aggregation operations now execute through a registry-backed operation table, so scalar/distribution/comparison summaries no longer rely on a separate hardcoded `average`/`percentile`/`min`/`max` branch ladder in `genomics.py`, while legacy `numeric_scalar` label overrides remain compatible unless the newer operation spec overrides them explicitly.
+- 2026-07-01: Phase-6 cleanup follow-up: the effector route now uses the same shared semantic-condition compile helper directly as the scope/comparative routes, and the dead effector-only wrapper/helper code was removed; the remaining effector-specific logic is now just family resolution over live dynamic-family matches.
+- 2026-07-01: Phase-6 cleanup follow-up: effector family resolution now uses one registry-driven candidate-family precedence helper that merges message-triggered family cues with fallback precedence, instead of separate message-family and fallback helper stages. Coverage now also proves custom registry message phrases can steer collapse behavior when the matched live flags support it.
+- 2026-07-01: Phase-6 cleanup follow-up: primary-organism selection for live scoped effector aliases is now registry-driven (`organisms.primary_selection.relationship_type`) instead of being hardcoded to `HAS_CHROMOSOME`, so the remaining runtime-owned organism logic is mostly the live alias collection itself rather than the selector rule.
+- 2026-07-01: Phase-6 cleanup follow-up: homology-scope branch discovery now reuses the same shared `branch_tags` walker as dynamic-family tag discovery, removing another duplicated live-graph traversal path while keeping the active graph hierarchy as the runtime source of truth.
+- 2026-07-01: Sample-data rebuild follow-up: rebuilt `sample_data/3_db/genomics_scn.db` and `sample_data/3_db/genomics_bison.db` from source packages. This also exposed and fixed an order-sensitive builder bug in tag-hierarchy seeding, so dataset-specific tag overrides that update a shared parent no longer depend on YAML merge insertion order.
+- 2026-07-01: Phase-0 closeout: recorded which remaining genomics runtime behaviors are intentional steady-state ownership versus temporary bridges. The current line is that live graph facts stay runtime-owned, while wording-only guards, unreproducible binary fixes, and accepted-SQL rescue layers remain cleanup targets.
+- 2026-07-01: Audit closeout: measured a representative no-model baseline on the rebuilt SCN sample DB. Current prompt payloads are roughly 3.1k approximate input tokens, with ~2.5k coming from the live schema/system block; deterministic orchestration latency is roughly 13-38 ms across the sampled prompt families before real model inference.
 - 2026-06-30: Validation cleanup: validation for migrated ranking/metadata/expression families now begins from `analyze_request()` plus analysis-kind-specific checks instead of fully re-deriving those semantics from prompt-only branching, reducing the remaining parallel interpretation path.
 - 2026-06-30: Validation cleanup: generic-tag, orthogroup-label, broad-homology-organism, direct `hgt_donor` result, broad-homology tag result, and ortholog copy-count checks now consume structured analysis data directly (condition signatures, homology organisms, owner/strategy/threshold) instead of rediscovering those semantics from prompt text inside `validation_error()`.

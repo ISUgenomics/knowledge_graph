@@ -62,6 +62,7 @@ class GenomicsChatModule(RegistryConditionModule):
         ("_analysis_for_expression_distribution", "expression_distribution", "_compute_expression_distribution_analysis"),
         ("_analysis_for_expression_comparison", "expression_comparison", "_compute_expression_comparison_analysis"),
         ("_analysis_for_expression_stats", "expression_stats", "_compute_expression_stats_analysis"),
+        ("_analysis_for_expression_measure_mismatch", "expression_measure_mismatch", "_compute_expression_measure_mismatch_analysis"),
         ("_analysis_for_multi_condition_filters", "multi_condition_filters", "_compile_multi_condition_filter_analysis"),
     )
     _SEMANTIC_CONDITION_ROUTE_SPECS = (
@@ -336,8 +337,13 @@ class GenomicsChatModule(RegistryConditionModule):
         if requested_type not in self._CORE_REQUESTED_TYPES:
             return None
         homology_organisms = [dict(item) for item in self._requested_homology_organism_matches(chat, message)]
+        unresolved_homology_organisms: list[str] = []
         if spec.get("requires_homology_organisms") and not homology_organisms:
-            return None
+            phrase_candidates = self._requested_organism_phrase_candidates(message)
+            if phrase_candidates:
+                unresolved_homology_organisms = list(phrase_candidates)
+            else:
+                return None
         all_conditions = self._semantic_conditions(chat, message)
         if not all_conditions:
             return None
@@ -362,6 +368,8 @@ class GenomicsChatModule(RegistryConditionModule):
         }
         if homology_organisms:
             analysis["homology_organisms"] = homology_organisms
+        if unresolved_homology_organisms:
+            analysis["unresolved_homology_organisms"] = unresolved_homology_organisms
         analysis.update(self._semantic_condition_analysis_fields(
             all_conditions,
             condition_kinds,
@@ -421,6 +429,36 @@ class GenomicsChatModule(RegistryConditionModule):
         allowed_kinds = set(spec.get("allowed_kinds", set()) or set())
         if allowed_kinds and not condition_kinds.issubset(allowed_kinds):
             return None
+        unresolved_homology_organisms = [
+            str(item) for item in list(analysis.get("unresolved_homology_organisms", []) or []) if str(item).strip()
+        ]
+        if unresolved_homology_organisms:
+            if len(unresolved_homology_organisms) == 1:
+                lead = f"This dataset does not define a homology organism matching `{unresolved_homology_organisms[0]}`."
+            else:
+                quoted = ", ".join(f"`{item}`" for item in unresolved_homology_organisms[:-1]) + f" and `{unresolved_homology_organisms[-1]}`"
+                lead = f"This dataset does not define homology organisms matching {quoted}."
+            available_organisms = self._available_homology_organism_names(chat)
+            details = [lead]
+            if available_organisms:
+                preview = ", ".join(available_organisms[:6])
+                suffix = "" if len(available_organisms) <= 6 else ", ..."
+                details.append(f"Available homology organisms in this dataset include: {preview}{suffix}.")
+            return self._answer_result(
+                analysis=analysis,
+                semantic_kind=str(spec.get("trace_kind", "") or f"genomics_{analysis_kind}"),
+                content=" ".join(details),
+                results=[],
+                artifact_kind="dataset_mismatch",
+                artifact_metadata={
+                    "unresolved_homology_organisms": unresolved_homology_organisms,
+                    "available_homology_organisms": available_organisms,
+                },
+                trace_fields={
+                    "unresolved_homology_organisms": unresolved_homology_organisms,
+                    "available_homology_organism_count": len(available_organisms),
+                },
+            )
         state = self._semantic_condition_query_state(
             conditions,
             [dict(item) for item in list(analysis.get("homology_organisms", []) or []) if isinstance(item, dict)],
@@ -558,6 +596,15 @@ class GenomicsChatModule(RegistryConditionModule):
     def _aggregation_config(self) -> dict[str, Any]:
         config = self.semantic_registry.get("aggregations", {}) if isinstance(self.semantic_registry, dict) else {}
         return dict(config) if isinstance(config, dict) else {}
+
+    def _aggregation_operation_spec(self, aggregation_type: str) -> dict[str, Any]:
+        config = self._aggregation_config()
+        legacy = self._numeric_scalar_aggregation_spec(aggregation_type)
+        operations = config.get("operations", {}) if isinstance(config, dict) else {}
+        spec = operations.get(str(aggregation_type), {}) if isinstance(operations, dict) else {}
+        if isinstance(spec, dict) and spec:
+            return {**legacy, **dict(spec)}
+        return legacy
 
     def _numeric_scalar_aggregation_spec(self, aggregation_type: str) -> dict[str, Any]:
         config = self._aggregation_config()
@@ -1724,6 +1771,12 @@ class GenomicsChatModule(RegistryConditionModule):
             "condition_context": self._condition_validation_context(conditions),
         }
 
+    def _matched_semantic_conditions(self, chat, message: str) -> list[dict[str, Any]]:
+        matched: list[dict[str, Any]] = []
+        for builder_id in self._ordered_condition_builders():
+            matched.extend(self._match_condition_builder(chat, message, builder_id))
+        return self._pruned_conditions(matched)
+
     @staticmethod
     def _live_promoted_entity_aliases(spec: dict[str, Any], config: dict[str, Any]) -> list[str]:
         alias_fields = [str(item) for item in list(config.get("alias_fields", []) or []) if str(item).strip()]
@@ -1794,13 +1847,13 @@ class GenomicsChatModule(RegistryConditionModule):
     def _common_promoted_entity_specs_for_chat(self, chat) -> list[dict[str, Any]]:
         config = self._live_promoted_entity_config()
         specs = [dict(item) for item in self._common_promoted_entity_specs()]
-        known = {
+        known: dict[tuple[str, str, str, str], dict[str, Any]] = {
             (
                 str(item.get("owner_type", "protein") or "protein"),
                 str(item.get("result_type", "") or ""),
                 str(item.get("rel_type", "") or ""),
                 str(item.get("category", "") or ""),
-            )
+            ): item
             for item in specs
         }
         for item in self._live_promoted_entity_specs(chat):
@@ -1810,12 +1863,20 @@ class GenomicsChatModule(RegistryConditionModule):
                 str(item.get("rel_type", "") or ""),
                 str(item.get("category", "") or ""),
             )
+            live_aliases = self._live_promoted_entity_aliases(item, config)
             if key in known:
+                if live_aliases:
+                    known[key]["aliases"] = list(live_aliases)
+                known[key]["count_alias"] = str(
+                    config.get("default_count_alias", known[key].get("count_alias", "assigned_entity_count"))
+                    or known[key].get("count_alias", "assigned_entity_count")
+                )
                 continue
             auto = dict(item)
-            auto["aliases"] = self._live_promoted_entity_aliases(auto, config)
+            auto["aliases"] = list(live_aliases)
             auto["count_alias"] = str(config.get("default_count_alias", "assigned_entity_count") or "assigned_entity_count")
             specs.append(auto)
+            known[key] = auto
         return specs
 
     @staticmethod
@@ -1928,6 +1989,10 @@ class GenomicsChatModule(RegistryConditionModule):
         conditions = self._match_condition_builder(chat, message, "promoted_call")
         if not conditions:
             return None
+        semantic_conditions = self._matched_semantic_conditions(chat, message)
+        semantic_kinds = self._condition_kinds(semantic_conditions)
+        if semantic_kinds != {"promoted_call"}:
+            return None
         requested_type = self._requested_core_type(requested_types)
         if requested_type not in {"gene", "transcript", "protein"}:
             requested_type = str(conditions[0].get("owner_type", "protein") or "protein")
@@ -2009,6 +2074,10 @@ class GenomicsChatModule(RegistryConditionModule):
     ) -> dict[str, Any] | None:
         conditions = self._match_condition_builder(chat, message, "generic_tag")
         if not conditions:
+            return None
+        semantic_conditions = self._matched_semantic_conditions(chat, message)
+        semantic_kinds = self._condition_kinds(semantic_conditions)
+        if semantic_kinds != {"generic_tag"}:
             return None
         requested_type = self._requested_core_type(requested_types)
         if requested_type not in {"gene", "transcript", "protein"}:
@@ -2092,6 +2161,12 @@ class GenomicsChatModule(RegistryConditionModule):
         condition_kinds = {str(cond.get("kind", "") or "") for cond in conditions}
         if condition_kinds.issubset({"promoted_call", "generic_tag"}):
             return None
+        has_broad_homology = any(str(cond.get("id", "") or "") == "broad_homology" for cond in conditions)
+        if has_broad_homology:
+            phrase_candidates = self._requested_organism_phrase_candidates(message)
+            homology_organisms = [dict(item) for item in self._requested_homology_organism_matches(chat, message)]
+            if phrase_candidates and not homology_organisms:
+                return None
         return {
             "analysis_kind": "multi_condition_filters",
             "domain": "genomics",
@@ -2122,12 +2197,13 @@ class GenomicsChatModule(RegistryConditionModule):
             return None
         family = self._registry_dynamic_family("effector_evidence")
         conditions = [dict(cond) for cond in list(analysis.get("conditions", []) or []) if isinstance(cond, dict)]
-        analysis["families"] = sorted({
-            self._dynamic_family_condition_family(message, cond, family)
+        resolved_families = {
+            resolved_family
             for cond in conditions
             if str(cond.get("kind", "") or "") == "tag_evidence"
-            and self._dynamic_family_condition_family(message, cond, family).strip()
-        })
+            if (resolved_family := self._dynamic_family_condition_family(message, cond, family).strip())
+        }
+        analysis["families"] = sorted(resolved_families)
         return analysis
 
     def _analysis_for_scope_tag_filters(
@@ -2352,17 +2428,7 @@ class GenomicsChatModule(RegistryConditionModule):
         chat,
         analysis: dict[str, Any],
     ) -> str | dict[str, Any] | None:
-        synthesized = self._compile_semantic_condition_route_analysis(chat, analysis, "effector_tag_filters")
-        if isinstance(synthesized, str):
-            payload: dict[str, Any] = {"sql": str(synthesized)}
-            evidence_columns = getattr(synthesized, "evidence_columns", None)
-            semantic_trace = getattr(synthesized, "semantic_trace", None)
-            if isinstance(evidence_columns, list):
-                payload["evidence_columns"] = list(evidence_columns)
-            if isinstance(semantic_trace, dict):
-                payload["semantic_trace"] = dict(semantic_trace)
-            return payload
-        return synthesized
+        return self._compile_semantic_condition_route_analysis(chat, analysis, "effector_tag_filters")
 
     def _compile_scope_tag_filter_analysis(
         self,
@@ -2751,7 +2817,7 @@ class GenomicsChatModule(RegistryConditionModule):
         elif " maximum " in low or " max " in low:
             metric_type = "max"
         else:
-            percentile_match = re.search(r"\b(\d{1,2}|100)(?:st|nd|rd|th)?\s+percentile\b", low)
+            percentile_match = re.search(r"\b(\d{1,2}|100)(?:st|nd|rd|th)?\s+percentil(?:e)?\b", low)
             if percentile_match:
                 percentile_value = int(percentile_match.group(1))
                 metric_type = "percentile"
@@ -2782,6 +2848,38 @@ class GenomicsChatModule(RegistryConditionModule):
             "presentation": {"prefer_summary": True, "prefer_table": False, "summary_style": summary_style},
         }
 
+    def _analysis_for_expression_measure_mismatch(self, chat, message: str, requested_types: list[str]) -> dict[str, Any] | None:
+        low = f" {str(message or '').lower()} "
+        if " expression " not in low:
+            return None
+        resolution = self._expression_measure_resolution(chat, message)
+        unresolved_phrases = [str(item) for item in list(resolution.get("unresolved_phrases", []) or []) if str(item).strip()]
+        if not unresolved_phrases:
+            return None
+        requested_type = self._requested_core_type(requested_types) or "transcript"
+        available_labels = [str(item) for item in list(resolution.get("available_labels", []) or []) if str(item).strip()]
+        matched_labels = [
+            str(item.get("label", "") or "")
+            for item in list(resolution.get("matched", []) or [])
+            if isinstance(item, dict) and str(item.get("label", "") or "").strip()
+        ]
+        summary_style = self._summary_style_for_message(message)
+        return {
+            "analysis_kind": "expression_measure_mismatch",
+            "domain": "genomics",
+            "intent": "answer",
+            "requested_result_kind": "narrative",
+            "subject": {"entity_type": requested_type},
+            "filters": [{
+                "type": "unresolved_expression_measure",
+                "phrases": unresolved_phrases,
+            }],
+            "unresolved_phrases": unresolved_phrases,
+            "matched_measure_labels": matched_labels,
+            "available_measure_labels": available_labels,
+            "presentation": {"prefer_summary": True, "prefer_table": False, "summary_style": summary_style},
+        }
+
     @staticmethod
     def _percentile_linear(values: list[float], percentile: int) -> float | None:
         if not values:
@@ -2797,28 +2895,30 @@ class GenomicsChatModule(RegistryConditionModule):
         weight = rank - lower
         return float(ordered[lower] * (1 - weight) + ordered[upper] * weight)
 
-    def _compute_numeric_aggregation(self, values: list[float], aggregation: dict[str, Any]) -> tuple[float | None, str]:
+    def _compute_aggregation(self, values: list[float], aggregation: dict[str, Any]) -> tuple[float | None, str]:
         metric_type = str(aggregation.get("type", "") or "")
         if not values or not metric_type:
             return None, metric_type
-        spec = self._numeric_scalar_aggregation_spec(metric_type)
-        if metric_type == "average":
+        spec = self._aggregation_operation_spec(metric_type)
+        operation = str(spec.get("operation", metric_type) or metric_type).strip()
+        if operation == "count":
+            return float(len(values)), str(spec.get("metric_label", "count") or "count")
+        if operation == "average":
             return float(sum(values) / len(values)), str(spec.get("metric_label", "average") or "average")
-        if metric_type == "percentile":
+        if operation == "percentile":
             percentile_num = int(aggregation.get("percentile", 0) or 0)
             label_template = str(spec.get("metric_label_template", "{percentile}th percentile") or "{percentile}th percentile")
             metric_label = label_template.format(percentile=percentile_num)
             return self._percentile_linear(values, percentile_num), metric_label
-        if metric_type == "min":
+        if operation == "min":
             return float(min(values)), str(spec.get("metric_label", "minimum") or "minimum")
-        if metric_type == "max":
+        if operation == "max":
             return float(max(values)), str(spec.get("metric_label", "maximum") or "maximum")
         return None, metric_type
 
-    def _requested_expression_measures(self, chat, message: str) -> list[dict[str, Any]]:
-        low = f" {str(message or '').lower()} "
+    def _expression_measure_specs(self, chat) -> list[dict[str, Any]]:
         rows = chat.db.execute_read("SELECT id, name, metadata FROM entities WHERE type = 'expression_measure' ORDER BY id")
-        matched: list[dict[str, Any]] = []
+        specs: list[dict[str, Any]] = []
         for row in rows:
             expr_id = str(row.get("id", "") or "")
             expr_name = str(row.get("name", "") or "")
@@ -2843,17 +2943,127 @@ class GenomicsChatModule(RegistryConditionModule):
                 f"under {label.lower()} condition",
                 f"{label.lower()} stage",
             }
-            if not any(alias and alias in low for alias in aliases):
-                continue
-            if not source_column:
-                continue
-            matched.append({
+            specs.append({
                 "type": "expression_measure",
                 "entity_id": expr_id,
                 "label": label,
                 "source_column": source_column,
+                "_alias_texts": [alias for alias in aliases if alias],
+                "_alias_norms": {
+                    self._normalized_prompt_text(alias).strip()
+                    for alias in aliases
+                    if str(alias).strip()
+                },
             })
-        return matched
+        return specs
+
+    @staticmethod
+    def _expression_phrase_tokens(text: str) -> list[str]:
+        return [str(token) for token in re.findall(r"[A-Za-z0-9_.-]+", str(text or "")) if str(token).strip()]
+
+    @classmethod
+    def _clean_expression_measure_phrase(cls, text: str) -> str:
+        tokens = cls._expression_phrase_tokens(text)
+        if not tokens:
+            return ""
+        stop_words = {
+            "stage", "condition", "for", "among", "across", "with", "where", "that", "which",
+            "using", "from", "of", "by", "show", "shows", "showing", "having", "has", "have",
+            "highest", "lowest", "top", "average", "mean", "minimum", "maximum", "min", "max",
+            "percentile", "percentil", "expression", "compare", "comparison", "difference",
+        }
+        phrase_tokens: list[str] = []
+        for token in tokens:
+            if phrase_tokens and token.lower() in stop_words:
+                break
+            if token.lower() in {"the", "a", "an"} and not phrase_tokens:
+                continue
+            phrase_tokens.append(token)
+        return " ".join(phrase_tokens).strip(" ,.;:!?")
+
+    @classmethod
+    def _requested_expression_measure_phrases(cls, message: str) -> list[str]:
+        text = str(message or "").strip()
+        if not text:
+            return []
+        candidates: list[str] = []
+        for pattern in (
+            r"\bbetween\s+([^,.;:!?]+?)\s+and\s+([^,.;:!?]+)",
+            r"\bcompare\s+([^,.;:!?]+?)\s+(?:and|vs|versus)\s+([^,.;:!?]+)",
+            r"\b([^,.;:!?]+?)\s+(?:vs|versus)\s+([^,.;:!?]+)",
+        ):
+            for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                for group in match.groups():
+                    phrase = cls._clean_expression_measure_phrase(str(group or ""))
+                    if phrase:
+                        candidates.append(phrase)
+        for pattern in (r"\bin\s+([^,.;:!?]+)", r"\bunder\s+([^,.;:!?]+)", r"\bduring\s+([^,.;:!?]+)", r"\bat\s+([^,.;:!?]+)"):
+            for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                phrase = cls._clean_expression_measure_phrase(str(match.group(1) or ""))
+                if phrase:
+                    candidates.append(phrase)
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for item in candidates:
+            normalized = cls._normalized_prompt_text(item).strip()
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            ordered.append(item)
+        return ordered
+
+    @classmethod
+    def _expression_phrase_matches_measure(cls, phrase: str, measure: dict[str, Any]) -> bool:
+        phrase_norm = cls._normalized_prompt_text(phrase).strip()
+        if not phrase_norm:
+            return False
+        for alias_norm in list(measure.get("_alias_norms", set()) or []):
+            normalized_alias = str(alias_norm).strip()
+            if not normalized_alias:
+                continue
+            if phrase_norm == normalized_alias:
+                return True
+        return False
+
+    def _expression_measure_resolution(self, chat, message: str) -> dict[str, Any]:
+        low = f" {str(message or '').lower()} "
+        specs = [spec for spec in self._expression_measure_specs(chat) if str(spec.get("source_column", "") or "").strip()]
+        phrases = self._requested_expression_measure_phrases(message)
+        if phrases:
+            matched_specs = [
+                spec
+                for spec in specs
+                if any(self._expression_phrase_matches_measure(phrase, spec) for phrase in phrases)
+            ]
+        else:
+            matched_specs = [
+                spec
+                for spec in specs
+                if any(alias and alias in low for alias in list(spec.get("_alias_texts", []) or []))
+            ]
+        matched = [
+            {
+                "type": "expression_measure",
+                "entity_id": str(spec.get("entity_id", "") or ""),
+                "label": str(spec.get("label", "") or spec.get("entity_id", "")),
+                "source_column": str(spec.get("source_column", "") or ""),
+            }
+            for spec in matched_specs
+        ]
+        unresolved = [
+            phrase
+            for phrase in phrases
+            if not any(self._expression_phrase_matches_measure(phrase, spec) for spec in specs)
+        ]
+        return {
+            "matched": matched,
+            "phrases": phrases,
+            "unresolved_phrases": unresolved,
+            "available_labels": [str(spec.get("label", "") or spec.get("entity_id", "")) for spec in specs],
+        }
+
+    def _requested_expression_measures(self, chat, message: str) -> list[dict[str, Any]]:
+        return [dict(item) for item in list(self._expression_measure_resolution(chat, message).get("matched", []) or [])]
 
     def _requested_expression_measure(self, chat, message: str) -> dict[str, Any] | None:
         matched = self._requested_expression_measures(chat, message)
@@ -2915,16 +3125,13 @@ class GenomicsChatModule(RegistryConditionModule):
         row: dict[str, Any] = {}
         for metric in metrics:
             alias = str(metric.get("alias", "") or "").strip()
-            metric_type = str(metric.get("type", "") or "").strip()
-            if not alias or not metric_type:
+            if not alias:
                 continue
-            if metric_type == "count":
-                row[alias] = len(values)
-                continue
-            value, _metric_label = self._compute_numeric_aggregation(values, metric)
+            value, _metric_label = self._compute_aggregation(values, metric)
             if value is None:
                 continue
-            row[alias] = round(float(value), 6)
+            rounded_value = round(float(value), 6)
+            row[alias] = int(rounded_value) if rounded_value.is_integer() else rounded_value
         return row if row else None
 
     def _compute_comparison_summary_row(
@@ -2944,8 +3151,8 @@ class GenomicsChatModule(RegistryConditionModule):
             metric_alias = str(metric.get("alias", "metric_value") or "metric_value").strip()
             if not metric_type or not metric_alias:
                 continue
-            left_value, _left_label = self._compute_numeric_aggregation(left_values, {"type": metric_type, **metric})
-            right_value, _right_label = self._compute_numeric_aggregation(right_values, {"type": metric_type, **metric})
+            left_value, _left_label = self._compute_aggregation(left_values, {"type": metric_type, **metric})
+            right_value, _right_label = self._compute_aggregation(right_values, {"type": metric_type, **metric})
             if left_value is None or right_value is None:
                 return None
             left_value = round(float(left_value), 6)
@@ -3028,7 +3235,7 @@ class GenomicsChatModule(RegistryConditionModule):
                 artifact_metadata={"measure_id": expr_id, "measure_label": expr_label, "empty": True},
                 trace_fields={"expression_measure_id": expr_id, "source_column": source_column},
             )
-        stat_value, metric_label = self._compute_numeric_aggregation(values, aggregation)
+        stat_value, metric_label = self._compute_aggregation(values, aggregation)
         if stat_value is None:
             return None
         rounded_value = round(stat_value, 6)
@@ -3049,6 +3256,42 @@ class GenomicsChatModule(RegistryConditionModule):
             artifact_kind="scalar_summary",
             artifact_metadata={"measure_id": expr_id, "measure_label": expr_label, "metric": metric_label},
             trace_fields={"expression_measure_id": expr_id, "source_column": source_column, "metric": metric_label},
+        )
+
+    def _compute_expression_measure_mismatch_analysis(self, chat, analysis: dict[str, Any]) -> dict[str, Any] | None:
+        unresolved = [str(item) for item in list(analysis.get("unresolved_phrases", []) or []) if str(item).strip()]
+        available_labels = [str(item) for item in list(analysis.get("available_measure_labels", []) or []) if str(item).strip()]
+        matched_labels = [str(item) for item in list(analysis.get("matched_measure_labels", []) or []) if str(item).strip()]
+        if not unresolved:
+            return None
+        if len(unresolved) == 1:
+            lead = f"This dataset does not define an expression condition matching `{unresolved[0]}`."
+        else:
+            quoted = ", ".join(f"`{item}`" for item in unresolved[:-1]) + f" and `{unresolved[-1]}`"
+            lead = f"This dataset does not define expression conditions matching {quoted}."
+        details: list[str] = [lead]
+        if matched_labels:
+            details.append(f"Matched conditions in this request: {', '.join(matched_labels)}.")
+        if available_labels:
+            preview = ", ".join(available_labels[:6])
+            suffix = "" if len(available_labels) <= 6 else ", ..."
+            details.append(f"Available expression conditions in this dataset include: {preview}{suffix}.")
+        return self._answer_result(
+            analysis=analysis,
+            semantic_kind="expression_measure_mismatch",
+            content=" ".join(details),
+            results=[],
+            artifact_kind="dataset_mismatch",
+            artifact_metadata={
+                "unresolved_phrases": unresolved,
+                "matched_measure_labels": matched_labels,
+                "available_measure_labels": available_labels,
+            },
+            trace_fields={
+                "unresolved_phrases": unresolved,
+                "matched_measure_labels": matched_labels,
+                "available_measure_count": len(available_labels),
+            },
         )
 
     def _compute_expression_distribution_analysis(self, chat, analysis: dict[str, Any]) -> dict[str, Any] | None:
@@ -3271,13 +3514,16 @@ class GenomicsChatModule(RegistryConditionModule):
         )
 
     def _primary_organism_aliases(self, chat) -> set[str]:
+        organisms = self.semantic_registry.get("organisms", {}) if isinstance(self.semantic_registry, dict) else {}
+        primary_selection = organisms.get("primary_selection", {}) if isinstance(organisms, dict) else {}
+        relationship_type = str(primary_selection.get("relationship_type", "HAS_CHROMOSOME") or "HAS_CHROMOSOME").strip()
         try:
             rows = chat.db.execute_read(
-                """
+                f"""
                 SELECT o.name
                 FROM entities o
                 JOIN relationships r ON r.source_id = o.id
-                WHERE o.type = 'organism' AND r.rel_type = 'HAS_CHROMOSOME'
+                WHERE o.type = 'organism' AND r.rel_type = '{self._sql_literal(relationship_type)}'
                 GROUP BY o.id, o.name
                 ORDER BY COUNT(*) DESC, o.name
                 LIMIT 1
@@ -3303,6 +3549,103 @@ class GenomicsChatModule(RegistryConditionModule):
                 continue
             aliases.update(these)
         return aliases
+
+    def _available_organism_names(self, chat) -> list[str]:
+        names: list[str] = []
+        seen: set[str] = set()
+
+        def add_name(value: str) -> None:
+            text = str(value or "").strip()
+            if not text:
+                return
+            key = text.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            names.append(text)
+
+        try:
+            for row in chat.db.execute_read("SELECT name FROM entities WHERE type = 'organism' ORDER BY name"):
+                add_name(str(row.get("name", "") or ""))
+        except Exception:
+            pass
+        try:
+            for row in chat.db.execute_read(
+                """
+                SELECT DISTINCT json_extract(metadata, '$.organism') AS organism
+                FROM entities
+                WHERE json_extract(metadata, '$.organism') IS NOT NULL
+                ORDER BY organism
+                """
+            ):
+                add_name(str(row.get("organism", "") or ""))
+        except Exception:
+            pass
+        try:
+            for row in chat.db.execute_read(
+                """
+                SELECT DISTINCT gc.key AS organism
+                FROM entities e, json_each(e.metadata, '$.gene_counts') gc
+                ORDER BY gc.key
+                """
+            ):
+                add_name(str(row.get("organism", "") or ""))
+        except Exception:
+            pass
+        try:
+            for row in chat.db.execute_read(
+                """
+                SELECT DISTINCT json_extract(metadata, '$.matched_organism') AS organism
+                FROM entities
+                WHERE json_extract(metadata, '$.matched_organism') IS NOT NULL
+                ORDER BY organism
+                """
+            ):
+                add_name(str(row.get("organism", "") or ""))
+        except Exception:
+            pass
+        return names
+
+    def _available_homology_organism_names(self, chat) -> list[str]:
+        names: list[str] = []
+        seen: set[str] = set()
+
+        def add_name(value: str) -> None:
+            text = str(value or "").strip()
+            if not text:
+                return
+            key = text.lower()
+            if key in seen:
+                return
+            seen.add(key)
+            names.append(text)
+
+        try:
+            for row in chat.db.execute_read(
+                """
+                SELECT name
+                FROM entities
+                WHERE type = 'tag' AND id LIKE 'homology-organism:%'
+                ORDER BY name
+                """
+            ):
+                add_name(str(row.get("name", "") or ""))
+        except Exception:
+            pass
+        try:
+            for row in chat.db.execute_read(
+                """
+                SELECT DISTINCT json_extract(metadata, '$.matched_organism') AS organism
+                FROM entities
+                WHERE type = 'comparative_hit'
+                  AND json_extract(metadata, '$.matched_organism') IS NOT NULL
+                ORDER BY organism
+                """
+            ):
+                add_name(str(row.get("organism", "") or ""))
+        except Exception:
+            pass
+        return names
 
     def _requested_homology_organism_matches(self, chat, message: str) -> list[dict[str, str]]:
         return [
@@ -3333,7 +3676,7 @@ class GenomicsChatModule(RegistryConditionModule):
             "lowest", "more", "less", "than", "copies", "copy", "ortholog", "orthologs",
             "gene", "genes", "protein", "proteins", "transcript", "transcripts",
         }
-        patterns = [r"\bfrom\s+([^,.;:!?]+)", r"\bin\s+([^,.;:!?]+)"]
+        patterns = [r"\bfrom\s+([^,.;:!?]+)", r"\bin\s+([^,.;:!?]+)", r"\bfor\s+([^,.;:!?]+)"]
         for pattern in patterns:
             for match in re.finditer(pattern, text, flags=re.IGNORECASE):
                 raw = str(match.group(1) or "").strip(" ,.;:!?")
@@ -3383,6 +3726,20 @@ class GenomicsChatModule(RegistryConditionModule):
                 continue
             seen.add(entity_id)
             ids.append(entity_id)
+        if not ids:
+            token_stop_words = {
+                "compare", "within", "between", "among", "and", "or", "for",
+                "gene", "genes", "protein", "proteins", "transcript", "transcripts",
+            }
+            for token in re.findall(r"[A-Za-z0-9_.-]+", str(message or "")):
+                token_text = str(token).strip()
+                if not token_text or token_text.lower() in token_stop_words:
+                    continue
+                for entity_id, entity_type, _entity_name in chat._entity_name_matches(token_text):
+                    if entity_id in seen or entity_type not in allowed:
+                        continue
+                    seen.add(entity_id)
+                    ids.append(entity_id)
         low = f" {str(message or '').lower()} "
         if len(ids) < 2 and " between " not in low and "," not in low and " and " not in low:
             return []
@@ -3462,24 +3819,18 @@ class GenomicsChatModule(RegistryConditionModule):
         return [f" {alias.strip()} " for alias in aliases if alias.strip()]
 
     def _homology_scope_branch(self, chat) -> list[tuple[str, str]]:
-        config = self._scope_tag_source_config()
-        root_tag_id = str(config.get("root_tag_id", self._HOMOLOGY_SCOPE_ROOT) or self._HOMOLOGY_SCOPE_ROOT)
-        hierarchy_rel_type = str(config.get("hierarchy_rel_type", "BROADER") or "BROADER")
-        fallback_tag_id_pattern = str(config.get("fallback_tag_id_pattern", "homology-scope-%") or "homology-scope-%")
-        branch_ids = chat.db._ordered_branch_ids(root_tag_id, hierarchy_edge=hierarchy_rel_type)
-        if branch_ids == [root_tag_id] and not chat.db.get_entity(root_tag_id):
-            rows = chat.db.execute_read(
-                "SELECT id, name FROM entities WHERE type = 'tag' AND id LIKE ? ORDER BY id",
-                (fallback_tag_id_pattern,),
-            )
-            return [(row["id"], row.get("name", row["id"])) for row in rows]
-        branch: list[tuple[str, str]] = []
-        for tag_id in branch_ids:
-            entity = chat.db.get_entity(tag_id)
-            if not entity or entity.get("type") != "tag" or entity.get("id") == root_tag_id:
-                continue
-            branch.append((entity["id"], entity.get("name", entity["id"])))
-        return branch
+        config = {
+            "mode": "branch_tags",
+            "root_tag_id": self._HOMOLOGY_SCOPE_ROOT,
+            "hierarchy_rel_type": "BROADER",
+            "fallback_tag_id_pattern": "homology-scope-%",
+            **self._scope_tag_source_config(),
+        }
+        return [
+            (str(row.get("id", "") or ""), str(row.get("name", row.get("id", "")) or row.get("id", "")))
+            for row in self._branch_tag_source_rows(chat, config)
+            if str(row.get("id", "") or "").strip()
+        ]
 
     def _parser_message_eligibility(self, message: str, parser: dict[str, Any]) -> bool:
         low = f" {str(message or '').lower()} "
@@ -3574,9 +3925,6 @@ class GenomicsChatModule(RegistryConditionModule):
             return group_conditions
         return []
 
-    def _matched_effector_tag_conditions(self, chat, message: str) -> list[dict[str, Any]]:
-        return self._matched_dynamic_family_conditions(chat, message, "effector_evidence")
-
     @staticmethod
     def _dynamic_family_match_group_names(family: dict[str, Any]) -> list[str]:
         selection = family.get("selection", {}) if isinstance(family, dict) else {}
@@ -3628,28 +3976,28 @@ class GenomicsChatModule(RegistryConditionModule):
         return any(cond.get(f"is_{flag_name}") for flag_name in list(match_flags or []) if str(flag_name).strip())
 
     @classmethod
-    def _dynamic_family_message_family(cls, message: str, family: dict[str, Any]) -> str:
+    def _dynamic_family_candidate_families(cls, message: str, family: dict[str, Any]) -> list[str]:
         collapse = family.get("collapse", {}) if isinstance(family, dict) else {}
         low = f" {str(message or '').lower()} "
         when_message_contains = collapse.get("when_message_contains", {}) if isinstance(collapse, dict) else {}
+        candidates: list[str] = []
         if not isinstance(when_message_contains, dict):
-            return ""
+            when_message_contains = {}
         for family_name, phrases in when_message_contains.items():
             if any(str(phrase) in low for phrase in list(phrases or []) if str(phrase).strip()):
-                return str(family_name)
-        return ""
+                candidate = str(family_name).strip()
+                if candidate and candidate not in candidates:
+                    candidates.append(candidate)
+        fallback_precedence = [str(item) for item in list(collapse.get("fallback_precedence", []) or []) if str(item).strip()]
+        for family_name in fallback_precedence:
+            if family_name not in candidates:
+                candidates.append(family_name)
+        return candidates
 
     @classmethod
     def _dynamic_family_condition_family(cls, message: str, cond: dict[str, Any], family: dict[str, Any]) -> str:
-        collapse = family.get("collapse", {}) if isinstance(family, dict) else {}
         match_map = cls._dynamic_family_flag_match_map(family)
-        message_family = cls._dynamic_family_message_family(message, family)
-        if message_family:
-            match_flags = match_map.get(message_family, [message_family])
-            if cls._dynamic_family_condition_matches_flags(cond, match_flags):
-                return message_family
-        fallback_precedence = [str(item) for item in list(collapse.get("fallback_precedence", []) or []) if str(item).strip()]
-        for family_name in fallback_precedence:
+        for family_name in cls._dynamic_family_candidate_families(message, family):
             match_flags = match_map.get(family_name, [family_name])
             if cls._dynamic_family_condition_matches_flags(cond, match_flags):
                 return family_name
@@ -4241,17 +4589,32 @@ class GenomicsChatModule(RegistryConditionModule):
             str(item) for item in list(analysis.get("unresolved_requested_organisms", []) or []) if str(item).strip()
         ]
         if unresolved_requested_organisms:
-            organism_text = ", ".join(unresolved_requested_organisms)
-            return {
-                "intent": "answer",
-                "content": f"No organism named {organism_text} was found in this dataset.",
-                "results": [],
-                "semantic_trace": self._analysis_trace(
-                    "ortholog_count_map",
-                    analysis,
-                    unresolved_requested_organisms=unresolved_requested_organisms,
-                ),
-            }
+            if len(unresolved_requested_organisms) == 1:
+                lead = f"This dataset does not define an organism matching `{unresolved_requested_organisms[0]}`."
+            else:
+                quoted = ", ".join(f"`{item}`" for item in unresolved_requested_organisms[:-1]) + f" and `{unresolved_requested_organisms[-1]}`"
+                lead = f"This dataset does not define organisms matching {quoted}."
+            available_organisms = self._available_organism_names(chat)
+            details = [lead]
+            if available_organisms:
+                preview = ", ".join(available_organisms[:6])
+                suffix = "" if len(available_organisms) <= 6 else ", ..."
+                details.append(f"Available organisms in this dataset include: {preview}{suffix}.")
+            return self._answer_result(
+                analysis=analysis,
+                semantic_kind="ortholog_count_map",
+                content=" ".join(details),
+                results=[],
+                artifact_kind="dataset_mismatch",
+                artifact_metadata={
+                    "unresolved_requested_organisms": unresolved_requested_organisms,
+                    "available_organisms": available_organisms,
+                },
+                trace_fields={
+                    "unresolved_requested_organisms": unresolved_requested_organisms,
+                    "available_organism_count": len(available_organisms),
+                },
+            )
         if not requested_type or not owner_type or not strategy or not operator or value is None:
             return None
         joins: list[str] = []
