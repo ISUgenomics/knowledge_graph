@@ -253,15 +253,45 @@ class ChatToSQL:
                 normalized["semantic_trace"] = dict(semantic_trace)
             return normalized
         if isinstance(result, dict):
+            intent = str(result.get("intent", "") or "").strip().lower()
             sql = str(result.get("sql", "") or "").strip()
-            if not sql:
+            if not sql and intent != "answer":
                 return None
-            normalized = {"sql": sql}
+            normalized = {"intent": intent or "query"}
+            if sql:
+                normalized["sql"] = sql
             if isinstance(result.get("evidence_columns"), list):
                 normalized["evidence_columns"] = list(result.get("evidence_columns", []) or [])
             if isinstance(result.get("semantic_trace"), dict):
                 normalized["semantic_trace"] = dict(result.get("semantic_trace", {}) or {})
+            if intent == "answer":
+                normalized["content"] = str(result.get("content", "") or "")
+                if isinstance(result.get("results"), list):
+                    normalized["results"] = list(result.get("results", []) or [])
             return normalized
+        return None
+
+    @staticmethod
+    def _materialize_synthesized_result(
+        synthesized: dict[str, Any] | None,
+        *,
+        content: str,
+        debug_steps: list[dict[str, Any]],
+    ) -> ChatResult | None:
+        if not synthesized:
+            return None
+        intent = str(synthesized.get("intent", "query") or "query").lower()
+        if intent == "answer":
+            return ChatResult(
+                intent="answer",
+                content=str(synthesized.get("content", "") or ""),
+                sql=str(synthesized.get("sql", "") or "") or None,
+                results=list(synthesized.get("results", []) or []),
+                debug=debug_steps,
+            )
+        sql = str(synthesized.get("sql", "") or "").strip()
+        if not sql:
+            return None
         return None
 
     @staticmethod
@@ -363,10 +393,19 @@ class ChatToSQL:
         debug_steps.append({
             "step": "accepted_sql_semantic_reconciliation_candidate",
             "sql": synthesized.get("sql") if synthesized else None,
+            "intent": synthesized.get("intent") if synthesized else None,
+            "content": synthesized.get("content") if synthesized else None,
             "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
         })
         if not synthesized:
             return result
+        synthesized_answer = self._materialize_synthesized_result(
+            synthesized,
+            content=result.content,
+            debug_steps=debug_steps,
+        )
+        if synthesized_answer:
+            return synthesized_answer
         semantic_trace = synthesized.get("semantic_trace") if isinstance(synthesized.get("semantic_trace"), dict) else {}
         semantic_kind = str(semantic_trace.get("kind", "") or "")
         module_kinds = set(self.module.reconciliation_semantic_kinds())
@@ -468,6 +507,14 @@ class ChatToSQL:
                 continue
             seen.add(entity_type)
             ordered.append(entity_type)
+        if not ordered and self.module:
+            try:
+                analysis = self.module.analyze_request(self, message, [])
+            except Exception:
+                analysis = None
+            subject_type = str((analysis or {}).get("subject", {}).get("entity_type", "") or "")
+            if subject_type and subject_type not in ordered:
+                ordered.append(subject_type)
         return ordered
 
     def _typed_rel_patterns(self) -> set[tuple[str, str, str]]:
@@ -623,6 +670,13 @@ class ChatToSQL:
             re.IGNORECASE,
         )
         if not type_match:
+            if self.module:
+                try:
+                    module_error = self.module.validation_error(self, sql, requested_types, message)
+                except Exception:
+                    module_error = None
+                if module_error:
+                    return module_error
             return None
 
         selected_type = type_match.group(1)
@@ -1016,10 +1070,14 @@ class ChatToSQL:
             debug_steps.append({
                 "step": "validation_count_map_sql",
                 "sql": synthesized.get("sql") if synthesized else None,
+                "intent": synthesized.get("intent") if synthesized else None,
                 "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
                 "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
             })
             if synthesized:
+                synthesized_answer = self._materialize_synthesized_result(synthesized, content=result.content, debug_steps=debug_steps)
+                if synthesized_answer:
+                    return synthesized_answer
                 try:
                     count_map_results = self.db.execute_read(str(synthesized["sql"]))
                 except Exception:
@@ -1073,10 +1131,14 @@ class ChatToSQL:
             debug_steps.append({
                 "step": "count_map_sql",
                 "sql": synthesized.get("sql") if synthesized else None,
+                "intent": synthesized.get("intent") if synthesized else None,
                 "semantic_trace": synthesized.get("semantic_trace") if synthesized else None,
                 "evidence_columns": synthesized.get("evidence_columns") if synthesized else None,
             })
             if synthesized:
+                synthesized_answer = self._materialize_synthesized_result(synthesized, content=result.content, debug_steps=debug_steps)
+                if synthesized_answer:
+                    return synthesized_answer
                 try:
                     count_map_results = self.db.execute_read(str(synthesized["sql"]))
                 except Exception:
