@@ -1,0 +1,5910 @@
+---
+title: "Evidence for the Dimuon Decay of the Higgs Boson in pp Collisions with the ATLAS Detector"
+doi: "10.1103/gzdh-p159"
+year: 2025
+journal: "Physical review letters"
+pmid: "41418209"
+authors:
+  - "[[aad-g]]"
+  - "[[aakvaag-e]]"
+  - "[[abbott-b]]"
+  - "[[abdelhameed-s]]"
+  - "[[abeling-k]]"
+  - "[[abicht-nj]]"
+  - "[[abidi-sh]]"
+  - "[[aboelela-m]]"
+  - "[[aboulhorma-a]]"
+  - "[[abramowicz-h]]"
+  - "[[abulaiti-y]]"
+  - "[[acharya-bs]]"
+  - "[[ackermann-a]]"
+  - "[[adam-bourdarios-c]]"
+  - "[[adamczyk-l]]"
+  - "[[addepalli-sv]]"
+  - "[[addison-mj]]"
+  - "[[adelman-j]]"
+  - "[[adiguzel-a]]"
+  - "[[adye-t]]"
+  - "[[affolder-aa]]"
+  - "[[afik-y]]"
+  - "[[agaras-mn]]"
+  - "[[aggarwal-a]]"
+  - "[[agheorghiesei-c]]"
+  - "[[ahmadov-f]]"
+  - "[[ahuja-s]]"
+  - "[[ai-x]]"
+  - "[[aielli-g]]"
+  - "[[aikot-a]]"
+  - "[[ait-tamlihat-m]]"
+  - "[[aitbenchikh-b]]"
+  - "[[akbiyik-m]]"
+  - "[[kesson-tpa]]"
+  - "[[akimov-av]]"
+  - "[[akiyama-d]]"
+  - "[[akolkar-nn]]"
+  - "[[aktas-s]]"
+  - "[[alberghi-gl]]"
+  - "[[albert-j]]"
+  - "[[alberti-u]]"
+  - "[[albicocco-p]]"
+  - "[[albouy-gl]]"
+  - "[[alderweireldt-s]]"
+  - "[[alegria-zl]]"
+  - "[[aleksa-m]]"
+  - "[[aleksandrov-in]]"
+  - "[[alexa-c]]"
+  - "[[alexopoulos-t]]"
+  - "[[alfonsi-f]]"
+  - "[[algren-m]]"
+  - "[[alhroob-m]]"
+  - "[[ali-b]]"
+  - "[[ali-hmj]]"
+  - "[[ali-s]]"
+  - "[[alibocus-sw]]"
+  - "[[aliev-m]]"
+  - "[[alimonti-g]]"
+  - "[[alkakhi-w]]"
+  - "[[allaire-c]]"
+  - "[[allbrooke-bmm]]"
+  - "[[allen-js]]"
+  - "[[allen-jf]]"
+  - "[[allport-pp]]"
+  - "[[aloisio-a]]"
+  - "[[alonso-f]]"
+  - "[[alpigiani-c]]"
+  - "[[alsolami-zmk]]"
+  - "[[alvarez-fernandez-a]]"
+  - "[[alves-cardoso-m]]"
+  - "[[alviggi-mg]]"
+  - "[[aly-m]]"
+  - "[[amaral-coutinho-y]]"
+  - "[[ambler-a]]"
+  - "[[amelung-c]]"
+  - "[[amerl-m]]"
+  - "[[ames-cg]]"
+  - "[[amezza-t]]"
+  - "[[amidei-d]]"
+  - "[[amini-b]]"
+  - "[[amirie-k]]"
+  - "[[amirkhanov-a]]"
+  - "[[amor-dos-santos-sp]]"
+  - "[[amos-kr]]"
+  - "[[amperiadou-d]]"
+  - "[[an-s]]"
+  - "[[anastopoulos-c]]"
+  - "[[andeen-t]]"
+  - "[[anders-jk]]"
+  - "[[anderson-ac]]"
+  - "[[andreazza-a]]"
+  - "[[angelidakis-s]]"
+  - "[[angerami-a]]"
+  - "[[anisenkov-av]]"
+  - "[[annovi-a]]"
+  - "[[antel-c]]"
+  - "[[antipov-e]]"
+  - "[[antonelli-m]]"
+  - "[[anulli-f]]"
+  - "[[aoki-m]]"
+  - "[[aoki-t]]"
+  - "[[aparo-ma]]"
+  - "[[aperio-bella-l]]"
+  - "[[apicella-m]]"
+  - "[[appelt-c]]"
+  - "[[apyan-a]]"
+  - "[[arampatzi-m]]"
+  - "[[arbiol-val-sj]]"
+  - "[[arcangeletti-c]]"
+  - "[[arce-ath]]"
+  - "[[arguin-jf]]"
+  - "[[argyropoulos-s]]"
+  - "[[arling-jh]]"
+  - "[[arnaez-o]]"
+  - "[[arnold-h]]"
+  - "[[artoni-g]]"
+  - "[[asada-h]]"
+  - "[[asai-k]]"
+  - "[[asatryan-s]]"
+  - "[[asbah-na]]"
+  - "[[ashby-pickering-ra]]"
+  - "[[aslam-am]]"
+  - "[[assamagan-k]]"
+  - "[[astalos-r]]"
+  - "[[astrand-ksv]]"
+  - "[[atashi-s]]"
+  - "[[atkin-rj]]"
+  - "[[atmani-h]]"
+  - "[[atmasiddha-pa]]"
+  - "[[augsten-k]]"
+  - "[[auriol-ad]]"
+  - "[[austrup-va]]"
+  - "[[avad-as]]"
+  - "[[avolio-g]]"
+  - "[[axiotis-k]]"
+  - "[[azzam-a]]"
+  - "[[babal-d]]"
+  - "[[bachacou-h]]"
+  - "[[bachas-k]]"
+  - "[[bachiu-a]]"
+  - "[[bachmann-e]]"
+  - "[[backes-mj]]"
+  - "[[badea-a]]"
+  - "[[baer-tm]]"
+  - "[[bagnaia-p]]"
+  - "[[bahmani-m]]"
+  - "[[bahner-d]]"
+  - "[[bai-k]]"
+  - "[[baines-jt]]"
+  - "[[baines-l]]"
+  - "[[baker-ok]]"
+  - "[[bakos-e]]"
+  - "[[bakshi-gupta-d]]"
+  - "[[balabram-filho-le]]"
+  - "[[balakrishnan-v]]"
+  - "[[balasubramanian-r]]"
+  - "[[baldin-em]]"
+  - "[[balek-p]]"
+  - "[[ballabene-e]]"
+  - "[[balli-f]]"
+  - "[[baltes-lm]]"
+  - "[[balunas-wk]]"
+  - "[[balz-j]]"
+  - "[[bamwidhi-i]]"
+  - "[[banas-e]]"
+  - "[[bandieramonte-m]]"
+  - "[[bandyopadhyay-a]]"
+  - "[[bansal-s]]"
+  - "[[barak-l]]"
+  - "[[barakat-m]]"
+  - "[[barberio-el]]"
+  - "[[barberis-d]]"
+  - "[[barbero-m]]"
+  - "[[barel-mz]]"
+  - "[[barillari-t]]"
+  - "[[barisits-ms]]"
+  - "[[barklow-t]]"
+  - "[[baron-p]]"
+  - "[[baron-moreno-da]]"
+  - "[[baroncelli-a]]"
+  - "[[barr-aj]]"
+  - "[[barr-jd]]"
+  - "[[barreiro-f]]"
+  - "[[barreiro-guimares-da-costa-j]]"
+  - "[[barros-teixeira-mg]]"
+  - "[[barsov-s]]"
+  - "[[bartels-f]]"
+  - "[[bartoldus-r]]"
+  - "[[barton-ae]]"
+  - "[[bartos-p]]"
+  - "[[baselga-m]]"
+  - "[[bashiri-s]]"
+  - "[[bassalat-a]]"
+  - "[[basso-mj]]"
+  - "[[bataju-s]]"
+  - "[[bate-r]]"
+  - "[[bates-rl]]"
+  - "[[batlamous-s]]"
+  - "[[battaglia-m]]"
+  - "[[battulga-d]]"
+  - "[[bauce-m]]"
+  - "[[bauer-m]]"
+  - "[[bauer-p]]"
+  - "[[bayer-lt]]"
+  - "[[bazzano-hurrell-lt]]"
+  - "[[beacham-jb]]"
+  - "[[beau-t]]"
+  - "[[beaucamp-jy]]"
+  - "[[beauchemin-ph]]"
+  - "[[bechtle-p]]"
+  - "[[beck-hp]]"
+  - "[[becker-k]]"
+  - "[[beddall-aj]]"
+  - "[[bednyakov-va]]"
+  - "[[bee-cp]]"
+  - "[[beemster-lj]]"
+  - "[[begalli-m]]"
+  - "[[begel-m]]"
+  - "[[behr-jk]]"
+  - "[[beirer-jf]]"
+  - "[[beisiegel-f]]"
+  - "[[belfkir-m]]"
+  - "[[bella-g]]"
+  - "[[bellagamba-l]]"
+  - "[[bellerive-a]]"
+  - "[[bellgraph-cd]]"
+  - "[[bellos-p]]"
+  - "[[beloborodov-k]]"
+  - "[[benaoumeur-i]]"
+  - "[[benchekroun-d]]"
+  - "[[bendebba-f]]"
+  - "[[benhammou-y]]"
+  - "[[benkendorfer-kc]]"
+  - "[[beresford-l]]"
+  - "[[beretta-m]]"
+  - "[[bergeaas-kuutmann-e]]"
+  - "[[berger-n]]"
+  - "[[bergmann-b]]"
+  - "[[beringer-j]]"
+  - "[[bernardi-g]]"
+  - "[[bernius-c]]"
+  - "[[bernlochner-fu]]"
+  - "[[berrocal-guardia-a]]"
+  - "[[berry-t]]"
+  - "[[berta-p]]"
+  - "[[berthold-a]]"
+  - "[[berti-a]]"
+  - "[[bertrand-r]]"
+  - "[[bethke-s]]"
+  - "[[betti-a]]"
+  - "[[bevan-aj]]"
+  - "[[bezio-l]]"
+  - "[[bhalla-nk]]"
+  - "[[bharthuar-s]]"
+  - "[[bhatta-s]]"
+  - "[[bhattarai-p]]"
+  - "[[bhatti-zm]]"
+  - "[[bhide-kd]]"
+  - "[[bhopatkar-vs]]"
+  - "[[bianchi-rm]]"
+  - "[[bianco-g]]"
+  - "[[biebel-o]]"
+  - "[[biglietti-m]]"
+  - "[[billingsley-cs]]"
+  - "[[bimgdi-y]]"
+  - "[[bindi-m]]"
+  - "[[bingham-a]]"
+  - "[[bingul-a]]"
+  - "[[bini-c]]"
+  - "[[bird-ga]]"
+  - "[[birman-m]]"
+  - "[[biros-m]]"
+  - "[[biryukov-s]]"
+  - "[[bisanz-t]]"
+  - "[[bisceglie-e]]"
+  - "[[biswal-jp]]"
+  - "[[biswas-d]]"
+  - "[[bloch-i]]"
+  - "[[blue-a]]"
+  - "[[blumenschein-u]]"
+  - "[[bobrovnikov-vs]]"
+  - "[[boccardo-l]]"
+  - "[[boehler-m]]"
+  - "[[boehm-b]]"
+  - "[[bogavac-d]]"
+  - "[[bogdanchikov-ag]]"
+  - "[[boggia-ls]]"
+  - "[[boisvert-v]]"
+  - "[[bokan-p]]"
+  - "[[bold-t]]"
+  - "[[bomben-m]]"
+  - "[[bona-m]]"
+  - "[[boonekamp-m]]"
+  - "[[borbly-ag]]"
+  - "[[bordulev-is]]"
+  - "[[borissov-g]]"
+  - "[[bortoletto-d]]"
+  - "[[boscherini-d]]"
+  - "[[bosman-m]]"
+  - "[[bouaouda-k]]"
+  - "[[bouchhar-n]]"
+  - "[[boudet-l]]"
+  - "[[boudreau-j]]"
+  - "[[bouhovathacker-ev]]"
+  - "[[boumediene-d]]"
+  - "[[bouquet-r]]"
+  - "[[boveia-a]]"
+  - "[[boyd-j]]"
+  - "[[boye-d]]"
+  - "[[boyko-ir]]"
+  - "[[bozianu-l]]"
+  - "[[bracinik-j]]"
+  - "[[brahimi-n]]"
+  - "[[brandt-g]]"
+  - "[[brandt-o]]"
+  - "[[brau-b]]"
+  - "[[brau-je]]"
+  - "[[brener-r]]"
+  - "[[brenner-l]]"
+  - "[[brenner-r]]"
+  - "[[bressler-s]]"
+  - "[[brianti-g]]"
+  - "[[britton-d]]"
+  - "[[britzger-d]]"
+  - "[[brock-i]]"
+  - "[[brock-r]]"
+  - "[[brooijmans-g]]"
+  - "[[brooks-aj]]"
+  - "[[brooks-em]]"
+  - "[[brost-e]]"
+  - "[[brown-lm]]"
+  - "[[bruce-le]]"
+  - "[[bruckler-tl]]"
+  - "[[bruckman-de-renstrom-pa]]"
+  - "[[brers-b]]"
+  - "[[bruni-a]]"
+  - "[[bruni-g]]"
+  - "[[brunner-d]]"
+  - "[[bruschi-m]]"
+  - "[[bruscino-n]]"
+  - "[[buanes-t]]"
+  - "[[buat-q]]"
+  - "[[buchin-d]]"
+  - "[[buckley-ag]]"
+  - "[[bulekov-o]]"
+  - "[[bullard-ba]]"
+  - "[[burdin-s]]"
+  - "[[burgard-cd]]"
+  - "[[burger-am]]"
+  - "[[burghgrave-b]]"
+  - "[[burlayenko-o]]"
+  - "[[burleson-j]]"
+  - "[[burzynski-jc]]"
+  - "[[busch-el]]"
+  - "[[bscher-v]]"
+  - "[[bussey-pj]]"
+  - "[[butler-jm]]"
+  - "[[buttar-cm]]"
+  - "[[butterworth-jm]]"
+  - "[[buttinger-w]]"
+  - "[[buxo-vazquez-cj]]"
+  - "[[buzykaev-ar]]"
+  - "[[cabrera-urbn-s]]"
+  - "[[cadamuro-l]]"
+  - "[[cai-h]]"
+  - "[[cai-y]]"
+  - "[[cai-y]]"
+  - "[[cairo-vmm]]"
+  - "[[cakir-o]]"
+  - "[[calace-n]]"
+  - "[[calafiura-p]]"
+  - "[[calderini-g]]"
+  - "[[calfayan-p]]"
+  - "[[calic-l]]"
+  - "[[callea-g]]"
+  - "[[caloba-lp]]"
+  - "[[calvet-d]]"
+  - "[[calvet-s]]"
+  - "[[camacho-toro-r]]"
+  - "[[camarda-s]]"
+  - "[[camarero-munoz-d]]"
+  - "[[camarri-p]]"
+  - "[[camincher-c]]"
+  - "[[campanelli-m]]"
+  - "[[camplani-a]]"
+  - "[[canale-v]]"
+  - "[[canbay-ac]]"
+  - "[[canonero-e]]"
+  - "[[cantero-j]]"
+  - "[[cao-y]]"
+  - "[[capocasa-f]]"
+  - "[[capua-m]]"
+  - "[[carbone-a]]"
+  - "[[cardarelli-r]]"
+  - "[[cardenas-jcj]]"
+  - "[[cardiff-mp]]"
+  - "[[carducci-g]]"
+  - "[[carli-t]]"
+  - "[[carlino-g]]"
+  - "[[carlotto-ji]]"
+  - "[[carlson-bt]]"
+  - "[[carlson-em]]"
+  - "[[carmignani-j]]"
+  - "[[carminati-l]]"
+  - "[[carnelli-a]]"
+  - "[[carnesale-m]]"
+  - "[[caron-s]]"
+  - "[[carquin-e]]"
+  - "[[carr-ib]]"
+  - "[[carr-s]]"
+  - "[[carratta-g]]"
+  - "[[carrion-martinez-c]]"
+  - "[[carroll-am]]"
+  - "[[casado-mp]]"
+  - "[[casolaro-p]]"
+  - "[[caspar-m]]"
+  - "[[castiglioni-wr]]"
+  - "[[castillo-fl]]"
+  - "[[castillo-garcia-l]]"
+  - "[[castillo-gimenez-v]]"
+  - "[[castro-nf]]"
+  - "[[catinaccio-a]]"
+  - "[[catmore-jr]]"
+  - "[[cavaliere-t]]"
+  - "[[cavaliere-v]]"
+  - "[[caviedes-betancourt-lj]]"
+  - "[[celebi-e]]"
+  - "[[cella-s]]"
+  - "[[cepaitis-v]]"
+  - "[[cerny-k]]"
+  - "[[cerqueira-as]]"
+  - "[[cerri-a]]"
+  - "[[cerrito-l]]"
+  - "[[cerutti-f]]"
+  - "[[cervato-b]]"
+  - "[[cervelli-a]]"
+  - "[[cesarini-g]]"
+  - "[[cetin-sa]]"
+  - "[[chabrillat-pm]]"
+  - "[[chakkappai-r]]"
+  - "[[chakraborty-s]]"
+  - "[[chambers-a]]"
+  - "[[chan-j]]"
+  - "[[chan-wy]]"
+  - "[[chapman-jd]]"
+  - "[[chapon-e]]"
+  - "[[chargeishvili-b]]"
+  - "[[charlton-dg]]"
+  - "[[chauhan-c]]"
+  - "[[che-y]]"
+  - "[[chekanov-s]]"
+  - "[[chekulaev-sv]]"
+  - "[[chelkov-ga]]"
+  - "[[chen-b]]"
+  - "[[chen-b]]"
+  - "[[chen-h]]"
+  - "[[chen-h]]"
+  - "[[chen-j]]"
+  - "[[chen-j]]"
+  - "[[chen-m]]"
+  - "[[chen-s]]"
+  - "[[chen-sj]]"
+  - "[[chen-x]]"
+  - "[[chen-x]]"
+  - "[[chen-z]]"
+  - "[[cheng-cl]]"
+  - "[[cheng-hc]]"
+  - "[[cheong-s]]"
+  - "[[cheplakov-a]]"
+  - "[[cherepanova-e]]"
+  - "[[cherkaoui-el-moursli-r]]"
+  - "[[cheu-e]]"
+  - "[[cheung-k]]"
+  - "[[chevalier-l]]"
+  - "[[chiarella-v]]"
+  - "[[chiarelli-g]]"
+  - "[[chiodini-g]]"
+  - "[[chisholm-as]]"
+  - "[[chitan-a]]"
+  - "[[chitishvili-m]]"
+  - "[[chizhov-mv]]"
+  - "[[choi-k]]"
+  - "[[chou-y]]"
+  - "[[chow-eys]]"
+  - "[[chu-kl]]"
+  - "[[chu-mc]]"
+  - "[[chu-x]]"
+  - "[[chubinidze-z]]"
+  - "[[chudoba-j]]"
+  - "[[chwastowski-jj]]"
+  - "[[cieri-d]]"
+  - "[[ciesla-km]]"
+  - "[[cindro-v]]"
+  - "[[ciocio-a]]"
+  - "[[cirotto-f]]"
+  - "[[citron-zh]]"
+  - "[[citterio-m]]"
+  - "[[ciubotaru-da]]"
+  - "[[clark-a]]"
+  - "[[clark-pj]]"
+  - "[[clarke-hall-n]]"
+  - "[[clarry-c]]"
+  - "[[clawson-se]]"
+  - "[[clement-c]]"
+  - "[[coadou-y]]"
+  - "[[cobal-m]]"
+  - "[[coccaro-a]]"
+  - "[[coelho-barrue-rf]]"
+  - "[[coelho-lopes-de-sa-r]]"
+  - "[[coelli-s]]"
+  - "[[colangeli-ls]]"
+  - "[[cole-b]]"
+  - "[[collado-soto-p]]"
+  - "[[collot-j]]"
+  - "[[coluccia-r]]"
+  - "[[conde-muio-p]]"
+  - "[[connell-mp]]"
+  - "[[connell-sh]]"
+  - "[[conroy-ei]]"
+  - "[[contreras-cossio-m]]"
+  - "[[conventi-f]]"
+  - "[[coopersarkar-am]]"
+  - "[[corazzina-l]]"
+  - "[[corchia-fa]]"
+  - "[[cordeiro-oudot-choi-a]]"
+  - "[[corpe-ld]]"
+  - "[[corradi-m]]"
+  - "[[corriveau-f]]"
+  - "[[cortesgonzalez-a]]"
+  - "[[costa-mj]]"
+  - "[[costanza-f]]"
+  - "[[costanzo-d]]"
+  - "[[couthures-j]]"
+  - "[[cowan-g]]"
+  - "[[cranmer-k]]"
+  - "[[cremer-l]]"
+  - "[[cremonini-d]]"
+  - "[[crprenaudin-s]]"
+  - "[[crescioli-f]]"
+  - "[[cresta-t]]"
+  - "[[cristinziani-m]]"
+  - "[[cristoforetti-m]]"
+  - "[[critelli-e]]"
+  - "[[croft-v]]"
+  - "[[crosetti-g]]"
+  - "[[cueto-a]]"
+  - "[[cui-h]]"
+  - "[[cui-z]]"
+  - "[[cunnett-bm]]"
+  - "[[cunningham-wr]]"
+  - "[[curcio-f]]"
+  - "[[curran-jr]]"
+  - "[[da-cunha-sargedas-de-sousa-mj]]"
+  - "[[da-fonseca-pinto-jv]]"
+  - "[[da-via-c]]"
+  - "[[dabrowski-w]]"
+  - "[[dado-t]]"
+  - "[[dahbi-s]]"
+  - "[[dai-t]]"
+  - "[[dal-santo-d]]"
+  - "[[dallapiccola-c]]"
+  - "[[dam-m]]"
+  - "[[damen-g]]"
+  - "[[damico-v]]"
+  - "[[damp-j]]"
+  - "[[dandoy-jr]]"
+  - "[[dandrea-m]]"
+  - "[[dannheim-d]]"
+  - "[[danniballe-g]]"
+  - "[[danninger-m]]"
+  - "[[dao-v]]"
+  - "[[darbo-g]]"
+  - "[[darragh-ro]]"
+  - "[[das-sj]]"
+  - "[[dattola-f]]"
+  - "[[dauria-s]]"
+  - "[[davanzo-a]]"
+  - "[[davidek-t]]"
+  - "[[davidson-j]]"
+  - "[[dawson-i]]"
+  - "[[de-k]]"
+  - "[[de-almeida-rossi-c]]"
+  - "[[de-asmundis-r]]"
+  - "[[de-biase-n]]"
+  - "[[de-castro-s]]"
+  - "[[de-groot-n]]"
+  - "[[de-jong-p]]"
+  - "[[de-la-torre-h]]"
+  - "[[de-maria-a]]"
+  - "[[de-salvo-a]]"
+  - "[[de-sanctis-u]]"
+  - "[[de-santis-f]]"
+  - "[[de-santo-a]]"
+  - "[[de-vivie-de-regie-jb]]"
+  - "[[debevc-j]]"
+  - "[[dedovich-dv]]"
+  - "[[degens-j]]"
+  - "[[deiana-am]]"
+  - "[[del-peso-j]]"
+  - "[[delagrange-l]]"
+  - "[[deliot-f]]"
+  - "[[delitzsch-cm]]"
+  - "[[della-pietra-m]]"
+  - "[[della-volpe-d]]"
+  - "[[dellacqua-a]]"
+  - "[[dellasta-l]]"
+  - "[[delmastro-m]]"
+  - "[[delogu-cc]]"
+  - "[[delsart-pa]]"
+  - "[[demers-s]]"
+  - "[[demichev-m]]"
+  - "[[denisov-sp]]"
+  - "[[denizli-h]]"
+  - "[[deramo-l]]"
+  - "[[derendarz-d]]"
+  - "[[derue-f]]"
+  - "[[dervan-p]]"
+  - "[[desai-am]]"
+  - "[[desch-k]]"
+  - "[[di-bello-fa]]"
+  - "[[di-ciaccio-a]]"
+  - "[[di-ciaccio-l]]"
+  - "[[di-domenico-a]]"
+  - "[[di-donato-c]]"
+  - "[[di-girolamo-a]]"
+  - "[[di-gregorio-g]]"
+  - "[[di-luca-a]]"
+  - "[[di-micco-b]]"
+  - "[[di-nardo-r]]"
+  - "[[di-petrillo-kf]]"
+  - "[[diamantopoulou-m]]"
+  - "[[dias-fa]]"
+  - "[[diaz-ma]]"
+  - "[[didenko-ar]]"
+  - "[[didenko-m]]"
+  - "[[diefenbacher-sd]]"
+  - "[[diehl-eb]]"
+  - "[[dez-cornell-s]]"
+  - "[[diez-pardos-c]]"
+  - "[[dimitriadi-c]]"
+  - "[[dimitrievska-a]]"
+  - "[[dimri-a]]"
+  - "[[ding-y]]"
+  - "[[dingfelder-j]]"
+  - "[[dingley-t]]"
+  - "[[dinu-im]]"
+  - "[[dittmeier-sj]]"
+  - "[[dittus-f]]"
+  - "[[divisek-m]]"
+  - "[[dixit-b]]"
+  - "[[djama-f]]"
+  - "[[djobava-t]]"
+  - "[[doglioni-c]]"
+  - "[[dohnalova-a]]"
+  - "[[dolezal-z]]"
+  - "[[domijan-k]]"
+  - "[[dona-km]]"
+  - "[[donadelli-m]]"
+  - "[[dong-b]]"
+  - "[[donini-j]]"
+  - "[[donofrio-a]]"
+  - "[[donofrio-m]]"
+  - "[[dopke-j]]"
+  - "[[doria-a]]"
+  - "[[dos-santos-fernandes-n]]"
+  - "[[dos-santos-luz-ia]]"
+  - "[[dougan-p]]"
+  - "[[dova-mt]]"
+  - "[[doyle-at]]"
+  - "[[drescher-mp]]"
+  - "[[dreyer-e]]"
+  - "[[drivaskoulouris-i]]"
+  - "[[drnevich-m]]"
+  - "[[du-d]]"
+  - "[[du-pree-ta]]"
+  - "[[duan-z]]"
+  - "[[dubau-m]]"
+  - "[[dubinin-f]]"
+  - "[[dubovsky-m]]"
+  - "[[duchovni-e]]"
+  - "[[duckeck-g]]"
+  - "[[duckett-pk]]"
+  - "[[ducu-oa]]"
+  - "[[duda-d]]"
+  - "[[dudarev-a]]"
+  - "[[dudek-mm]]"
+  - "[[duden-er]]"
+  - "[[duffizi-m]]"
+  - "[[duflot-l]]"
+  - "[[dhrssen-m]]"
+  - "[[duminica-i]]"
+  - "[[dumitriu-ae]]"
+  - "[[dunford-m]]"
+  - "[[dunne-k]]"
+  - "[[duperrin-a]]"
+  - "[[duran-yildiz-h]]"
+  - "[[durglishvili-a]]"
+  - "[[dyckes-gi]]"
+  - "[[dyndal-m]]"
+  - "[[dziedzic-bs]]"
+  - "[[earnshaw-zo]]"
+  - "[[eberwein-gh]]"
+  - "[[eckerova-b]]"
+  - "[[eggebrecht-s]]"
+  - "[[egidio-purcino-de-souza-e]]"
+  - "[[eigen-g]]"
+  - "[[einsweiler-k]]"
+  - "[[ekelof-t]]"
+  - "[[ekman-pa]]"
+  - "[[el-farkh-s]]"
+  - "[[el-ghazali-y]]"
+  - "[[el-jarrari-h]]"
+  - "[[el-moussaouy-a]]"
+  - "[[elitez-d]]"
+  - "[[ellert-m]]"
+  - "[[ellinghaus-f]]"
+  - "[[elliot-ta]]"
+  - "[[ellis-n]]"
+  - "[[elmsheuser-j]]"
+  - "[[elsawy-m]]"
+  - "[[elsing-m]]"
+  - "[[emeliyanov-d]]"
+  - "[[enari-y]]"
+  - "[[epari-s]]"
+  - "[[ernani-martins-neto-d]]"
+  - "[[ernst-f]]"
+  - "[[errenst-m]]"
+  - "[[escalier-m]]"
+  - "[[escobar-c]]"
+  - "[[etzion-e]]"
+  - "[[evans-g]]"
+  - "[[evans-h]]"
+  - "[[evans-ls]]"
+  - "[[ezhilov-a]]"
+  - "[[ezzarqtouni-s]]"
+  - "[[fabbri-f]]"
+  - "[[fabbri-l]]"
+  - "[[facini-g]]"
+  - "[[fadeyev-v]]"
+  - "[[fakhrutdinov-rm]]"
+  - "[[fakoudis-d]]"
+  - "[[falciano-s]]"
+  - "[[falda-ulhoa-coelho-lf]]"
+  - "[[fallavollita-f]]"
+  - "[[falsetti-g]]"
+  - "[[faltova-j]]"
+  - "[[fan-c]]"
+  - "[[fan-ky]]"
+  - "[[fan-y]]"
+  - "[[fang-y]]"
+  - "[[fanti-m]]"
+  - "[[faraj-m]]"
+  - "[[farazpay-z]]"
+  - "[[farbin-a]]"
+  - "[[farilla-a]]"
+  - "[[farman-k]]"
+  - "[[farooque-t]]"
+  - "[[farr-jn]]"
+  - "[[farrington-sm]]"
+  - "[[fassi-f]]"
+  - "[[fassouliotis-d]]"
+  - "[[fayard-l]]"
+  - "[[federic-p]]"
+  - "[[federicova-p]]"
+  - "[[fedin-ol]]"
+  - "[[feickert-m]]"
+  - "[[feligioni-l]]"
+  - "[[fellers-de]]"
+  - "[[feng-c]]"
+  - "[[feng-y]]"
+  - "[[feng-z]]"
+  - "[[fenton-mj]]"
+  - "[[ferencz-l]]"
+  - "[[fernandez-barbadillo-b]]"
+  - "[[fernandez-martinez-p]]"
+  - "[[fernoux-mjv]]"
+  - "[[ferrando-j]]"
+  - "[[ferrari-a]]"
+  - "[[ferrari-p]]"
+  - "[[ferrari-r]]"
+  - "[[ferrere-d]]"
+  - "[[ferretti-c]]"
+  - "[[fewell-mp]]"
+  - "[[fiacco-d]]"
+  - "[[fiedler-f]]"
+  - "[[fiedler-p]]"
+  - "[[filimonov-s]]"
+  - "[[filip-ms]]"
+  - "[[filipi-a]]"
+  - "[[filmer-ek]]"
+  - "[[filthaut-f]]"
+  - "[[fiolhais-mcn]]"
+  - "[[fiorini-l]]"
+  - "[[fisher-wc]]"
+  - "[[fitschen-t]]"
+  - "[[fitzhugh-pm]]"
+  - "[[fleck-i]]"
+  - "[[fleischmann-p]]"
+  - "[[flick-t]]"
+  - "[[flores-m]]"
+  - "[[flores-castillo-lr]]"
+  - "[[flores-sanz-de-acedo-l]]"
+  - "[[follega-fm]]"
+  - "[[fomin-n]]"
+  - "[[foo-jh]]"
+  - "[[formica-a]]"
+  - "[[forti-ac]]"
+  - "[[fortin-e]]"
+  - "[[fortman-aw]]"
+  - "[[foster-l]]"
+  - "[[fountas-l]]"
+  - "[[fournier-d]]"
+  - "[[fox-h]]"
+  - "[[francavilla-p]]"
+  - "[[francescato-s]]"
+  - "[[franchellucci-s]]"
+  - "[[franchini-m]]"
+  - "[[franchino-s]]"
+  - "[[francis-d]]"
+  - "[[franco-l]]"
+  - "[[franconi-l]]"
+  - "[[franklin-m]]"
+  - "[[frattari-g]]"
+  - "[[frid-yy]]"
+  - "[[friend-j]]"
+  - "[[fritzsche-n]]"
+  - "[[froch-a]]"
+  - "[[froidevaux-d]]"
+  - "[[frost-ja]]"
+  - "[[fu-y]]"
+  - "[[fuenzalida-garrido-s]]"
+  - "[[fujimoto-m]]"
+  - "[[fung-ky]]"
+  - "[[furtado-de-simas-filho-e]]"
+  - "[[furukawa-m]]"
+  - "[[fuster-j]]"
+  - "[[gaa-a]]"
+  - "[[gabrielli-a]]"
+  - "[[gabrielli-a]]"
+  - "[[gadow-p]]"
+  - "[[gagliardi-g]]"
+  - "[[gagnon-lg]]"
+  - "[[gaid-s]]"
+  - "[[galantzan-s]]"
+  - "[[gallagher-j]]"
+  - "[[gallas-ej]]"
+  - "[[gallen-al]]"
+  - "[[gallop-bj]]"
+  - "[[gan-kk]]"
+  - "[[ganguly-s]]"
+  - "[[gao-y]]"
+  - "[[garabaglu-a]]"
+  - "[[garay-walls-fm]]"
+  - "[[garca-c]]"
+  - "[[garcia-alonso-a]]"
+  - "[[garcia-caffaro-ag]]"
+  - "[[garca-navarro-je]]"
+  - "[[garcia-ruiz-ma]]"
+  - "[[garciasciveres-m]]"
+  - "[[gardner-gl]]"
+  - "[[gardner-rw]]"
+  - "[[garelli-n]]"
+  - "[[garg-rb]]"
+  - "[[gargan-jm]]"
+  - "[[garner-ca]]"
+  - "[[garvey-cm]]"
+  - "[[gassmann-vk]]"
+  - "[[gaudio-g]]"
+  - "[[gautam-v]]"
+  - "[[gauzzi-p]]"
+  - "[[gavranovic-j]]"
+  - "[[gavrilenko-il]]"
+  - "[[gavrilyuk-a]]"
+  - "[[gay-c]]"
+  - "[[gaycken-g]]"
+  - "[[gazis-en]]"
+  - "[[gekow-a]]"
+  - "[[gemme-c]]"
+  - "[[genest-mh]]"
+  - "[[gentry-ad]]"
+  - "[[george-s]]"
+  - "[[geralis-t]]"
+  - "[[gerwin-aa]]"
+  - "[[gessingerbefurt-p]]"
+  - "[[geyik-me]]"
+  - "[[ghani-m]]"
+  - "[[ghorbanian-k]]"
+  - "[[ghosal-a]]"
+  - "[[ghosh-a]]"
+  - "[[ghosh-a]]"
+  - "[[giacobbe-b]]"
+  - "[[giagu-s]]"
+  - "[[giani-t]]"
+  - "[[giannini-a]]"
+  - "[[gibson-sm]]"
+  - "[[gignac-m]]"
+  - "[[gil-dt]]"
+  - "[[gilbert-ak]]"
+  - "[[gilbert-bj]]"
+  - "[[gillberg-d]]"
+  - "[[gilles-g]]"
+  - "[[gingrich-dm]]"
+  - "[[giordani-mp]]"
+  - "[[giraud-pf]]"
+  - "[[giugliarelli-g]]"
+  - "[[giugni-d]]"
+  - "[[giuli-f]]"
+  - "[[gkialas-i]]"
+  - "[[gladilin-lk]]"
+  - "[[glasman-c]]"
+  - "[[glazewska-m]]"
+  - "[[gleason-rm]]"
+  - "[[glema-g]]"
+  - "[[glisic-m]]"
+  - "[[gnesi-i]]"
+  - "[[go-y]]"
+  - "[[goblirschkolb-m]]"
+  - "[[gocke-b]]"
+  - "[[godin-d]]"
+  - "[[gokturk-b]]"
+  - "[[goldfarb-s]]"
+  - "[[golling-t]]"
+  - "[[gololo-mgd]]"
+  - "[[golubkov-d]]"
+  - "[[gombas-jp]]"
+  - "[[gomes-a]]"
+  - "[[gomes-da-silva-g]]"
+  - "[[gomez-delegido-aj]]"
+  - "[[gonalo-r]]"
+  - "[[gonella-l]]"
+  - "[[gongadze-a]]"
+  - "[[gonnella-f]]"
+  - "[[gonski-jl]]"
+  - "[[gonzlez-andana-ry]]"
+  - "[[gonzlez-de-la-hoz-s]]"
+  - "[[gonzalez-rodrigues-mv]]"
+  - "[[gonzalez-suarez-r]]"
+  - "[[gonzalezsevilla-s]]"
+  - "[[goossens-l]]"
+  - "[[gorini-b]]"
+  - "[[gorini-e]]"
+  - "[[goriek-a]]"
+  - "[[gosart-tc]]"
+  - "[[goshaw-at]]"
+  - "[[gostkin-mi]]"
+  - "[[goswami-s]]"
+  - "[[gottardo-ca]]"
+  - "[[gotz-sa]]"
+  - "[[gouighri-m]]"
+  - "[[goussiou-ag]]"
+  - "[[govender-n]]"
+  - "[[grabarczyk-rp]]"
+  - "[[grabowskabold-i]]"
+  - "[[graham-k]]"
+  - "[[gramstad-e]]"
+  - "[[grancagnolo-s]]"
+  - "[[grant-cm]]"
+  - "[[gravila-pm]]"
+  - "[[gravili-fg]]"
+  - "[[gray-hm]]"
+  - "[[greco-m]]"
+  - "[[green-mj]]"
+  - "[[grefe-c]]"
+  - "[[grefsrud-as]]"
+  - "[[gregor-im]]"
+  - "[[greif-kt]]"
+  - "[[grenier-p]]"
+  - "[[grewe-sg]]"
+  - "[[grillo-aa]]"
+  - "[[grimm-k]]"
+  - "[[grinstein-s]]"
+  - "[[grivaz-jf]]"
+  - "[[gross-e]]"
+  - "[[grosseknetter-j]]"
+  - "[[guan-l]]"
+  - "[[guerrieri-g]]"
+  - "[[guevara-r]]"
+  - "[[gugel-r]]"
+  - "[[guhit-jam]]"
+  - "[[guida-a]]"
+  - "[[guilloton-e]]"
+  - "[[guindon-s]]"
+  - "[[guo-f]]"
+  - "[[guo-j]]"
+  - "[[guo-l]]"
+  - "[[guo-l]]"
+  - "[[guo-y]]"
+  - "[[guo-y]]"
+  - "[[gupta-a]]"
+  - "[[gupta-r]]"
+  - "[[gupta-s]]"
+  - "[[gurbuz-s]]"
+  - "[[gurdasani-ss]]"
+  - "[[gustavino-g]]"
+  - "[[gutierrez-p]]"
+  - "[[gutierrez-zagazeta-lf]]"
+  - "[[gutsche-m]]"
+  - "[[gutschow-c]]"
+  - "[[gwenlan-c]]"
+  - "[[gwilliam-cb]]"
+  - "[[haaland-es]]"
+  - "[[haas-a]]"
+  - "[[habedank-m]]"
+  - "[[haber-c]]"
+  - "[[hadavand-hk]]"
+  - "[[haddad-a]]"
+  - "[[hadef-a]]"
+  - "[[hagan-ai]]"
+  - "[[hahn-jj]]"
+  - "[[haines-eh]]"
+  - "[[haleem-m]]"
+  - "[[haley-j]]"
+  - "[[hallewell-gd]]"
+  - "[[hamano-k]]"
+  - "[[hamdaoui-h]]"
+  - "[[hamer-m]]"
+  - "[[hammoud-sed]]"
+  - "[[hampshire-ej]]"
+  - "[[han-j]]"
+  - "[[han-l]]"
+  - "[[han-l]]"
+  - "[[han-s]]"
+  - "[[hanagaki-k]]"
+  - "[[hance-m]]"
+  - "[[hangal-da]]"
+  - "[[hanif-h]]"
+  - "[[hank-md]]"
+  - "[[hansen-jb]]"
+  - "[[hansen-ph]]"
+  - "[[harada-d]]"
+  - "[[harenberg-t]]"
+  - "[[harkusha-s]]"
+  - "[[harris-ml]]"
+  - "[[harris-yt]]"
+  - "[[harrison-j]]"
+  - "[[harrison-nm]]"
+  - "[[harrison-pf]]"
+  - "[[hart-mle]]"
+  - "[[hartman-nm]]"
+  - "[[hartmann-nm]]"
+  - "[[hasan-rz]]"
+  - "[[hasegawa-y]]"
+  - "[[haslbeck-f]]"
+  - "[[hassan-s]]"
+  - "[[hauser-r]]"
+  - "[[haviernik-m]]"
+  - "[[hawkes-cm]]"
+  - "[[hawkings-rj]]"
+  - "[[hayashi-y]]"
+  - "[[hayden-d]]"
+  - "[[hayes-c]]"
+  - "[[hayes-rl]]"
+  - "[[hays-cp]]"
+  - "[[hays-jm]]"
+  - "[[hayward-hs]]"
+  - "[[he-m]]"
+  - "[[he-y]]"
+  - "[[he-y]]"
+  - "[[heatley-nb]]"
+  - "[[hedberg-v]]"
+  - "[[heidegger-c]]"
+  - "[[heidegger-kk]]"
+  - "[[heilman-j]]"
+  - "[[heim-s]]"
+  - "[[heim-t]]"
+  - "[[heinrich-jj]]"
+  - "[[heinrich-l]]"
+  - "[[hejbal-j]]"
+  - "[[helbig-m]]"
+  - "[[held-a]]"
+  - "[[hellesund-s]]"
+  - "[[helling-cm]]"
+  - "[[hellman-s]]"
+  - "[[henriques-correia-am]]"
+  - "[[herde-h]]"
+  - "[[hernndez-jimnez-y]]"
+  - "[[herrmann-lm]]"
+  - "[[herrmann-t]]"
+  - "[[herten-g]]"
+  - "[[hertenberger-r]]"
+  - "[[hervas-l]]"
+  - "[[hesping-me]]"
+  - "[[hessey-np]]"
+  - "[[hessler-j]]"
+  - "[[hidaoui-m]]"
+  - "[[hidic-n]]"
+  - "[[hill-e]]"
+  - "[[hillersoy-ts]]"
+  - "[[hillier-sj]]"
+  - "[[hinds-jr]]"
+  - "[[hinterkeuser-f]]"
+  - "[[hirose-m]]"
+  - "[[hirose-s]]"
+  - "[[hirschbuehl-d]]"
+  - "[[hitchings-tg]]"
+  - "[[hiti-b]]"
+  - "[[hobbs-j]]"
+  - "[[hobincu-r]]"
+  - "[[hod-n]]"
+  - "[[hodges-am]]"
+  - "[[hodgkinson-mc]]"
+  - "[[hodkinson-bh]]"
+  - "[[hoecker-a]]"
+  - "[[hofer-dd]]"
+  - "[[hofer-j]]"
+  - "[[hofner-j]]"
+  - "[[holzbock-m]]"
+  - "[[hommels-lbah]]"
+  - "[[homsak-v]]"
+  - "[[honan-bp]]"
+  - "[[hong-jj]]"
+  - "[[hong-tm]]"
+  - "[[hooberman-bh]]"
+  - "[[hopkins-wh]]"
+  - "[[hoppesch-mc]]"
+  - "[[horii-y]]"
+  - "[[horstmann-me]]"
+  - "[[hou-s]]"
+  - "[[housenga-mr]]"
+  - "[[howarth-j]]"
+  - "[[hoya-j]]"
+  - "[[hrabovsky-m]]"
+  - "[[hrynova-t]]"
+  - "[[hsu-pj]]"
+  - "[[hsu-sc]]"
+  - "[[hsu-t]]"
+  - "[[hu-m]]"
+  - "[[hu-q]]"
+  - "[[huang-s]]"
+  - "[[huang-x]]"
+  - "[[huang-y]]"
+  - "[[huang-y]]"
+  - "[[huang-y]]"
+  - "[[huang-z]]"
+  - "[[hubacek-z]]"
+  - "[[huegging-f]]"
+  - "[[huffman-tb]]"
+  - "[[hufnagel-maranha-de-faria-m]]"
+  - "[[hugli-ca]]"
+  - "[[huhtinen-m]]"
+  - "[[huiberts-sk]]"
+  - "[[hulsken-r]]"
+  - "[[hultquist-ce]]"
+  - "[[humphreys-dl]]"
+  - "[[huseynov-n]]"
+  - "[[huston-j]]"
+  - "[[huth-j]]"
+  - "[[huth-l]]"
+  - "[[hyneman-r]]"
+  - "[[iacobucci-g]]"
+  - "[[iakovidis-g]]"
+  - "[[iconomidoufayard-l]]"
+  - "[[iddon-jp]]"
+  - "[[iengo-p]]"
+  - "[[iguchi-r]]"
+  - "[[iiyama-y]]"
+  - "[[iizawa-t]]"
+  - "[[ikegami-y]]"
+  - "[[iliadis-d]]"
+  - "[[ilic-n]]"
+  - "[[imam-h]]"
+  - "[[inacio-goncalves-g]]"
+  - "[[infante-cabanas-sa]]"
+  - "[[ingebretsen-carlson-t]]"
+  - "[[inglis-jm]]"
+  - "[[introzzi-g]]"
+  - "[[iodice-m]]"
+  - "[[ippolito-v]]"
+  - "[[irwin-rk]]"
+  - "[[ishino-m]]"
+  - "[[islam-w]]"
+  - "[[issever-c]]"
+  - "[[istin-s]]"
+  - "[[itabashi-k]]"
+  - "[[ito-h]]"
+  - "[[iuppa-r]]"
+  - "[[ivina-a]]"
+  - "[[izzo-v]]"
+  - "[[jacka-p]]"
+  - "[[jackson-p]]"
+  - "[[jain-p]]"
+  - "[[jakobs-k]]"
+  - "[[jakoubek-t]]"
+  - "[[jamieson-j]]"
+  - "[[jang-w]]"
+  - "[[jankovych-s]]"
+  - "[[javurkova-m]]"
+  - "[[jawahar-p]]"
+  - "[[jeanty-l]]"
+  - "[[jejelava-j]]"
+  - "[[jenni-p]]"
+  - "[[jessiman-ce]]"
+  - "[[jia-c]]"
+  - "[[jia-h]]"
+  - "[[jia-j]]"
+  - "[[jia-x]]"
+  - "[[jia-z]]"
+  - "[[jiang-c]]"
+  - "[[jiang-q]]"
+  - "[[jiggins-s]]"
+  - "[[jimenez-ortega-m]]"
+  - "[[jimenez-pena-j]]"
+  - "[[jin-s]]"
+  - "[[jinaru-a]]"
+  - "[[jinnouchi-o]]"
+  - "[[johansson-p]]"
+  - "[[johns-ka]]"
+  - "[[johnson-jw]]"
+  - "[[jolly-fa]]"
+  - "[[jones-dm]]"
+  - "[[jones-e]]"
+  - "[[jones-ks]]"
+  - "[[jones-p]]"
+  - "[[jones-rwl]]"
+  - "[[jones-tj]]"
+  - "[[joos-hl]]"
+  - "[[joshi-r]]"
+  - "[[jovicevic-j]]"
+  - "[[ju-x]]"
+  - "[[junggeburth-jj]]"
+  - "[[junkermann-t]]"
+  - "[[juste-rozas-a]]"
+  - "[[juzek-mk]]"
+  - "[[kabana-s]]"
+  - "[[kaczmarska-a]]"
+  - "[[kadir-sa]]"
+  - "[[kado-m]]"
+  - "[[kagan-h]]"
+  - "[[kagan-m]]"
+  - "[[kahn-a]]"
+  - "[[kahra-c]]"
+  - "[[kaji-t]]"
+  - "[[kajomovitz-e]]"
+  - "[[kakati-n]]"
+  - "[[kakoty-n]]"
+  - "[[kalaitzidou-i]]"
+  - "[[kandel-s]]"
+  - "[[kang-nj]]"
+  - "[[kar-d]]"
+  - "[[karentzos-e]]"
+  - "[[karki-k]]"
+  - "[[karkout-o]]"
+  - "[[karpov-sn]]"
+  - "[[karpova-zm]]"
+  - "[[kartvelishvili-v]]"
+  - "[[karyukhin-an]]"
+  - "[[kasimi-e]]"
+  - "[[katzy-j]]"
+  - "[[kaur-s]]"
+  - "[[kawade-k]]"
+  - "[[kawale-mp]]"
+  - "[[kawamoto-c]]"
+  - "[[kawamoto-t]]"
+  - "[[kay-ef]]"
+  - "[[kaya-fi]]"
+  - "[[kazakos-s]]"
+  - "[[kazanin-vf]]"
+  - "[[keaveney-jm]]"
+  - "[[keeler-r]]"
+  - "[[kehris-gv]]"
+  - "[[keller-js]]"
+  - "[[kelly-jm]]"
+  - "[[kempster-jj]]"
+  - "[[kepka-o]]"
+  - "[[kerr-j]]"
+  - "[[kerridge-bp]]"
+  - "[[kerevan-bp]]"
+  - "[[keszeghova-l]]"
+  - "[[khan-ra]]"
+  - "[[khanov-a]]"
+  - "[[kharlamov-ag]]"
+  - "[[kharlamova-t]]"
+  - "[[khoda-ee]]"
+  - "[[kholodenko-m]]"
+  - "[[khoo-tj]]"
+  - "[[khoriauli-g]]"
+  - "[[khoulaki-y]]"
+  - "[[khwaira-yar]]"
+  - "[[kibirige-b]]"
+  - "[[kim-d]]"
+  - "[[kim-dw]]"
+  - "[[kim-yk]]"
+  - "[[kimura-n]]"
+  - "[[kingston-mk]]"
+  - "[[kirchhoff-a]]"
+  - "[[kirfel-c]]"
+  - "[[kirfel-f]]"
+  - "[[kirk-j]]"
+  - "[[kiryunin-ae]]"
+  - "[[kita-s]]"
+  - "[[kivernyk-o]]"
+  - "[[klassen-m]]"
+  - "[[klein-c]]"
+  - "[[klein-l]]"
+  - "[[klein-mh]]"
+  - "[[klein-sb]]"
+  - "[[klein-u]]"
+  - "[[klimentov-a]]"
+  - "[[klioutchnikova-t]]"
+  - "[[kluit-p]]"
+  - "[[kluth-s]]"
+  - "[[kneringer-e]]"
+  - "[[knight-tm]]"
+  - "[[knue-a]]"
+  - "[[kobel-m]]"
+  - "[[kobylianskii-d]]"
+  - "[[koch-sf]]"
+  - "[[kocian-m]]"
+  - "[[kody-p]]"
+  - "[[koeck-dm]]"
+  - "[[koffas-t]]"
+  - "[[kolay-o]]"
+  - "[[koletsou-i]]"
+  - "[[komarek-t]]"
+  - "[[kneke-k]]"
+  - "[[kong-axy]]"
+  - "[[kono-t]]"
+  - "[[konstantinidis-n]]"
+  - "[[kontaxakis-p]]"
+  - "[[konya-b]]"
+  - "[[kopeliansky-r]]"
+  - "[[koperny-s]]"
+  - "[[korcyl-k]]"
+  - "[[kordas-k]]"
+  - "[[korn-a]]"
+  - "[[korn-s]]"
+  - "[[korolkov-i]]"
+  - "[[korotkova-n]]"
+  - "[[kortman-b]]"
+  - "[[kortner-o]]"
+  - "[[kortner-s]]"
+  - "[[kostecka-wh]]"
+  - "[[kostov-m]]"
+  - "[[kostyukhin-vv]]"
+  - "[[kotsokechagia-a]]"
+  - "[[kotwal-a]]"
+  - "[[koulouris-a]]"
+  - "[[kourkoumelicharalampidi-a]]"
+  - "[[kourkoumelis-c]]"
+  - "[[kourlitis-e]]"
+  - "[[kovanda-o]]"
+  - "[[kowalewski-r]]"
+  - "[[kozanecki-w]]"
+  - "[[kozhin-as]]"
+  - "[[kramarenko-va]]"
+  - "[[kramberger-g]]"
+  - "[[kramer-p]]"
+  - "[[krasny-mw]]"
+  - "[[krasznahorkay-a]]"
+  - "[[kraus-ac]]"
+  - "[[kraus-jw]]"
+  - "[[kremer-ja]]"
+  - "[[krengel-nb]]"
+  - "[[kresse-t]]"
+  - "[[kretschmann-l]]"
+  - "[[kretzschmar-j]]"
+  - "[[krieger-p]]"
+  - "[[krizka-k]]"
+  - "[[kroeninger-k]]"
+  - "[[kroha-h]]"
+  - "[[kroll-j]]"
+  - "[[kroll-j]]"
+  - "[[krowpman-ks]]"
+  - "[[kruchonak-u]]"
+  - "[[krger-h]]"
+  - "[[krumnack-n]]"
+  - "[[kruse-mc]]"
+  - "[[kuchinskaia-o]]"
+  - "[[kuday-s]]"
+  - "[[kuehn-s]]"
+  - "[[kuesters-r]]"
+  - "[[kuhl-t]]"
+  - "[[kukhtin-v]]"
+  - "[[kulchitsky-y]]"
+  - "[[kuleshov-s]]"
+  - "[[kull-j]]"
+  - "[[kumar-ev]]"
+  - "[[kumar-m]]"
+  - "[[kumari-n]]"
+  - "[[kumari-p]]"
+  - "[[kupco-a]]"
+  - "[[kupich-a]]"
+  - "[[kuprash-o]]"
+  - "[[kurashige-h]]"
+  - "[[kurchaninov-ll]]"
+  - "[[kurdysh-o]]"
+  - "[[kurochkin-ya]]"
+  - "[[kurova-a]]"
+  - "[[kuze-m]]"
+  - "[[kvam-ak]]"
+  - "[[kvita-j]]"
+  - "[[kyriacou-ng]]"
+  - "[[lacasta-c]]"
+  - "[[lacava-f]]"
+  - "[[lacker-h]]"
+  - "[[lacour-d]]"
+  - "[[lad-nn]]"
+  - "[[ladygin-e]]"
+  - "[[lafarge-a]]"
+  - "[[laforge-b]]"
+  - "[[lagouri-t]]"
+  - "[[lahbabi-fz]]"
+  - "[[lai-s]]"
+  - "[[lai-ws]]"
+  - "[[lambert-je]]"
+  - "[[lammers-s]]"
+  - "[[lampl-w]]"
+  - "[[lampoudis-c]]"
+  - "[[lamprinoudis-g]]"
+  - "[[lancaster-an]]"
+  - "[[lanon-e]]"
+  - "[[landgraf-u]]"
+  - "[[landon-mpj]]"
+  - "[[lang-vs]]"
+  - "[[langrekken-okb]]"
+  - "[[lankford-aj]]"
+  - "[[lanni-f]]"
+  - "[[lantzsch-k]]"
+  - "[[lanza-a]]"
+  - "[[lanzac-berrocal-m]]"
+  - "[[laporte-jf]]"
+  - "[[lari-t]]"
+  - "[[larsen-d]]"
+  - "[[larson-l]]"
+  - "[[lasagni-manghi-f]]"
+  - "[[lassnig-m]]"
+  - "[[lawlor-sd]]"
+  - "[[lazaridou-r]]"
+  - "[[lazzaroni-m]]"
+  - "[[le-ett]]"
+  - "[[le-hdm]]"
+  - "[[le-boulicaut-em]]"
+  - "[[le-pottier-lt]]"
+  - "[[leban-b]]"
+  - "[[ledroitguillon-f]]"
+  - "[[lee-tf]]"
+  - "[[leeuw-ll]]"
+  - "[[lefebvre-m]]"
+  - "[[leggett-c]]"
+  - "[[lehmann-miotto-g]]"
+  - "[[leigh-m]]"
+  - "[[leight-wa]]"
+  - "[[leinonen-w]]"
+  - "[[leisos-a]]"
+  - "[[leite-mal]]"
+  - "[[leitgeb-ce]]"
+  - "[[leitner-r]]"
+  - "[[leney-kjc]]"
+  - "[[lenz-t]]"
+  - "[[leone-s]]"
+  - "[[leonidopoulos-c]]"
+  - "[[leopold-a]]"
+  - "[[lepage-bourbonnais-jh]]"
+  - "[[les-r]]"
+  - "[[lester-cg]]"
+  - "[[levchenko-m]]"
+  - "[[levque-j]]"
+  - "[[levinson-lj]]"
+  - "[[levrini-g]]"
+  - "[[lewicki-mp]]"
+  - "[[lewis-c]]"
+  - "[[lewis-dj]]"
+  - "[[lewitt-l]]"
+  - "[[li-a]]"
+  - "[[li-b]]"
+  - "[[li-c]]"
+  - "[[li-cq]]"
+  - "[[li-h]]"
+  - "[[li-h]]"
+  - "[[li-h]]"
+  - "[[li-h]]"
+  - "[[li-h]]"
+  - "[[li-j]]"
+  - "[[li-k]]"
+  - "[[li-l]]"
+  - "[[li-r]]"
+  - "[[li-s]]"
+  - "[[li-s]]"
+  - "[[li-t]]"
+  - "[[li-x]]"
+  - "[[li-y]]"
+  - "[[li-z]]"
+  - "[[li-z]]"
+  - "[[li-z]]"
+  - "[[liang-s]]"
+  - "[[liang-z]]"
+  - "[[liberatore-m]]"
+  - "[[liberti-b]]"
+  - "[[libotte-gb]]"
+  - "[[lie-k]]"
+  - "[[lieber-marin-j]]"
+  - "[[lien-h]]"
+  - "[[lin-h]]"
+  - "[[lin-sf]]"
+  - "[[linden-l]]"
+  - "[[lindley-re]]"
+  - "[[lindon-jh]]"
+  - "[[ling-j]]"
+  - "[[lipeles-e]]"
+  - "[[lipniacka-a]]"
+  - "[[lister-a]]"
+  - "[[little-jd]]"
+  - "[[liu-b]]"
+  - "[[liu-bx]]"
+  - "[[liu-d]]"
+  - "[[liu-d]]"
+  - "[[liu-ehl]]"
+  - "[[liu-h]]"
+  - "[[liu-jkk]]"
+  - "[[liu-k]]"
+  - "[[liu-k]]"
+  - "[[liu-m]]"
+  - "[[liu-my]]"
+  - "[[liu-p]]"
+  - "[[liu-q]]"
+  - "[[liu-s]]"
+  - "[[liu-x]]"
+  - "[[liu-x]]"
+  - "[[liu-y]]"
+  - "[[liu-y]]"
+  - "[[liu-yl]]"
+  - "[[liu-yw]]"
+  - "[[liu-z]]"
+  - "[[lloyd-sl]]"
+  - "[[lobodzinska-em]]"
+  - "[[loch-p]]"
+  - "[[lodhi-e]]"
+  - "[[lohwasser-k]]"
+  - "[[loiacono-e]]"
+  - "[[lomas-jd]]"
+  - "[[long-jd]]"
+  - "[[longarini-i]]"
+  - "[[longo-r]]"
+  - "[[lopez-solis-a]]"
+  - "[[lopezcanelas-na]]"
+  - "[[lorenzo-martinez-n]]"
+  - "[[lory-am]]"
+  - "[[losada-m]]"
+  - "[[lschcke-centeno-g]]"
+  - "[[lou-x]]"
+  - "[[lou-x]]"
+  - "[[lounis-a]]"
+  - "[[love-pa]]"
+  - "[[lu-m]]"
+  - "[[lu-s]]"
+  - "[[lu-yj]]"
+  - "[[lu-z]]"
+  - "[[lubatti-hj]]"
+  - "[[luci-c]]"
+  - "[[lucio-alves-fl]]"
+  - "[[luehring-f]]"
+  - "[[lunday-bs]]"
+  - "[[lundberg-o]]"
+  - "[[lunde-j]]"
+  - "[[luongo-na]]"
+  - "[[lutz-ms]]"
+  - "[[lux-ab]]"
+  - "[[lynn-d]]"
+  - "[[lysak-r]]"
+  - "[[lysenko-v]]"
+  - "[[lytken-e]]"
+  - "[[lyubushkin-v]]"
+  - "[[lyubushkina-t]]"
+  - "[[lyukova-mm]]"
+  - "[[m-soberi-mf]]"
+  - "[[ma-h]]"
+  - "[[ma-k]]"
+  - "[[ma-ll]]"
+  - "[[ma-w]]"
+  - "[[ma-y]]"
+  - "[[macdonald-jc]]"
+  - "[[machado-de-abreu-farias-pc]]"
+  - "[[macina-d]]"
+  - "[[madar-r]]"
+  - "[[madula-t]]"
+  - "[[maeda-j]]"
+  - "[[maeno-t]]"
+  - "[[mafa-pt]]"
+  - "[[maguire-h]]"
+  - "[[maheshwari-m]]"
+  - "[[maiboroda-v]]"
+  - "[[maio-a]]"
+  - "[[maj-k]]"
+  - "[[majersky-o]]"
+  - "[[majewski-s]]"
+  - "[[makhmanazarov-r]]"
+  - "[[makovec-n]]"
+  - "[[maksimovic-v]]"
+  - "[[malaescu-b]]"
+  - "[[malamant-j]]"
+  - "[[malecki-p]]"
+  - "[[maleev-vp]]"
+  - "[[malek-f]]"
+  - "[[mali-m]]"
+  - "[[malito-d]]"
+  - "[[mallik-u]]"
+  - "[[maloizel-a]]"
+  - "[[maltezos-s]]"
+  - "[[malvezzi-lopes-a]]"
+  - "[[malyukov-s]]"
+  - "[[mamuzic-j]]"
+  - "[[mancini-g]]"
+  - "[[mancini-mn]]"
+  - "[[manco-g]]"
+  - "[[mandalia-jp]]"
+  - "[[mandarry-ss]]"
+  - "[[mandi-i]]"
+  - "[[manhaes-de-andrade-filho-l]]"
+  - "[[maniatis-im]]"
+  - "[[manjarres-ramos-j]]"
+  - "[[mankad-dc]]"
+  - "[[mann-a]]"
+  - "[[manoussos-t]]"
+  - "[[mantinan-mn]]"
+  - "[[manzoni-s]]"
+  - "[[mao-l]]"
+  - "[[mapekula-x]]"
+  - "[[marantis-a]]"
+  - "[[marcelo-gregorio-rr]]"
+  - "[[marchiori-g]]"
+  - "[[marcon-c]]"
+  - "[[maricic-e]]"
+  - "[[marinescu-m]]"
+  - "[[marium-s]]"
+  - "[[marjanovic-m]]"
+  - "[[markhoos-a]]"
+  - "[[markovitch-m]]"
+  - "[[maroun-mk]]"
+  - "[[marr-mc]]"
+  - "[[marsden-gt]]"
+  - "[[marshall-ej]]"
+  - "[[marshall-z]]"
+  - "[[martigarcia-s]]"
+  - "[[martin-j]]"
+  - "[[martin-ta]]"
+  - "[[martin-vj]]"
+  - "[[martin-dit-latour-b]]"
+  - "[[martinelli-l]]"
+  - "[[martinez-m]]"
+  - "[[martinez-agullo-p]]"
+  - "[[martinez-outschoorn-vi]]"
+  - "[[martinez-suarez-p]]"
+  - "[[martinhaugh-s]]"
+  - "[[martinovicova-g]]"
+  - "[[martoiu-vs]]"
+  - "[[martyniuk-ac]]"
+  - "[[marzin-a]]"
+  - "[[mascione-d]]"
+  - "[[masetti-l]]"
+  - "[[masik-j]]"
+  - "[[maslennikov-al]]"
+  - "[[mason-sl]]"
+  - "[[massarotti-p]]"
+  - "[[mastrandrea-p]]"
+  - "[[mastroberardino-a]]"
+  - "[[masubuchi-t]]"
+  - "[[mathew-tt]]"
+  - "[[matousek-j]]"
+  - "[[mattern-dm]]"
+  - "[[maurer-j]]"
+  - "[[maurin-t]]"
+  - "[[maury-aj]]"
+  - "[[maek-b]]"
+  - "[[mavungu-tsava-c]]"
+  - "[[maximov-da]]"
+  - "[[may-ae]]"
+  - "[[mayer-e]]"
+  - "[[mazini-r]]"
+  - "[[maznas-i]]"
+  - "[[mazza-sm]]"
+  - "[[mazzeo-e]]"
+  - "[[mc-gowan-jp]]"
+  - "[[mc-kee-sp]]"
+  - "[[mc-lean-ca]]"
+  - "[[mccracken-cc]]"
+  - "[[mcdonald-ef]]"
+  - "[[mcdougall-ae]]"
+  - "[[mcelhinney-lf]]"
+  - "[[mcfayden-ja]]"
+  - "[[mcgovern-rp]]"
+  - "[[mckenzie-rp]]"
+  - "[[mclachlan-tc]]"
+  - "[[mclaughlin-dj]]"
+  - "[[mcmahon-sj]]"
+  - "[[mcpartland-cm]]"
+  - "[[mcpherson-ra]]"
+  - "[[mehlhase-s]]"
+  - "[[mehta-a]]"
+  - "[[melini-d]]"
+  - "[[mellado-garcia-br]]"
+  - "[[melo-ah]]"
+  - "[[meloni-f]]"
+  - "[[mendes-jacques-da-costa-am]]"
+  - "[[meng-l]]"
+  - "[[menke-s]]"
+  - "[[mentink-m]]"
+  - "[[meoni-e]]"
+  - "[[mercado-g]]"
+  - "[[merianos-s]]"
+  - "[[merlassino-c]]"
+  - "[[meroni-c]]"
+  - "[[metcalfe-j]]"
+  - "[[mete-as]]"
+  - "[[meuser-e]]"
+  - "[[meyer-c]]"
+  - "[[meyer-jp]]"
+  - "[[miao-y]]"
+  - "[[middleton-rp]]"
+  - "[[mihovilovic-m]]"
+  - "[[mijovi-l]]"
+  - "[[mikenberg-g]]"
+  - "[[mikestikova-m]]"
+  - "[[miku-m]]"
+  - "[[mildner-h]]"
+  - "[[milic-a]]"
+  - "[[miller-dw]]"
+  - "[[miller-eh]]"
+  - "[[milov-a]]"
+  - "[[milstead-da]]"
+  - "[[min-t]]"
+  - "[[minaenko-aa]]"
+  - "[[minashvili-ia]]"
+  - "[[mincer-ai]]"
+  - "[[mindur-b]]"
+  - "[[mineev-m]]"
+  - "[[mino-y]]"
+  - "[[mir-lm]]"
+  - "[[miralles-lopez-m]]"
+  - "[[mironova-m]]"
+  - "[[missio-m]]"
+  - "[[mitra-a]]"
+  - "[[mitsou-va]]"
+  - "[[mitsumori-y]]"
+  - "[[miu-o]]"
+  - "[[miyagawa-ps]]"
+  - "[[mkrtchyan-t]]"
+  - "[[mlinarevic-m]]"
+  - "[[mlinarevic-t]]"
+  - "[[mlynarikova-m]]"
+  - "[[mlynarska-l]]"
+  - "[[mo-c]]"
+  - "[[mobius-s]]"
+  - "[[mohamed-farook-mh]]"
+  - "[[mohapatra-s]]"
+  - "[[mohiuddin-s]]"
+  - "[[moir-s]]"
+  - "[[mokgatitswane-g]]"
+  - "[[moleri-l]]"
+  - "[[molinatti-u]]"
+  - "[[mollier-lg]]"
+  - "[[mondal-b]]"
+  - "[[mondal-s]]"
+  - "[[mnig-k]]"
+  - "[[monnier-e]]"
+  - "[[monsonis-romero-l]]"
+  - "[[montejo-berlingen-j]]"
+  - "[[montella-a]]"
+  - "[[montella-m]]"
+  - "[[montereali-f]]"
+  - "[[monticelli-f]]"
+  - "[[monzani-s]]"
+  - "[[morancho-tarda-a]]"
+  - "[[morange-n]]"
+  - "[[moreira-de-carvalho-al]]"
+  - "[[moreno-llcer-m]]"
+  - "[[moreno-martinez-c]]"
+  - "[[moreno-perez-jm]]"
+  - "[[morettini-p]]"
+  - "[[morgenstern-s]]"
+  - "[[morii-m]]"
+  - "[[morinaga-m]]"
+  - "[[moritsu-m]]"
+  - "[[morodei-f]]"
+  - "[[moschovakos-p]]"
+  - "[[moser-b]]"
+  - "[[mosidze-m]]"
+  - "[[moskalets-t]]"
+  - "[[moskvitina-p]]"
+  - "[[moss-j]]"
+  - "[[moszkowicz-p]]"
+  - "[[moussa-a]]"
+  - "[[moyal-y]]"
+  - "[[moyano-gomez-h]]"
+  - "[[moyse-ejw]]"
+  - "[[mroz-tg]]"
+  - "[[mtintsilana-o]]"
+  - "[[muanza-s]]"
+  - "[[mucha-m]]"
+  - "[[mueller-j]]"
+  - "[[mller-r]]"
+  - "[[mullier-ga]]"
+  - "[[mullin-aj]]"
+  - "[[mullin-jj]]"
+  - "[[mullins-ac]]"
+  - "[[mulski-ae]]"
+  - "[[mungo-dp]]"
+  - "[[munoz-perez-d]]"
+  - "[[munoz-sanchez-fj]]"
+  - "[[murray-wj]]"
+  - "[[musajan-e]]"
+  - "[[mukinja-m]]"
+  - "[[mwewa-c]]"
+  - "[[myagkov-ag]]"
+  - "[[myers-aj]]"
+  - "[[myers-g]]"
+  - "[[myska-m]]"
+  - "[[nachman-bp]]"
+  - "[[nagai-k]]"
+  - "[[nagano-k]]"
+  - "[[nagasaka-r]]"
+  - "[[nagle-jl]]"
+  - "[[nagy-e]]"
+  - "[[nairz-am]]"
+  - "[[nakahama-y]]"
+  - "[[nakamura-k]]"
+  - "[[nakkalil-k]]"
+  - "[[nandi-a]]"
+  - "[[nanjo-h]]"
+  - "[[narayanan-ea]]"
+  - "[[narukawa-y]]"
+  - "[[naryshkin-i]]"
+  - "[[nasella-l]]"
+  - "[[nasri-s]]"
+  - "[[nass-c]]"
+  - "[[navarro-g]]"
+  - "[[nayaz-a]]"
+  - "[[nechaeva-py]]"
+  - "[[nechaeva-s]]"
+  - "[[nechansky-f]]"
+  - "[[nedic-l]]"
+  - "[[neep-tj]]"
+  - "[[negri-a]]"
+  - "[[negrini-m]]"
+  - "[[nellist-c]]"
+  - "[[nelson-c]]"
+  - "[[nelson-k]]"
+  - "[[nemecek-s]]"
+  - "[[nessi-m]]"
+  - "[[neubauer-ms]]"
+  - "[[newell-j]]"
+  - "[[newman-pr]]"
+  - "[[ng-ywy]]"
+  - "[[ngair-b]]"
+  - "[[nguyen-hdn]]"
+  - "[[nichols-jd]]"
+  - "[[nickerson-rb]]"
+  - "[[nicolaidou-r]]"
+  - "[[nielsen-j]]"
+  - "[[niemeyer-m]]"
+  - "[[niermann-j]]"
+  - "[[nikiforou-n]]"
+  - "[[nikolaenko-v]]"
+  - "[[nikolicaudit-i]]"
+  - "[[nilsson-p]]"
+  - "[[ninca-i]]"
+  - "[[ninio-g]]"
+  - "[[nisati-a]]"
+  - "[[nisius-r]]"
+  - "[[nitika-n]]"
+  - "[[nitschke-je]]"
+  - "[[nkadimeng-ek]]"
+  - "[[nobe-t]]"
+  - "[[noll-d]]"
+  - "[[nommensen-t]]"
+  - "[[norfolk-mb]]"
+  - "[[norman-bj]]"
+  - "[[nosler-lc]]"
+  - "[[noury-m]]"
+  - "[[novak-j]]"
+  - "[[novak-t]]"
+  - "[[novotny-r]]"
+  - "[[nozka-l]]"
+  - "[[ntekas-k]]"
+  - "[[ntounis-d]]"
+  - "[[nunes-de-moura-junior-nmj]]"
+  - "[[ocariz-j]]"
+  - "[[ochoa-i]]"
+  - "[[oerdek-s]]"
+  - "[[offermann-jt]]"
+  - "[[ogrodnik-a]]"
+  - "[[oh-a]]"
+  - "[[ohm-cc]]"
+  - "[[oide-h]]"
+  - "[[ojeda-ml]]"
+  - "[[okumura-y]]"
+  - "[[oleiro-seabra-lf]]"
+  - "[[oleksiyuk-i]]"
+  - "[[oliveira-correa-g]]"
+  - "[[oliveira-damazio-d]]"
+  - "[[oliver-jl]]"
+  - "[[omar-r]]"
+  - "[[ncel-o]]"
+  - "[[oneill-ap]]"
+  - "[[onofre-a]]"
+  - "[[onyisi-pue]]"
+  - "[[oreglia-mj]]"
+  - "[[orestano-d]]"
+  - "[[orlandini-r]]"
+  - "[[orr-rs]]"
+  - "[[osojnak-lm]]"
+  - "[[osumi-y]]"
+  - "[[otero-garzon-g]]"
+  - "[[otono-h]]"
+  - "[[ouchrif-m]]"
+  - "[[ouldsaada-f]]"
+  - "[[ovsiannikova-t]]"
+  - "[[owen-m]]"
+  - "[[owen-re]]"
+  - "[[ozcan-ve]]"
+  - "[[ozturk-f]]"
+  - "[[ozturk-n]]"
+  - "[[ozturk-s]]"
+  - "[[pacey-ha]]"
+  - "[[pachal-k]]"
+  - "[[pacheco-pages-a]]"
+  - "[[padilla-aranda-c]]"
+  - "[[padovano-g]]"
+  - "[[pagan-griso-s]]"
+  - "[[palacino-g]]"
+  - "[[palazzo-a]]"
+  - "[[pampel-j]]"
+  - "[[pan-j]]"
+  - "[[pan-t]]"
+  - "[[panchal-dk]]"
+  - "[[pandini-ce]]"
+  - "[[panduro-vazquez-jg]]"
+  - "[[pandya-hd]]"
+  - "[[pang-h]]"
+  - "[[pani-p]]"
+  - "[[panizzo-g]]"
+  - "[[panwar-l]]"
+  - "[[paolozzi-l]]"
+  - "[[parajuli-s]]"
+  - "[[paramonov-a]]"
+  - "[[paraskevopoulos-c]]"
+  - "[[paredes-hernandez-d]]"
+  - "[[pareti-a]]"
+  - "[[park-kr]]"
+  - "[[park-th]]"
+  - "[[parodi-f]]"
+  - "[[parsons-ja]]"
+  - "[[parzefall-u]]"
+  - "[[pascual-dias-b]]"
+  - "[[pascual-dominguez-l]]"
+  - "[[pasqualucci-e]]"
+  - "[[passaggio-s]]"
+  - "[[pastore-f]]"
+  - "[[patel-p]]"
+  - "[[patel-um]]"
+  - "[[pater-jr]]"
+  - "[[pauly-t]]"
+  - "[[pauwels-f]]"
+  - "[[pazos-ci]]"
+  - "[[pedersen-m]]"
+  - "[[pedro-r]]"
+  - "[[peleganchuk-sv]]"
+  - "[[penc-o]]"
+  - "[[peng-s]]"
+  - "[[penn-gd]]"
+  - "[[penski-ke]]"
+  - "[[penzin-m]]"
+  - "[[peralva-bs]]"
+  - "[[pereira-peixoto-ap]]"
+  - "[[pereira-sanchez-l]]"
+  - "[[perepelitsa-dv]]"
+  - "[[perera-g]]"
+  - "[[perez-codina-e]]"
+  - "[[perganti-m]]"
+  - "[[pernegger-h]]"
+  - "[[perrella-s]]"
+  - "[[peters-k]]"
+  - "[[peters-rfy]]"
+  - "[[petersen-ba]]"
+  - "[[petersen-tc]]"
+  - "[[petit-e]]"
+  - "[[petousis-v]]"
+  - "[[petri-ar]]"
+  - "[[petridou-c]]"
+  - "[[petru-t]]"
+  - "[[petrukhin-a]]"
+  - "[[pettee-m]]"
+  - "[[petukhov-a]]"
+  - "[[petukhova-k]]"
+  - "[[pezoa-r]]"
+  - "[[pezzotti-l]]"
+  - "[[pezzullo-g]]"
+  - "[[pfaffenbichler-l]]"
+  - "[[pfleger-aj]]"
+  - "[[pham-tm]]"
+  - "[[pham-t]]"
+  - "[[phillips-pw]]"
+  - "[[piacquadio-g]]"
+  - "[[pianori-e]]"
+  - "[[piazza-f]]"
+  - "[[piegaia-r]]"
+  - "[[pietreanu-d]]"
+  - "[[pilkington-ad]]"
+  - "[[pinamonti-m]]"
+  - "[[pinfold-jl]]"
+  - "[[pinheiro-matos-g]]"
+  - "[[pinheiro-pereira-bc]]"
+  - "[[pinol-bel-j]]"
+  - "[[pinto-pinoargote-ae]]"
+  - "[[pintucci-l]]"
+  - "[[piper-km]]"
+  - "[[pirttikoski-a]]"
+  - "[[pizzi-da]]"
+  - "[[pizzimento-l]]"
+  - "[[plebani-a]]"
+  - "[[pleier-ma]]"
+  - "[[pleskot-v]]"
+  - "[[plotnikova-e]]"
+  - "[[poddar-g]]"
+  - "[[poettgen-r]]"
+  - "[[poggioli-l]]"
+  - "[[polacek-s]]"
+  - "[[polesello-g]]"
+  - "[[poley-a]]"
+  - "[[polini-a]]"
+  - "[[pollard-cs]]"
+  - "[[pollock-zb]]"
+  - "[[pompa-pacchi-e]]"
+  - "[[pond-ni]]"
+  - "[[ponomarenko-d]]"
+  - "[[pontecorvo-l]]"
+  - "[[popa-s]]"
+  - "[[popeneciu-ga]]"
+  - "[[poreba-a]]"
+  - "[[portillo-quintero-dm]]"
+  - "[[pospisil-s]]"
+  - "[[postill-ma]]"
+  - "[[postolache-p]]"
+  - "[[potamianos-k]]"
+  - "[[potepa-pa]]"
+  - "[[potrap-in]]"
+  - "[[potter-cj]]"
+  - "[[potti-h]]"
+  - "[[poveda-j]]"
+  - "[[pozo-astigarraga-me]]"
+  - "[[pozzi-r]]"
+  - "[[prades-ibanez-a]]"
+  - "[[pradhan-sr]]"
+  - "[[pretel-j]]"
+  - "[[price-d]]"
+  - "[[primavera-m]]"
+  - "[[primomo-l]]"
+  - "[[principe-martin-ma]]"
+  - "[[privara-r]]"
+  - "[[procter-t]]"
+  - "[[proffitt-ml]]"
+  - "[[proklova-n]]"
+  - "[[prokofiev-k]]"
+  - "[[proto-g]]"
+  - "[[proudfoot-j]]"
+  - "[[przybycien-m]]"
+  - "[[przygoda-ww]]"
+  - "[[psallidas-a]]"
+  - "[[puddefoot-je]]"
+  - "[[pudzha-d]]"
+  - "[[purnell-hi]]"
+  - "[[pyatiizbyantseva-d]]"
+  - "[[qian-j]]"
+  - "[[qian-r]]"
+  - "[[qichen-d]]"
+  - "[[qin-y]]"
+  - "[[qiu-t]]"
+  - "[[quadt-a]]"
+  - "[[queitschmaitland-m]]"
+  - "[[quetant-g]]"
+  - "[[quinn-rp]]"
+  - "[[rabanal-bolanos-g]]"
+  - "[[rafanoharana-d]]"
+  - "[[raffaeli-f]]"
+  - "[[ragusa-f]]"
+  - "[[rainbolt-jl]]"
+  - "[[rajagopalan-s]]"
+  - "[[ramakoti-e]]"
+  - "[[rambelli-l]]"
+  - "[[ramirezberend-ia]]"
+  - "[[ran-k]]"
+  - "[[rankin-ds]]"
+  - "[[rapheeha-np]]"
+  - "[[rasheed-h]]"
+  - "[[rassloff-df]]"
+  - "[[rastogi-a]]"
+  - "[[rave-s]]"
+  - "[[ravera-s]]"
+  - "[[ravina-b]]"
+  - "[[ravinovich-i]]"
+  - "[[raymond-m]]"
+  - "[[read-al]]"
+  - "[[readioff-np]]"
+  - "[[rebuzzi-dm]]"
+  - "[[reed-as]]"
+  - "[[reeves-k]]"
+  - "[[reidelsturz-ja]]"
+  - "[[reikher-d]]"
+  - "[[rej-a]]"
+  - "[[rembser-c]]"
+  - "[[ren-h]]"
+  - "[[renda-m]]"
+  - "[[renner-f]]"
+  - "[[rennie-ag]]"
+  - "[[repik-m]]"
+  - "[[rescia-al]]"
+  - "[[resconi-s]]"
+  - "[[ressegotti-m]]"
+  - "[[rettie-s]]"
+  - "[[rettie-wf]]"
+  - "[[revering-mm]]"
+  - "[[reynolds-e]]"
+  - "[[rezanova-ol]]"
+  - "[[reznicek-p]]"
+  - "[[riani-h]]"
+  - "[[ribaric-n]]"
+  - "[[ricci-b]]"
+  - "[[ricci-e]]"
+  - "[[richter-r]]"
+  - "[[richter-s]]"
+  - "[[richterwas-e]]"
+  - "[[ridel-m]]"
+  - "[[ridouani-s]]"
+  - "[[rieck-p]]"
+  - "[[riedler-p]]"
+  - "[[riefel-em]]"
+  - "[[rieger-jo]]"
+  - "[[rijssenbeek-m]]"
+  - "[[rimoldi-m]]"
+  - "[[rinaldi-l]]"
+  - "[[rincke-p]]"
+  - "[[ripellino-g]]"
+  - "[[riu-i]]"
+  - "[[rivera-vergara-jc]]"
+  - "[[rizatdinova-f]]"
+  - "[[rizvi-e]]"
+  - "[[roberts-br]]"
+  - "[[roberts-ss]]"
+  - "[[robinson-d]]"
+  - "[[robles-manzano-m]]"
+  - "[[robson-a]]"
+  - "[[rocchi-a]]"
+  - "[[roda-c]]"
+  - "[[rodriguez-bosca-s]]"
+  - "[[rodriguez-garcia-y]]"
+  - "[[rodrguez-vera-am]]"
+  - "[[roe-s]]"
+  - "[[roemer-jt]]"
+  - "[[rhne-o]]"
+  - "[[rojas-ra]]"
+  - "[[roland-cpa]]"
+  - "[[romaniouk-a]]"
+  - "[[romano-e]]"
+  - "[[romano-m]]"
+  - "[[romero-hernandez-ac]]"
+  - "[[rompotis-n]]"
+  - "[[roos-l]]"
+  - "[[rosati-s]]"
+  - "[[rosser-bj]]"
+  - "[[rossi-e]]"
+  - "[[rossi-e]]"
+  - "[[rossi-lp]]"
+  - "[[rossini-l]]"
+  - "[[rosten-r]]"
+  - "[[rotaru-m]]"
+  - "[[rottler-b]]"
+  - "[[rousseau-d]]"
+  - "[[rousso-d]]"
+  - "[[roygarand-s]]"
+  - "[[rozanov-a]]"
+  - "[[rozario-zma]]"
+  - "[[rozen-y]]"
+  - "[[rubio-jimenez-a]]"
+  - "[[ruelas-rivera-vh]]"
+  - "[[ruggeri-ta]]"
+  - "[[ruggiero-a]]"
+  - "[[ruizmartinez-a]]"
+  - "[[rummler-a]]"
+  - "[[rurikova-z]]"
+  - "[[rusakovich-na]]"
+  - "[[ruscelli-s]]"
+  - "[[russell-hl]]"
+  - "[[russo-g]]"
+  - "[[rutherfoord-jp]]"
+  - "[[rutherford-colmenares-s]]"
+  - "[[rybar-m]]"
+  - "[[rybczynski-p]]"
+  - "[[ryzhov-a]]"
+  - "[[sabater-iglesias-ja]]"
+  - "[[sadrozinski-hf]]"
+  - "[[safai-tehrani-f]]"
+  - "[[saha-s]]"
+  - "[[sahinsoy-m]]"
+  - "[[sahoo-b]]"
+  - "[[saibel-a]]"
+  - "[[saifuddin-bt]]"
+  - "[[saimpert-m]]"
+  - "[[saito-gt]]"
+  - "[[saito-m]]"
+  - "[[saito-t]]"
+  - "[[sala-a]]"
+  - "[[salnikov-a]]"
+  - "[[salt-j]]"
+  - "[[salvador-salas-a]]"
+  - "[[salvatore-f]]"
+  - "[[salzburger-a]]"
+  - "[[sammel-d]]"
+  - "[[sampson-e]]"
+  - "[[sampsonidis-d]]"
+  - "[[sampsonidou-d]]"
+  - "[[samy-maa]]"
+  - "[[snchez-j]]"
+  - "[[sanchez-sebastian-v]]"
+  - "[[sandaker-h]]"
+  - "[[sander-co]]"
+  - "[[sandesara-ja]]"
+  - "[[sandhoff-m]]"
+  - "[[sandoval-c]]"
+  - "[[sanfilippo-l]]"
+  - "[[sankey-dpc]]"
+  - "[[sano-t]]"
+  - "[[sansoni-a]]"
+  - "[[santana-queiroz-m]]"
+  - "[[santi-l]]"
+  - "[[santoni-c]]"
+  - "[[santos-h]]"
+  - "[[santra-a]]"
+  - "[[sanzani-e]]"
+  - "[[saoucha-ka]]"
+  - "[[saraiva-jg]]"
+  - "[[sardain-j]]"
+  - "[[sasaki-o]]"
+  - "[[sato-k]]"
+  - "[[sauer-c]]"
+  - "[[sauvan-e]]"
+  - "[[savard-p]]"
+  - "[[sawada-r]]"
+  - "[[sawyer-c]]"
+  - "[[sawyer-l]]"
+  - "[[sbarra-c]]"
+  - "[[sbrizzi-a]]"
+  - "[[scanlon-t]]"
+  - "[[schaarschmidt-j]]"
+  - "[[schfer-u]]"
+  - "[[schaffer-ac]]"
+  - "[[schaile-d]]"
+  - "[[schamberger-rd]]"
+  - "[[scharf-c]]"
+  - "[[schefer-mm]]"
+  - "[[schegelsky-va]]"
+  - "[[scheirich-d]]"
+  - "[[schernau-m]]"
+  - "[[scheulen-c]]"
+  - "[[schiavi-c]]"
+  - "[[schioppa-m]]"
+  - "[[schlag-b]]"
+  - "[[schlenker-s]]"
+  - "[[schmeing-j]]"
+  - "[[schmidt-e]]"
+  - "[[schmidt-ma]]"
+  - "[[schmieden-k]]"
+  - "[[schmitt-c]]"
+  - "[[schmitt-n]]"
+  - "[[schmitt-s]]"
+  - "[[schneider-na]]"
+  - "[[schoeffel-l]]"
+  - "[[schoening-a]]"
+  - "[[scholer-pg]]"
+  - "[[schopf-e]]"
+  - "[[schott-m]]"
+  - "[[schramm-s]]"
+  - "[[schroer-t]]"
+  - "[[schultzcoulon-hc]]"
+  - "[[schumacher-m]]"
+  - "[[schumm-ba]]"
+  - "[[schune-p]]"
+  - "[[schwartz-hr]]"
+  - "[[schwartzman-a]]"
+  - "[[schwarz-ta]]"
+  - "[[schwemling-p]]"
+  - "[[schwienhorst-r]]"
+  - "[[sciacca-fg]]"
+  - "[[sciandra-a]]"
+  - "[[sciolla-g]]"
+  - "[[scuri-f]]"
+  - "[[sebastiani-cd]]"
+  - "[[sedlaczek-k]]"
+  - "[[seidel-sc]]"
+  - "[[seiden-a]]"
+  - "[[seidlitz-bd]]"
+  - "[[seitz-c]]"
+  - "[[seixas-jm]]"
+  - "[[sekhniaidze-g]]"
+  - "[[selem-l]]"
+  - "[[semprinicesari-n]]"
+  - "[[semushin-a]]"
+  - "[[sengupta-d]]"
+  - "[[senthilkumar-v]]"
+  - "[[serin-l]]"
+  - "[[sessa-m]]"
+  - "[[severini-h]]"
+  - "[[sforza-f]]"
+  - "[[sfyrla-a]]"
+  - "[[sha-q]]"
+  - "[[shabalina-e]]"
+  - "[[shaddix-h]]"
+  - "[[shah-ah]]"
+  - "[[shaheen-r]]"
+  - "[[shahinian-jd]]"
+  - "[[shamim-m]]"
+  - "[[shan-ly]]"
+  - "[[shapiro-m]]"
+  - "[[sharma-a]]"
+  - "[[sharma-as]]"
+  - "[[sharma-p]]"
+  - "[[shatalov-pb]]"
+  - "[[shaw-k]]"
+  - "[[shaw-sm]]"
+  - "[[shen-q]]"
+  - "[[sheppard-dj]]"
+  - "[[sherwood-p]]"
+  - "[[shi-l]]"
+  - "[[shi-x]]"
+  - "[[shimizu-s]]"
+  - "[[shimmin-co]]"
+  - "[[shipsey-ipj]]"
+  - "[[shirabe-s]]"
+  - "[[shiyakova-m]]"
+  - "[[shochet-mj]]"
+  - "[[shope-dr]]"
+  - "[[shrestha-b]]"
+  - "[[shrestha-s]]"
+  - "[[shreyber-i]]"
+  - "[[shroff-mj]]"
+  - "[[sicho-p]]"
+  - "[[sickles-am]]"
+  - "[[sideras-haddad-e]]"
+  - "[[sidley-ac]]"
+  - "[[sidoti-a]]"
+  - "[[siegert-f]]"
+  - "[[sijacki-d]]"
+  - "[[sili-f]]"
+  - "[[silva-jm]]"
+  - "[[silva-ferreira-i]]"
+  - "[[silva-oliveira-mv]]"
+  - "[[silverstein-sb]]"
+  - "[[simion-s]]"
+  - "[[simoniello-r]]"
+  - "[[simpson-el]]"
+  - "[[simpson-h]]"
+  - "[[simpson-lr]]"
+  - "[[simsek-s]]"
+  - "[[sindhu-s]]"
+  - "[[sinervo-p]]"
+  - "[[singh-sn]]"
+  - "[[singh-s]]"
+  - "[[sinha-s]]"
+  - "[[sinha-s]]"
+  - "[[sioli-m]]"
+  - "[[sioulas-k]]"
+  - "[[siral-i]]"
+  - "[[sitnikova-e]]"
+  - "[[sjlin-j]]"
+  - "[[skaf-a]]"
+  - "[[skorda-e]]"
+  - "[[skubic-p]]"
+  - "[[slawinska-m]]"
+  - "[[slazyk-i]]"
+  - "[[sliusar-i]]"
+  - "[[smakhtin-v]]"
+  - "[[smart-bh]]"
+  - "[[smirnov-sy]]"
+  - "[[smirnov-y]]"
+  - "[[smirnova-ln]]"
+  - "[[smirnova-o]]"
+  - "[[smith-ac]]"
+  - "[[smith-dr]]"
+  - "[[smith-jl]]"
+  - "[[smith-mb]]"
+  - "[[smith-r]]"
+  - "[[smitmanns-h]]"
+  - "[[smizanska-m]]"
+  - "[[smolek-k]]"
+  - "[[smolyanskiy-p]]"
+  - "[[snesarev-aa]]"
+  - "[[snoek-hl]]"
+  - "[[snyder-s]]"
+  - "[[sobie-r]]"
+  - "[[soffer-a]]"
+  - "[[solans-sanchez-ca]]"
+  - "[[soldatov-ey]]"
+  - "[[soldevila-u]]"
+  - "[[solodkov-aa]]"
+  - "[[solomon-s]]"
+  - "[[soloshenko-a]]"
+  - "[[solovieva-k]]"
+  - "[[solovyanov-ov]]"
+  - "[[sommer-p]]"
+  - "[[sonay-a]]"
+  - "[[sopczak-a]]"
+  - "[[sopio-al]]"
+  - "[[sopkova-f]]"
+  - "[[sorenson-jd]]"
+  - "[[sotarriva-alvarez-ir]]"
+  - "[[sothilingam-v]]"
+  - "[[soto-sandoval-oj]]"
+  - "[[sottocornola-s]]"
+  - "[[soualah-r]]"
+  - "[[soumaimi-z]]"
+  - "[[south-d]]"
+  - "[[soybelman-n]]"
+  - "[[spagnolo-s]]"
+  - "[[spalla-m]]"
+  - "[[sperlich-d]]"
+  - "[[spisso-b]]"
+  - "[[spiteri-dp]]"
+  - "[[splendori-l]]"
+  - "[[spousta-m]]"
+  - "[[staats-ej]]"
+  - "[[stamen-r]]"
+  - "[[stanecka-e]]"
+  - "[[stanekmaslouska-w]]"
+  - "[[stange-mv]]"
+  - "[[stanislaus-b]]"
+  - "[[stanitzki-mm]]"
+  - "[[stapf-b]]"
+  - "[[starchenko-ea]]"
+  - "[[stark-gh]]"
+  - "[[stark-j]]"
+  - "[[staroba-p]]"
+  - "[[starovoitov-p]]"
+  - "[[staszewski-r]]"
+  - "[[stauch-c]]"
+  - "[[stavropoulos-g]]"
+  - "[[stefl-a]]"
+  - "[[stein-a]]"
+  - "[[steinberg-p]]"
+  - "[[stelzer-b]]"
+  - "[[stelzer-hj]]"
+  - "[[stelzer-o]]"
+  - "[[stenzel-h]]"
+  - "[[stevenson-tj]]"
+  - "[[stewart-ga]]"
+  - "[[stewart-jr]]"
+  - "[[stoicea-g]]"
+  - "[[stolarski-m]]"
+  - "[[stonjek-s]]"
+  - "[[straessner-a]]"
+  - "[[strandberg-j]]"
+  - "[[strandberg-s]]"
+  - "[[stratmann-m]]"
+  - "[[strauss-m]]"
+  - "[[strebler-t]]"
+  - "[[strizenec-p]]"
+  - "[[strhmer-r]]"
+  - "[[strom-dm]]"
+  - "[[stroynowski-r]]"
+  - "[[strubig-a]]"
+  - "[[stucci-sa]]"
+  - "[[stugu-b]]"
+  - "[[stupak-j]]"
+  - "[[styles-na]]"
+  - "[[su-d]]"
+  - "[[su-s]]"
+  - "[[su-x]]"
+  - "[[suchy-d]]"
+  - "[[sudhakar-ponnu-ad]]"
+  - "[[sugizaki-k]]"
+  - "[[sulin-vv]]"
+  - "[[sultan-dms]]"
+  - "[[sultanaliyeva-l]]"
+  - "[[sultansoy-s]]"
+  - "[[sun-s]]"
+  - "[[sun-w]]"
+  - "[[sur-n]]"
+  - "[[sutton-mr]]"
+  - "[[svatos-m]]"
+  - "[[swallow-pn]]"
+  - "[[swiatlowski-m]]"
+  - "[[swirski-t]]"
+  - "[[swoboda-a]]"
+  - "[[sykora-i]]"
+  - "[[sykora-m]]"
+  - "[[sykora-t]]"
+  - "[[ta-d]]"
+  - "[[tackmann-k]]"
+  - "[[taffard-a]]"
+  - "[[tafirout-r]]"
+  - "[[takubo-y]]"
+  - "[[talby-m]]"
+  - "[[talyshev-aa]]"
+  - "[[tam-kc]]"
+  - "[[tamir-nm]]"
+  - "[[tanaka-a]]"
+  - "[[tanaka-j]]"
+  - "[[tanaka-r]]"
+  - "[[tanasini-m]]"
+  - "[[tao-z]]"
+  - "[[tapia-araya-s]]"
+  - "[[tapprogge-s]]"
+  - "[[tarek-abouelfadl-mohamed-a]]"
+  - "[[tarem-s]]"
+  - "[[tariq-k]]"
+  - "[[tarna-g]]"
+  - "[[tartarelli-gf]]"
+  - "[[tartarin-mj]]"
+  - "[[tas-p]]"
+  - "[[tasevsky-m]]"
+  - "[[tassi-e]]"
+  - "[[tate-ac]]"
+  - "[[tayalati-y]]"
+  - "[[taylor-gn]]"
+  - "[[taylor-w]]"
+  - "[[taylor-vara-rj]]"
+  - "[[tegetmeier-as]]"
+  - "[[teixeiradias-p]]"
+  - "[[teoh-jj]]"
+  - "[[terashi-k]]"
+  - "[[terron-j]]"
+  - "[[terzo-s]]"
+  - "[[testa-m]]"
+  - "[[teuscher-rj]]"
+  - "[[thaler-a]]"
+  - "[[theiner-o]]"
+  - "[[theveneauxpelzer-t]]"
+  - "[[thomas-dw]]"
+  - "[[thomas-jp]]"
+  - "[[thompson-ea]]"
+  - "[[thompson-pd]]"
+  - "[[thomson-e]]"
+  - "[[thornberry-re]]"
+  - "[[tian-c]]"
+  - "[[tian-y]]"
+  - "[[tikhomirov-v]]"
+  - "[[tikhonov-ya]]"
+  - "[[timoshenko-s]]"
+  - "[[timoshyn-d]]"
+  - "[[ting-exl]]"
+  - "[[tipton-p]]"
+  - "[[tishelmancharny-a]]"
+  - "[[todome-k]]"
+  - "[[todorovanova-s]]"
+  - "[[toffolin-l]]"
+  - "[[togawa-m]]"
+  - "[[tojo-j]]"
+  - "[[tokr-s]]"
+  - "[[toldaiev-o]]"
+  - "[[tolkachev-g]]"
+  - "[[tomoto-m]]"
+  - "[[tompkins-l]]"
+  - "[[torrence-e]]"
+  - "[[torres-h]]"
+  - "[[torres-arza-di]]"
+  - "[[torr-pastor-e]]"
+  - "[[toscani-m]]"
+  - "[[tosciri-c]]"
+  - "[[tost-m]]"
+  - "[[tovey-dr]]"
+  - "[[trefzger-t]]"
+  - "[[tricarico-pm]]"
+  - "[[tricoli-a]]"
+  - "[[trigger-im]]"
+  - "[[trincazduvoid-s]]"
+  - "[[trischuk-da]]"
+  - "[[tropina-a]]"
+  - "[[truong-l]]"
+  - "[[trzebinski-m]]"
+  - "[[trzupek-a]]"
+  - "[[tsai-f]]"
+  - "[[tsai-m]]"
+  - "[[tsiamis-a]]"
+  - "[[tsiareshka-pv]]"
+  - "[[tsigaridas-s]]"
+  - "[[tsirigotis-a]]"
+  - "[[tsiskaridze-v]]"
+  - "[[tskhadadze-eg]]"
+  - "[[tsujikawa-y]]"
+  - "[[tsukerman-ii]]"
+  - "[[tsulaia-v]]"
+  - "[[tsuno-s]]"
+  - "[[tsuri-k]]"
+  - "[[tsybychev-d]]"
+  - "[[tu-y]]"
+  - "[[tudorache-a]]"
+  - "[[tudorache-v]]"
+  - "[[tuncay-sb]]"
+  - "[[turchikhin-s]]"
+  - "[[turk-cakir-i]]"
+  - "[[turra-r]]"
+  - "[[turtuvshin-t]]"
+  - "[[tuts-pm]]"
+  - "[[tzamarias-s]]"
+  - "[[uematsu-y]]"
+  - "[[ukegawa-f]]"
+  - "[[ulloa-poblete-pa]]"
+  - "[[umaka-en]]"
+  - "[[unal-g]]"
+  - "[[undrus-a]]"
+  - "[[unel-g]]"
+  - "[[urban-j]]"
+  - "[[urrejola-p]]"
+  - "[[usai-g]]"
+  - "[[ushioda-r]]"
+  - "[[usman-m]]"
+  - "[[ustuner-f]]"
+  - "[[uysal-z]]"
+  - "[[vacek-v]]"
+  - "[[vachon-b]]"
+  - "[[vafeiadis-t]]"
+  - "[[vaitkus-a]]"
+  - "[[valderanis-c]]"
+  - "[[valdes-santurio-e]]"
+  - "[[valente-m]]"
+  - "[[valentinetti-s]]"
+  - "[[valero-a]]"
+  - "[[valiente-moreno-e]]"
+  - "[[vallier-a]]"
+  - "[[valls-ferrer-ja]]"
+  - "[[van-arneman-dr]]"
+  - "[[van-der-graaf-a]]"
+  - "[[van-der-schyf-hz]]"
+  - "[[van-gemmeren-p]]"
+  - "[[van-rijnbach-m]]"
+  - "[[van-stroud-s]]"
+  - "[[van-vulpen-i]]"
+  - "[[vana-p]]"
+  - "[[vanadia-m]]"
+  - "[[vande-voorde-um]]"
+  - "[[vandelli-w]]"
+  - "[[vandewall-er]]"
+  - "[[vannicola-d]]"
+  - "[[vannoli-l]]"
+  - "[[vari-r]]"
+  - "[[varma-m]]"
+  - "[[varnes-ew]]"
+  - "[[varni-c]]"
+  - "[[varouchas-d]]"
+  - "[[varriale-l]]"
+  - "[[varvell-ke]]"
+  - "[[vasile-me]]"
+  - "[[vaslin-l]]"
+  - "[[vassilev-md]]"
+  - "[[vasyukov-a]]"
+  - "[[vaughan-lm]]"
+  - "[[vavricka-r]]"
+  - "[[vazquez-schroeder-t]]"
+  - "[[veatch-j]]"
+  - "[[vecchio-v]]"
+  - "[[veen-mj]]"
+  - "[[veliscek-i]]"
+  - "[[velkovska-i]]"
+  - "[[veloce-lm]]"
+  - "[[veloso-f]]"
+  - "[[veneziano-s]]"
+  - "[[ventura-a]]"
+  - "[[verbytskyi-a]]"
+  - "[[verducci-m]]"
+  - "[[vergis-c]]"
+  - "[[verissimo-de-araujo-m]]"
+  - "[[verkerke-w]]"
+  - "[[vermeulen-jc]]"
+  - "[[vernieri-c]]"
+  - "[[vessella-m]]"
+  - "[[vetterli-mc]]"
+  - "[[vgenopoulos-a]]"
+  - "[[viaux-maira-n]]"
+  - "[[vickey-t]]"
+  - "[[vickey-boeriu-oe]]"
+  - "[[viehhauser-gha]]"
+  - "[[vigani-l]]"
+  - "[[vigl-m]]"
+  - "[[villa-m]]"
+  - "[[villaplana-perez-m]]"
+  - "[[villhauer-em]]"
+  - "[[vilucchi-e]]"
+  - "[[vincent-m]]"
+  - "[[vincter-mg]]"
+  - "[[visibile-a]]"
+  - "[[visive-a]]"
+  - "[[vittori-c]]"
+  - "[[vivarelli-i]]"
+  - "[[vivas-albornoz-mi]]"
+  - "[[voevodina-e]]"
+  - "[[vogel-f]]"
+  - "[[voigt-jc]]"
+  - "[[vokac-p]]"
+  - "[[volkotrub-y]]"
+  - "[[vomberg-l]]"
+  - "[[von-toerne-e]]"
+  - "[[vormwald-b]]"
+  - "[[vorobev-k]]"
+  - "[[vos-m]]"
+  - "[[voss-k]]"
+  - "[[vozak-m]]"
+  - "[[vozdecky-l]]"
+  - "[[vranjes-n]]"
+  - "[[vranjes-milosavljevic-m]]"
+  - "[[vreeswijk-m]]"
+  - "[[vu-nk]]"
+  - "[[vuillermet-r]]"
+  - "[[vujinovic-o]]"
+  - "[[vukotic-i]]"
+  - "[[vyas-ik]]"
+  - "[[wack-jf]]"
+  - "[[wada-a]]"
+  - "[[wada-s]]"
+  - "[[wagner-c]]"
+  - "[[wagner-jm]]"
+  - "[[wagner-w]]"
+  - "[[wahdan-s]]"
+  - "[[wahlberg-h]]"
+  - "[[waits-ch]]"
+  - "[[walder-j]]"
+  - "[[walker-r]]"
+  - "[[walkingshaw-pass-k]]"
+  - "[[walkowiak-w]]"
+  - "[[wall-a]]"
+  - "[[wallin-ej]]"
+  - "[[wamorkar-t]]"
+  - "[[wandallchristensen-k]]"
+  - "[[wang-a]]"
+  - "[[wang-az]]"
+  - "[[wang-c]]"
+  - "[[wang-c]]"
+  - "[[wang-h]]"
+  - "[[wang-j]]"
+  - "[[wang-p]]"
+  - "[[wang-p]]"
+  - "[[wang-r]]"
+  - "[[wang-r]]"
+  - "[[wang-sm]]"
+  - "[[wang-s]]"
+  - "[[wang-t]]"
+  - "[[wang-t]]"
+  - "[[wang-wt]]"
+  - "[[wang-w]]"
+  - "[[wang-x]]"
+  - "[[wang-x]]"
+  - "[[wang-x]]"
+  - "[[wang-y]]"
+  - "[[wang-y]]"
+  - "[[wang-z]]"
+  - "[[wang-z]]"
+  - "[[wang-z]]"
+  - "[[wanotayaroj-c]]"
+  - "[[warburton-a]]"
+  - "[[warnerbring-al]]"
+  - "[[waterhouse-s]]"
+  - "[[watson-at]]"
+  - "[[watson-h]]"
+  - "[[watson-mf]]"
+  - "[[watton-e]]"
+  - "[[watts-g]]"
+  - "[[waugh-bm]]"
+  - "[[webb-jm]]"
+  - "[[weber-c]]"
+  - "[[weber-ha]]"
+  - "[[weber-ms]]"
+  - "[[weber-sm]]"
+  - "[[wei-c]]"
+  - "[[wei-y]]"
+  - "[[weidberg-ar]]"
+  - "[[weik-ej]]"
+  - "[[weingarten-j]]"
+  - "[[weiser-c]]"
+  - "[[wells-cj]]"
+  - "[[wenaus-t]]"
+  - "[[wengler-t]]"
+  - "[[wenke-ns]]"
+  - "[[wermes-n]]"
+  - "[[wessels-m]]"
+  - "[[wharton-am]]"
+  - "[[white-as]]"
+  - "[[white-a]]"
+  - "[[white-mj]]"
+  - "[[whiteson-d]]"
+  - "[[wickremasinghe-l]]"
+  - "[[wiedenmann-w]]"
+  - "[[wielers-m]]"
+  - "[[wierda-r]]"
+  - "[[wiglesworth-c]]"
+  - "[[wilkens-hg]]"
+  - "[[wilkinson-jjh]]"
+  - "[[williams-dm]]"
+  - "[[williams-hh]]"
+  - "[[williams-s]]"
+  - "[[willocq-s]]"
+  - "[[wilson-bj]]"
+  - "[[wilson-dj]]"
+  - "[[windischhofer-pj]]"
+  - "[[winkel-fi]]"
+  - "[[winklmeier-f]]"
+  - "[[winter-bt]]"
+  - "[[wittgen-m]]"
+  - "[[wobisch-m]]"
+  - "[[wojtkowski-t]]"
+  - "[[wolffs-z]]"
+  - "[[wollrath-j]]"
+  - "[[wolter-mw]]"
+  - "[[wolters-h]]"
+  - "[[wong-mc]]"
+  - "[[woodward-el]]"
+  - "[[worm-sd]]"
+  - "[[wosiek-bk]]"
+  - "[[woniak-kw]]"
+  - "[[wozniewski-s]]"
+  - "[[wraight-k]]"
+  - "[[wu-c]]"
+  - "[[wu-c]]"
+  - "[[wu-j]]"
+  - "[[wu-m]]"
+  - "[[wu-m]]"
+  - "[[wu-sl]]"
+  - "[[wu-s]]"
+  - "[[wu-x]]"
+  - "[[wu-yq]]"
+  - "[[wu-y]]"
+  - "[[wu-z]]"
+  - "[[wu-z]]"
+  - "[[wuerzinger-j]]"
+  - "[[wyatt-tr]]"
+  - "[[wynne-bm]]"
+  - "[[xella-s]]"
+  - "[[xia-l]]"
+  - "[[xie-m]]"
+  - "[[xiong-a]]"
+  - "[[xu-d]]"
+  - "[[xu-h]]"
+  - "[[xu-l]]"
+  - "[[xu-r]]"
+  - "[[xu-t]]"
+  - "[[xu-y]]"
+  - "[[xu-z]]"
+  - "[[xue-r]]"
+  - "[[yabsley-b]]"
+  - "[[yacoob-s]]"
+  - "[[yamaguchi-y]]"
+  - "[[yamashita-e]]"
+  - "[[yamauchi-h]]"
+  - "[[yamazaki-t]]"
+  - "[[yamazaki-y]]"
+  - "[[yan-s]]"
+  - "[[yan-z]]"
+  - "[[yang-hj]]"
+  - "[[yang-ht]]"
+  - "[[yang-s]]"
+  - "[[yang-t]]"
+  - "[[yang-x]]"
+  - "[[yang-x]]"
+  - "[[yang-y]]"
+  - "[[yang-y]]"
+  - "[[yao-wm]]"
+  - "[[yardley-cl]]"
+  - "[[ye-j]]"
+  - "[[ye-s]]"
+  - "[[ye-x]]"
+  - "[[yeh-y]]"
+  - "[[yeletskikh-i]]"
+  - "[[yeo-b]]"
+  - "[[yexley-mr]]"
+  - "[[yildirim-tp]]"
+  - "[[yorita-k]]"
+  - "[[young-cjs]]"
+  - "[[young-c]]"
+  - "[[young-nd]]"
+  - "[[yu-y]]"
+  - "[[yuan-j]]"
+  - "[[yuan-m]]"
+  - "[[yuan-r]]"
+  - "[[yue-l]]"
+  - "[[zaazoua-m]]"
+  - "[[zabinski-b]]"
+  - "[[zahir-i]]"
+  - "[[zaio-a]]"
+  - "[[zak-zk]]"
+  - "[[zakareishvili-t]]"
+  - "[[zambito-s]]"
+  - "[[zamora-saa-ja]]"
+  - "[[zang-j]]"
+  - "[[zanzottera-r]]"
+  - "[[zaplatilek-o]]"
+  - "[[zeitnitz-c]]"
+  - "[[zeng-h]]"
+  - "[[zeng-jc]]"
+  - "[[zenger-dt]]"
+  - "[[zenin-o]]"
+  - "[[eni-t]]"
+  - "[[zenz-s]]"
+  - "[[zerwas-d]]"
+  - "[[zhai-m]]"
+  - "[[zhang-df]]"
+  - "[[zhang-g]]"
+  - "[[zhang-j]]"
+  - "[[zhang-j]]"
+  - "[[zhang-k]]"
+  - "[[zhang-l]]"
+  - "[[zhang-l]]"
+  - "[[zhang-p]]"
+  - "[[zhang-r]]"
+  - "[[zhang-s]]"
+  - "[[zhang-t]]"
+  - "[[zhang-y]]"
+  - "[[zhang-y]]"
+  - "[[zhang-y]]"
+  - "[[zhang-y]]"
+  - "[[zhang-z]]"
+  - "[[zhang-z]]"
+  - "[[zhang-z]]"
+  - "[[zhao-h]]"
+  - "[[zhao-t]]"
+  - "[[zhao-y]]"
+  - "[[zhao-z]]"
+  - "[[zhao-z]]"
+  - "[[zhemchugov-a]]"
+  - "[[zheng-j]]"
+  - "[[zheng-k]]"
+  - "[[zheng-l]]"
+  - "[[zheng-x]]"
+  - "[[zheng-z]]"
+  - "[[zhong-d]]"
+  - "[[zhou-b]]"
+  - "[[zhou-h]]"
+  - "[[zhou-n]]"
+  - "[[zhou-y]]"
+  - "[[zhou-y]]"
+  - "[[zhou-y]]"
+  - "[[zhu-cg]]"
+  - "[[zhu-j]]"
+  - "[[zhu-x]]"
+  - "[[zhu-y]]"
+  - "[[zhu-y]]"
+  - "[[zhuang-x]]"
+  - "[[zhukov-k]]"
+  - "[[zimine-ni]]"
+  - "[[zinsser-j]]"
+  - "[[ziolkowski-m]]"
+  - "[[ivkovi-l]]"
+  - "[[zoccoli-a]]"
+  - "[[zoch-k]]"
+  - "[[zografos-a]]"
+  - "[[zorbas-tg]]"
+  - "[[zormpa-o]]"
+  - "[[zwalinski-l]]"
+  - "[[atlas-collaboration]]"
+tags: []
+_indexed: 2026-06-01
+---
+
+# Evidence for the Dimuon Decay of the Higgs Boson in pp Collisions with the ATLAS Detector
+
+## Abstract
+
+A search for the dimuon decay of the Higgs boson is presented based on pp collision data recorded by ATLAS during Run 3 of the Large Hadron Collider, corresponding to an integrated luminosity of 165  fb^{-1} at sqrt[s]=13.6  TeV. To enhance the sensitivity, the results are combined with those from Run 2. An excess of events over the background is observed with a significance of 3.4σ (2.5σ expected). The best-fit signal strength is μ=1.4±0.4. This result provides evidence for the H→μμ decay with ATLAS data and offers a direct probe of the Higgs-boson Yukawa coupling to second-generation fermions.
+
+## Authors
+
+- [[aad-g]]
+- [[aakvaag-e]]
+- [[abbott-b]]
+- [[abdelhameed-s]]
+- [[abeling-k]]
+- [[abicht-nj]]
+- [[abidi-sh]]
+- [[aboelela-m]]
+- [[aboulhorma-a]]
+- [[abramowicz-h]]
+- [[abulaiti-y]]
+- [[acharya-bs]]
+- [[ackermann-a]]
+- [[adam-bourdarios-c]]
+- [[adamczyk-l]]
+- [[addepalli-sv]]
+- [[addison-mj]]
+- [[adelman-j]]
+- [[adiguzel-a]]
+- [[adye-t]]
+- [[affolder-aa]]
+- [[afik-y]]
+- [[agaras-mn]]
+- [[aggarwal-a]]
+- [[agheorghiesei-c]]
+- [[ahmadov-f]]
+- [[ahuja-s]]
+- [[ai-x]]
+- [[aielli-g]]
+- [[aikot-a]]
+- [[ait-tamlihat-m]]
+- [[aitbenchikh-b]]
+- [[akbiyik-m]]
+- [[kesson-tpa]]
+- [[akimov-av]]
+- [[akiyama-d]]
+- [[akolkar-nn]]
+- [[aktas-s]]
+- [[alberghi-gl]]
+- [[albert-j]]
+- [[alberti-u]]
+- [[albicocco-p]]
+- [[albouy-gl]]
+- [[alderweireldt-s]]
+- [[alegria-zl]]
+- [[aleksa-m]]
+- [[aleksandrov-in]]
+- [[alexa-c]]
+- [[alexopoulos-t]]
+- [[alfonsi-f]]
+- [[algren-m]]
+- [[alhroob-m]]
+- [[ali-b]]
+- [[ali-hmj]]
+- [[ali-s]]
+- [[alibocus-sw]]
+- [[aliev-m]]
+- [[alimonti-g]]
+- [[alkakhi-w]]
+- [[allaire-c]]
+- [[allbrooke-bmm]]
+- [[allen-js]]
+- [[allen-jf]]
+- [[allport-pp]]
+- [[aloisio-a]]
+- [[alonso-f]]
+- [[alpigiani-c]]
+- [[alsolami-zmk]]
+- [[alvarez-fernandez-a]]
+- [[alves-cardoso-m]]
+- [[alviggi-mg]]
+- [[aly-m]]
+- [[amaral-coutinho-y]]
+- [[ambler-a]]
+- [[amelung-c]]
+- [[amerl-m]]
+- [[ames-cg]]
+- [[amezza-t]]
+- [[amidei-d]]
+- [[amini-b]]
+- [[amirie-k]]
+- [[amirkhanov-a]]
+- [[amor-dos-santos-sp]]
+- [[amos-kr]]
+- [[amperiadou-d]]
+- [[an-s]]
+- [[anastopoulos-c]]
+- [[andeen-t]]
+- [[anders-jk]]
+- [[anderson-ac]]
+- [[andreazza-a]]
+- [[angelidakis-s]]
+- [[angerami-a]]
+- [[anisenkov-av]]
+- [[annovi-a]]
+- [[antel-c]]
+- [[antipov-e]]
+- [[antonelli-m]]
+- [[anulli-f]]
+- [[aoki-m]]
+- [[aoki-t]]
+- [[aparo-ma]]
+- [[aperio-bella-l]]
+- [[apicella-m]]
+- [[appelt-c]]
+- [[apyan-a]]
+- [[arampatzi-m]]
+- [[arbiol-val-sj]]
+- [[arcangeletti-c]]
+- [[arce-ath]]
+- [[arguin-jf]]
+- [[argyropoulos-s]]
+- [[arling-jh]]
+- [[arnaez-o]]
+- [[arnold-h]]
+- [[artoni-g]]
+- [[asada-h]]
+- [[asai-k]]
+- [[asatryan-s]]
+- [[asbah-na]]
+- [[ashby-pickering-ra]]
+- [[aslam-am]]
+- [[assamagan-k]]
+- [[astalos-r]]
+- [[astrand-ksv]]
+- [[atashi-s]]
+- [[atkin-rj]]
+- [[atmani-h]]
+- [[atmasiddha-pa]]
+- [[augsten-k]]
+- [[auriol-ad]]
+- [[austrup-va]]
+- [[avad-as]]
+- [[avolio-g]]
+- [[axiotis-k]]
+- [[azzam-a]]
+- [[babal-d]]
+- [[bachacou-h]]
+- [[bachas-k]]
+- [[bachiu-a]]
+- [[bachmann-e]]
+- [[backes-mj]]
+- [[badea-a]]
+- [[baer-tm]]
+- [[bagnaia-p]]
+- [[bahmani-m]]
+- [[bahner-d]]
+- [[bai-k]]
+- [[baines-jt]]
+- [[baines-l]]
+- [[baker-ok]]
+- [[bakos-e]]
+- [[bakshi-gupta-d]]
+- [[balabram-filho-le]]
+- [[balakrishnan-v]]
+- [[balasubramanian-r]]
+- [[baldin-em]]
+- [[balek-p]]
+- [[ballabene-e]]
+- [[balli-f]]
+- [[baltes-lm]]
+- [[balunas-wk]]
+- [[balz-j]]
+- [[bamwidhi-i]]
+- [[banas-e]]
+- [[bandieramonte-m]]
+- [[bandyopadhyay-a]]
+- [[bansal-s]]
+- [[barak-l]]
+- [[barakat-m]]
+- [[barberio-el]]
+- [[barberis-d]]
+- [[barbero-m]]
+- [[barel-mz]]
+- [[barillari-t]]
+- [[barisits-ms]]
+- [[barklow-t]]
+- [[baron-p]]
+- [[baron-moreno-da]]
+- [[baroncelli-a]]
+- [[barr-aj]]
+- [[barr-jd]]
+- [[barreiro-f]]
+- [[barreiro-guimares-da-costa-j]]
+- [[barros-teixeira-mg]]
+- [[barsov-s]]
+- [[bartels-f]]
+- [[bartoldus-r]]
+- [[barton-ae]]
+- [[bartos-p]]
+- [[baselga-m]]
+- [[bashiri-s]]
+- [[bassalat-a]]
+- [[basso-mj]]
+- [[bataju-s]]
+- [[bate-r]]
+- [[bates-rl]]
+- [[batlamous-s]]
+- [[battaglia-m]]
+- [[battulga-d]]
+- [[bauce-m]]
+- [[bauer-m]]
+- [[bauer-p]]
+- [[bayer-lt]]
+- [[bazzano-hurrell-lt]]
+- [[beacham-jb]]
+- [[beau-t]]
+- [[beaucamp-jy]]
+- [[beauchemin-ph]]
+- [[bechtle-p]]
+- [[beck-hp]]
+- [[becker-k]]
+- [[beddall-aj]]
+- [[bednyakov-va]]
+- [[bee-cp]]
+- [[beemster-lj]]
+- [[begalli-m]]
+- [[begel-m]]
+- [[behr-jk]]
+- [[beirer-jf]]
+- [[beisiegel-f]]
+- [[belfkir-m]]
+- [[bella-g]]
+- [[bellagamba-l]]
+- [[bellerive-a]]
+- [[bellgraph-cd]]
+- [[bellos-p]]
+- [[beloborodov-k]]
+- [[benaoumeur-i]]
+- [[benchekroun-d]]
+- [[bendebba-f]]
+- [[benhammou-y]]
+- [[benkendorfer-kc]]
+- [[beresford-l]]
+- [[beretta-m]]
+- [[bergeaas-kuutmann-e]]
+- [[berger-n]]
+- [[bergmann-b]]
+- [[beringer-j]]
+- [[bernardi-g]]
+- [[bernius-c]]
+- [[bernlochner-fu]]
+- [[berrocal-guardia-a]]
+- [[berry-t]]
+- [[berta-p]]
+- [[berthold-a]]
+- [[berti-a]]
+- [[bertrand-r]]
+- [[bethke-s]]
+- [[betti-a]]
+- [[bevan-aj]]
+- [[bezio-l]]
+- [[bhalla-nk]]
+- [[bharthuar-s]]
+- [[bhatta-s]]
+- [[bhattarai-p]]
+- [[bhatti-zm]]
+- [[bhide-kd]]
+- [[bhopatkar-vs]]
+- [[bianchi-rm]]
+- [[bianco-g]]
+- [[biebel-o]]
+- [[biglietti-m]]
+- [[billingsley-cs]]
+- [[bimgdi-y]]
+- [[bindi-m]]
+- [[bingham-a]]
+- [[bingul-a]]
+- [[bini-c]]
+- [[bird-ga]]
+- [[birman-m]]
+- [[biros-m]]
+- [[biryukov-s]]
+- [[bisanz-t]]
+- [[bisceglie-e]]
+- [[biswal-jp]]
+- [[biswas-d]]
+- [[bloch-i]]
+- [[blue-a]]
+- [[blumenschein-u]]
+- [[bobrovnikov-vs]]
+- [[boccardo-l]]
+- [[boehler-m]]
+- [[boehm-b]]
+- [[bogavac-d]]
+- [[bogdanchikov-ag]]
+- [[boggia-ls]]
+- [[boisvert-v]]
+- [[bokan-p]]
+- [[bold-t]]
+- [[bomben-m]]
+- [[bona-m]]
+- [[boonekamp-m]]
+- [[borbly-ag]]
+- [[bordulev-is]]
+- [[borissov-g]]
+- [[bortoletto-d]]
+- [[boscherini-d]]
+- [[bosman-m]]
+- [[bouaouda-k]]
+- [[bouchhar-n]]
+- [[boudet-l]]
+- [[boudreau-j]]
+- [[bouhovathacker-ev]]
+- [[boumediene-d]]
+- [[bouquet-r]]
+- [[boveia-a]]
+- [[boyd-j]]
+- [[boye-d]]
+- [[boyko-ir]]
+- [[bozianu-l]]
+- [[bracinik-j]]
+- [[brahimi-n]]
+- [[brandt-g]]
+- [[brandt-o]]
+- [[brau-b]]
+- [[brau-je]]
+- [[brener-r]]
+- [[brenner-l]]
+- [[brenner-r]]
+- [[bressler-s]]
+- [[brianti-g]]
+- [[britton-d]]
+- [[britzger-d]]
+- [[brock-i]]
+- [[brock-r]]
+- [[brooijmans-g]]
+- [[brooks-aj]]
+- [[brooks-em]]
+- [[brost-e]]
+- [[brown-lm]]
+- [[bruce-le]]
+- [[bruckler-tl]]
+- [[bruckman-de-renstrom-pa]]
+- [[brers-b]]
+- [[bruni-a]]
+- [[bruni-g]]
+- [[brunner-d]]
+- [[bruschi-m]]
+- [[bruscino-n]]
+- [[buanes-t]]
+- [[buat-q]]
+- [[buchin-d]]
+- [[buckley-ag]]
+- [[bulekov-o]]
+- [[bullard-ba]]
+- [[burdin-s]]
+- [[burgard-cd]]
+- [[burger-am]]
+- [[burghgrave-b]]
+- [[burlayenko-o]]
+- [[burleson-j]]
+- [[burzynski-jc]]
+- [[busch-el]]
+- [[bscher-v]]
+- [[bussey-pj]]
+- [[butler-jm]]
+- [[buttar-cm]]
+- [[butterworth-jm]]
+- [[buttinger-w]]
+- [[buxo-vazquez-cj]]
+- [[buzykaev-ar]]
+- [[cabrera-urbn-s]]
+- [[cadamuro-l]]
+- [[cai-h]]
+- [[cai-y]]
+- [[cai-y]]
+- [[cairo-vmm]]
+- [[cakir-o]]
+- [[calace-n]]
+- [[calafiura-p]]
+- [[calderini-g]]
+- [[calfayan-p]]
+- [[calic-l]]
+- [[callea-g]]
+- [[caloba-lp]]
+- [[calvet-d]]
+- [[calvet-s]]
+- [[camacho-toro-r]]
+- [[camarda-s]]
+- [[camarero-munoz-d]]
+- [[camarri-p]]
+- [[camincher-c]]
+- [[campanelli-m]]
+- [[camplani-a]]
+- [[canale-v]]
+- [[canbay-ac]]
+- [[canonero-e]]
+- [[cantero-j]]
+- [[cao-y]]
+- [[capocasa-f]]
+- [[capua-m]]
+- [[carbone-a]]
+- [[cardarelli-r]]
+- [[cardenas-jcj]]
+- [[cardiff-mp]]
+- [[carducci-g]]
+- [[carli-t]]
+- [[carlino-g]]
+- [[carlotto-ji]]
+- [[carlson-bt]]
+- [[carlson-em]]
+- [[carmignani-j]]
+- [[carminati-l]]
+- [[carnelli-a]]
+- [[carnesale-m]]
+- [[caron-s]]
+- [[carquin-e]]
+- [[carr-ib]]
+- [[carr-s]]
+- [[carratta-g]]
+- [[carrion-martinez-c]]
+- [[carroll-am]]
+- [[casado-mp]]
+- [[casolaro-p]]
+- [[caspar-m]]
+- [[castiglioni-wr]]
+- [[castillo-fl]]
+- [[castillo-garcia-l]]
+- [[castillo-gimenez-v]]
+- [[castro-nf]]
+- [[catinaccio-a]]
+- [[catmore-jr]]
+- [[cavaliere-t]]
+- [[cavaliere-v]]
+- [[caviedes-betancourt-lj]]
+- [[celebi-e]]
+- [[cella-s]]
+- [[cepaitis-v]]
+- [[cerny-k]]
+- [[cerqueira-as]]
+- [[cerri-a]]
+- [[cerrito-l]]
+- [[cerutti-f]]
+- [[cervato-b]]
+- [[cervelli-a]]
+- [[cesarini-g]]
+- [[cetin-sa]]
+- [[chabrillat-pm]]
+- [[chakkappai-r]]
+- [[chakraborty-s]]
+- [[chambers-a]]
+- [[chan-j]]
+- [[chan-wy]]
+- [[chapman-jd]]
+- [[chapon-e]]
+- [[chargeishvili-b]]
+- [[charlton-dg]]
+- [[chauhan-c]]
+- [[che-y]]
+- [[chekanov-s]]
+- [[chekulaev-sv]]
+- [[chelkov-ga]]
+- [[chen-b]]
+- [[chen-b]]
+- [[chen-h]]
+- [[chen-h]]
+- [[chen-j]]
+- [[chen-j]]
+- [[chen-m]]
+- [[chen-s]]
+- [[chen-sj]]
+- [[chen-x]]
+- [[chen-x]]
+- [[chen-z]]
+- [[cheng-cl]]
+- [[cheng-hc]]
+- [[cheong-s]]
+- [[cheplakov-a]]
+- [[cherepanova-e]]
+- [[cherkaoui-el-moursli-r]]
+- [[cheu-e]]
+- [[cheung-k]]
+- [[chevalier-l]]
+- [[chiarella-v]]
+- [[chiarelli-g]]
+- [[chiodini-g]]
+- [[chisholm-as]]
+- [[chitan-a]]
+- [[chitishvili-m]]
+- [[chizhov-mv]]
+- [[choi-k]]
+- [[chou-y]]
+- [[chow-eys]]
+- [[chu-kl]]
+- [[chu-mc]]
+- [[chu-x]]
+- [[chubinidze-z]]
+- [[chudoba-j]]
+- [[chwastowski-jj]]
+- [[cieri-d]]
+- [[ciesla-km]]
+- [[cindro-v]]
+- [[ciocio-a]]
+- [[cirotto-f]]
+- [[citron-zh]]
+- [[citterio-m]]
+- [[ciubotaru-da]]
+- [[clark-a]]
+- [[clark-pj]]
+- [[clarke-hall-n]]
+- [[clarry-c]]
+- [[clawson-se]]
+- [[clement-c]]
+- [[coadou-y]]
+- [[cobal-m]]
+- [[coccaro-a]]
+- [[coelho-barrue-rf]]
+- [[coelho-lopes-de-sa-r]]
+- [[coelli-s]]
+- [[colangeli-ls]]
+- [[cole-b]]
+- [[collado-soto-p]]
+- [[collot-j]]
+- [[coluccia-r]]
+- [[conde-muio-p]]
+- [[connell-mp]]
+- [[connell-sh]]
+- [[conroy-ei]]
+- [[contreras-cossio-m]]
+- [[conventi-f]]
+- [[coopersarkar-am]]
+- [[corazzina-l]]
+- [[corchia-fa]]
+- [[cordeiro-oudot-choi-a]]
+- [[corpe-ld]]
+- [[corradi-m]]
+- [[corriveau-f]]
+- [[cortesgonzalez-a]]
+- [[costa-mj]]
+- [[costanza-f]]
+- [[costanzo-d]]
+- [[couthures-j]]
+- [[cowan-g]]
+- [[cranmer-k]]
+- [[cremer-l]]
+- [[cremonini-d]]
+- [[crprenaudin-s]]
+- [[crescioli-f]]
+- [[cresta-t]]
+- [[cristinziani-m]]
+- [[cristoforetti-m]]
+- [[critelli-e]]
+- [[croft-v]]
+- [[crosetti-g]]
+- [[cueto-a]]
+- [[cui-h]]
+- [[cui-z]]
+- [[cunnett-bm]]
+- [[cunningham-wr]]
+- [[curcio-f]]
+- [[curran-jr]]
+- [[da-cunha-sargedas-de-sousa-mj]]
+- [[da-fonseca-pinto-jv]]
+- [[da-via-c]]
+- [[dabrowski-w]]
+- [[dado-t]]
+- [[dahbi-s]]
+- [[dai-t]]
+- [[dal-santo-d]]
+- [[dallapiccola-c]]
+- [[dam-m]]
+- [[damen-g]]
+- [[damico-v]]
+- [[damp-j]]
+- [[dandoy-jr]]
+- [[dandrea-m]]
+- [[dannheim-d]]
+- [[danniballe-g]]
+- [[danninger-m]]
+- [[dao-v]]
+- [[darbo-g]]
+- [[darragh-ro]]
+- [[das-sj]]
+- [[dattola-f]]
+- [[dauria-s]]
+- [[davanzo-a]]
+- [[davidek-t]]
+- [[davidson-j]]
+- [[dawson-i]]
+- [[de-k]]
+- [[de-almeida-rossi-c]]
+- [[de-asmundis-r]]
+- [[de-biase-n]]
+- [[de-castro-s]]
+- [[de-groot-n]]
+- [[de-jong-p]]
+- [[de-la-torre-h]]
+- [[de-maria-a]]
+- [[de-salvo-a]]
+- [[de-sanctis-u]]
+- [[de-santis-f]]
+- [[de-santo-a]]
+- [[de-vivie-de-regie-jb]]
+- [[debevc-j]]
+- [[dedovich-dv]]
+- [[degens-j]]
+- [[deiana-am]]
+- [[del-peso-j]]
+- [[delagrange-l]]
+- [[deliot-f]]
+- [[delitzsch-cm]]
+- [[della-pietra-m]]
+- [[della-volpe-d]]
+- [[dellacqua-a]]
+- [[dellasta-l]]
+- [[delmastro-m]]
+- [[delogu-cc]]
+- [[delsart-pa]]
+- [[demers-s]]
+- [[demichev-m]]
+- [[denisov-sp]]
+- [[denizli-h]]
+- [[deramo-l]]
+- [[derendarz-d]]
+- [[derue-f]]
+- [[dervan-p]]
+- [[desai-am]]
+- [[desch-k]]
+- [[di-bello-fa]]
+- [[di-ciaccio-a]]
+- [[di-ciaccio-l]]
+- [[di-domenico-a]]
+- [[di-donato-c]]
+- [[di-girolamo-a]]
+- [[di-gregorio-g]]
+- [[di-luca-a]]
+- [[di-micco-b]]
+- [[di-nardo-r]]
+- [[di-petrillo-kf]]
+- [[diamantopoulou-m]]
+- [[dias-fa]]
+- [[diaz-ma]]
+- [[didenko-ar]]
+- [[didenko-m]]
+- [[diefenbacher-sd]]
+- [[diehl-eb]]
+- [[dez-cornell-s]]
+- [[diez-pardos-c]]
+- [[dimitriadi-c]]
+- [[dimitrievska-a]]
+- [[dimri-a]]
+- [[ding-y]]
+- [[dingfelder-j]]
+- [[dingley-t]]
+- [[dinu-im]]
+- [[dittmeier-sj]]
+- [[dittus-f]]
+- [[divisek-m]]
+- [[dixit-b]]
+- [[djama-f]]
+- [[djobava-t]]
+- [[doglioni-c]]
+- [[dohnalova-a]]
+- [[dolezal-z]]
+- [[domijan-k]]
+- [[dona-km]]
+- [[donadelli-m]]
+- [[dong-b]]
+- [[donini-j]]
+- [[donofrio-a]]
+- [[donofrio-m]]
+- [[dopke-j]]
+- [[doria-a]]
+- [[dos-santos-fernandes-n]]
+- [[dos-santos-luz-ia]]
+- [[dougan-p]]
+- [[dova-mt]]
+- [[doyle-at]]
+- [[drescher-mp]]
+- [[dreyer-e]]
+- [[drivaskoulouris-i]]
+- [[drnevich-m]]
+- [[du-d]]
+- [[du-pree-ta]]
+- [[duan-z]]
+- [[dubau-m]]
+- [[dubinin-f]]
+- [[dubovsky-m]]
+- [[duchovni-e]]
+- [[duckeck-g]]
+- [[duckett-pk]]
+- [[ducu-oa]]
+- [[duda-d]]
+- [[dudarev-a]]
+- [[dudek-mm]]
+- [[duden-er]]
+- [[duffizi-m]]
+- [[duflot-l]]
+- [[dhrssen-m]]
+- [[duminica-i]]
+- [[dumitriu-ae]]
+- [[dunford-m]]
+- [[dunne-k]]
+- [[duperrin-a]]
+- [[duran-yildiz-h]]
+- [[durglishvili-a]]
+- [[dyckes-gi]]
+- [[dyndal-m]]
+- [[dziedzic-bs]]
+- [[earnshaw-zo]]
+- [[eberwein-gh]]
+- [[eckerova-b]]
+- [[eggebrecht-s]]
+- [[egidio-purcino-de-souza-e]]
+- [[eigen-g]]
+- [[einsweiler-k]]
+- [[ekelof-t]]
+- [[ekman-pa]]
+- [[el-farkh-s]]
+- [[el-ghazali-y]]
+- [[el-jarrari-h]]
+- [[el-moussaouy-a]]
+- [[elitez-d]]
+- [[ellert-m]]
+- [[ellinghaus-f]]
+- [[elliot-ta]]
+- [[ellis-n]]
+- [[elmsheuser-j]]
+- [[elsawy-m]]
+- [[elsing-m]]
+- [[emeliyanov-d]]
+- [[enari-y]]
+- [[epari-s]]
+- [[ernani-martins-neto-d]]
+- [[ernst-f]]
+- [[errenst-m]]
+- [[escalier-m]]
+- [[escobar-c]]
+- [[etzion-e]]
+- [[evans-g]]
+- [[evans-h]]
+- [[evans-ls]]
+- [[ezhilov-a]]
+- [[ezzarqtouni-s]]
+- [[fabbri-f]]
+- [[fabbri-l]]
+- [[facini-g]]
+- [[fadeyev-v]]
+- [[fakhrutdinov-rm]]
+- [[fakoudis-d]]
+- [[falciano-s]]
+- [[falda-ulhoa-coelho-lf]]
+- [[fallavollita-f]]
+- [[falsetti-g]]
+- [[faltova-j]]
+- [[fan-c]]
+- [[fan-ky]]
+- [[fan-y]]
+- [[fang-y]]
+- [[fanti-m]]
+- [[faraj-m]]
+- [[farazpay-z]]
+- [[farbin-a]]
+- [[farilla-a]]
+- [[farman-k]]
+- [[farooque-t]]
+- [[farr-jn]]
+- [[farrington-sm]]
+- [[fassi-f]]
+- [[fassouliotis-d]]
+- [[fayard-l]]
+- [[federic-p]]
+- [[federicova-p]]
+- [[fedin-ol]]
+- [[feickert-m]]
+- [[feligioni-l]]
+- [[fellers-de]]
+- [[feng-c]]
+- [[feng-y]]
+- [[feng-z]]
+- [[fenton-mj]]
+- [[ferencz-l]]
+- [[fernandez-barbadillo-b]]
+- [[fernandez-martinez-p]]
+- [[fernoux-mjv]]
+- [[ferrando-j]]
+- [[ferrari-a]]
+- [[ferrari-p]]
+- [[ferrari-r]]
+- [[ferrere-d]]
+- [[ferretti-c]]
+- [[fewell-mp]]
+- [[fiacco-d]]
+- [[fiedler-f]]
+- [[fiedler-p]]
+- [[filimonov-s]]
+- [[filip-ms]]
+- [[filipi-a]]
+- [[filmer-ek]]
+- [[filthaut-f]]
+- [[fiolhais-mcn]]
+- [[fiorini-l]]
+- [[fisher-wc]]
+- [[fitschen-t]]
+- [[fitzhugh-pm]]
+- [[fleck-i]]
+- [[fleischmann-p]]
+- [[flick-t]]
+- [[flores-m]]
+- [[flores-castillo-lr]]
+- [[flores-sanz-de-acedo-l]]
+- [[follega-fm]]
+- [[fomin-n]]
+- [[foo-jh]]
+- [[formica-a]]
+- [[forti-ac]]
+- [[fortin-e]]
+- [[fortman-aw]]
+- [[foster-l]]
+- [[fountas-l]]
+- [[fournier-d]]
+- [[fox-h]]
+- [[francavilla-p]]
+- [[francescato-s]]
+- [[franchellucci-s]]
+- [[franchini-m]]
+- [[franchino-s]]
+- [[francis-d]]
+- [[franco-l]]
+- [[franconi-l]]
+- [[franklin-m]]
+- [[frattari-g]]
+- [[frid-yy]]
+- [[friend-j]]
+- [[fritzsche-n]]
+- [[froch-a]]
+- [[froidevaux-d]]
+- [[frost-ja]]
+- [[fu-y]]
+- [[fuenzalida-garrido-s]]
+- [[fujimoto-m]]
+- [[fung-ky]]
+- [[furtado-de-simas-filho-e]]
+- [[furukawa-m]]
+- [[fuster-j]]
+- [[gaa-a]]
+- [[gabrielli-a]]
+- [[gabrielli-a]]
+- [[gadow-p]]
+- [[gagliardi-g]]
+- [[gagnon-lg]]
+- [[gaid-s]]
+- [[galantzan-s]]
+- [[gallagher-j]]
+- [[gallas-ej]]
+- [[gallen-al]]
+- [[gallop-bj]]
+- [[gan-kk]]
+- [[ganguly-s]]
+- [[gao-y]]
+- [[garabaglu-a]]
+- [[garay-walls-fm]]
+- [[garca-c]]
+- [[garcia-alonso-a]]
+- [[garcia-caffaro-ag]]
+- [[garca-navarro-je]]
+- [[garcia-ruiz-ma]]
+- [[garciasciveres-m]]
+- [[gardner-gl]]
+- [[gardner-rw]]
+- [[garelli-n]]
+- [[garg-rb]]
+- [[gargan-jm]]
+- [[garner-ca]]
+- [[garvey-cm]]
+- [[gassmann-vk]]
+- [[gaudio-g]]
+- [[gautam-v]]
+- [[gauzzi-p]]
+- [[gavranovic-j]]
+- [[gavrilenko-il]]
+- [[gavrilyuk-a]]
+- [[gay-c]]
+- [[gaycken-g]]
+- [[gazis-en]]
+- [[gekow-a]]
+- [[gemme-c]]
+- [[genest-mh]]
+- [[gentry-ad]]
+- [[george-s]]
+- [[geralis-t]]
+- [[gerwin-aa]]
+- [[gessingerbefurt-p]]
+- [[geyik-me]]
+- [[ghani-m]]
+- [[ghorbanian-k]]
+- [[ghosal-a]]
+- [[ghosh-a]]
+- [[ghosh-a]]
+- [[giacobbe-b]]
+- [[giagu-s]]
+- [[giani-t]]
+- [[giannini-a]]
+- [[gibson-sm]]
+- [[gignac-m]]
+- [[gil-dt]]
+- [[gilbert-ak]]
+- [[gilbert-bj]]
+- [[gillberg-d]]
+- [[gilles-g]]
+- [[gingrich-dm]]
+- [[giordani-mp]]
+- [[giraud-pf]]
+- [[giugliarelli-g]]
+- [[giugni-d]]
+- [[giuli-f]]
+- [[gkialas-i]]
+- [[gladilin-lk]]
+- [[glasman-c]]
+- [[glazewska-m]]
+- [[gleason-rm]]
+- [[glema-g]]
+- [[glisic-m]]
+- [[gnesi-i]]
+- [[go-y]]
+- [[goblirschkolb-m]]
+- [[gocke-b]]
+- [[godin-d]]
+- [[gokturk-b]]
+- [[goldfarb-s]]
+- [[golling-t]]
+- [[gololo-mgd]]
+- [[golubkov-d]]
+- [[gombas-jp]]
+- [[gomes-a]]
+- [[gomes-da-silva-g]]
+- [[gomez-delegido-aj]]
+- [[gonalo-r]]
+- [[gonella-l]]
+- [[gongadze-a]]
+- [[gonnella-f]]
+- [[gonski-jl]]
+- [[gonzlez-andana-ry]]
+- [[gonzlez-de-la-hoz-s]]
+- [[gonzalez-rodrigues-mv]]
+- [[gonzalez-suarez-r]]
+- [[gonzalezsevilla-s]]
+- [[goossens-l]]
+- [[gorini-b]]
+- [[gorini-e]]
+- [[goriek-a]]
+- [[gosart-tc]]
+- [[goshaw-at]]
+- [[gostkin-mi]]
+- [[goswami-s]]
+- [[gottardo-ca]]
+- [[gotz-sa]]
+- [[gouighri-m]]
+- [[goussiou-ag]]
+- [[govender-n]]
+- [[grabarczyk-rp]]
+- [[grabowskabold-i]]
+- [[graham-k]]
+- [[gramstad-e]]
+- [[grancagnolo-s]]
+- [[grant-cm]]
+- [[gravila-pm]]
+- [[gravili-fg]]
+- [[gray-hm]]
+- [[greco-m]]
+- [[green-mj]]
+- [[grefe-c]]
+- [[grefsrud-as]]
+- [[gregor-im]]
+- [[greif-kt]]
+- [[grenier-p]]
+- [[grewe-sg]]
+- [[grillo-aa]]
+- [[grimm-k]]
+- [[grinstein-s]]
+- [[grivaz-jf]]
+- [[gross-e]]
+- [[grosseknetter-j]]
+- [[guan-l]]
+- [[guerrieri-g]]
+- [[guevara-r]]
+- [[gugel-r]]
+- [[guhit-jam]]
+- [[guida-a]]
+- [[guilloton-e]]
+- [[guindon-s]]
+- [[guo-f]]
+- [[guo-j]]
+- [[guo-l]]
+- [[guo-l]]
+- [[guo-y]]
+- [[guo-y]]
+- [[gupta-a]]
+- [[gupta-r]]
+- [[gupta-s]]
+- [[gurbuz-s]]
+- [[gurdasani-ss]]
+- [[gustavino-g]]
+- [[gutierrez-p]]
+- [[gutierrez-zagazeta-lf]]
+- [[gutsche-m]]
+- [[gutschow-c]]
+- [[gwenlan-c]]
+- [[gwilliam-cb]]
+- [[haaland-es]]
+- [[haas-a]]
+- [[habedank-m]]
+- [[haber-c]]
+- [[hadavand-hk]]
+- [[haddad-a]]
+- [[hadef-a]]
+- [[hagan-ai]]
+- [[hahn-jj]]
+- [[haines-eh]]
+- [[haleem-m]]
+- [[haley-j]]
+- [[hallewell-gd]]
+- [[hamano-k]]
+- [[hamdaoui-h]]
+- [[hamer-m]]
+- [[hammoud-sed]]
+- [[hampshire-ej]]
+- [[han-j]]
+- [[han-l]]
+- [[han-l]]
+- [[han-s]]
+- [[hanagaki-k]]
+- [[hance-m]]
+- [[hangal-da]]
+- [[hanif-h]]
+- [[hank-md]]
+- [[hansen-jb]]
+- [[hansen-ph]]
+- [[harada-d]]
+- [[harenberg-t]]
+- [[harkusha-s]]
+- [[harris-ml]]
+- [[harris-yt]]
+- [[harrison-j]]
+- [[harrison-nm]]
+- [[harrison-pf]]
+- [[hart-mle]]
+- [[hartman-nm]]
+- [[hartmann-nm]]
+- [[hasan-rz]]
+- [[hasegawa-y]]
+- [[haslbeck-f]]
+- [[hassan-s]]
+- [[hauser-r]]
+- [[haviernik-m]]
+- [[hawkes-cm]]
+- [[hawkings-rj]]
+- [[hayashi-y]]
+- [[hayden-d]]
+- [[hayes-c]]
+- [[hayes-rl]]
+- [[hays-cp]]
+- [[hays-jm]]
+- [[hayward-hs]]
+- [[he-m]]
+- [[he-y]]
+- [[he-y]]
+- [[heatley-nb]]
+- [[hedberg-v]]
+- [[heidegger-c]]
+- [[heidegger-kk]]
+- [[heilman-j]]
+- [[heim-s]]
+- [[heim-t]]
+- [[heinrich-jj]]
+- [[heinrich-l]]
+- [[hejbal-j]]
+- [[helbig-m]]
+- [[held-a]]
+- [[hellesund-s]]
+- [[helling-cm]]
+- [[hellman-s]]
+- [[henriques-correia-am]]
+- [[herde-h]]
+- [[hernndez-jimnez-y]]
+- [[herrmann-lm]]
+- [[herrmann-t]]
+- [[herten-g]]
+- [[hertenberger-r]]
+- [[hervas-l]]
+- [[hesping-me]]
+- [[hessey-np]]
+- [[hessler-j]]
+- [[hidaoui-m]]
+- [[hidic-n]]
+- [[hill-e]]
+- [[hillersoy-ts]]
+- [[hillier-sj]]
+- [[hinds-jr]]
+- [[hinterkeuser-f]]
+- [[hirose-m]]
+- [[hirose-s]]
+- [[hirschbuehl-d]]
+- [[hitchings-tg]]
+- [[hiti-b]]
+- [[hobbs-j]]
+- [[hobincu-r]]
+- [[hod-n]]
+- [[hodges-am]]
+- [[hodgkinson-mc]]
+- [[hodkinson-bh]]
+- [[hoecker-a]]
+- [[hofer-dd]]
+- [[hofer-j]]
+- [[hofner-j]]
+- [[holzbock-m]]
+- [[hommels-lbah]]
+- [[homsak-v]]
+- [[honan-bp]]
+- [[hong-jj]]
+- [[hong-tm]]
+- [[hooberman-bh]]
+- [[hopkins-wh]]
+- [[hoppesch-mc]]
+- [[horii-y]]
+- [[horstmann-me]]
+- [[hou-s]]
+- [[housenga-mr]]
+- [[howarth-j]]
+- [[hoya-j]]
+- [[hrabovsky-m]]
+- [[hrynova-t]]
+- [[hsu-pj]]
+- [[hsu-sc]]
+- [[hsu-t]]
+- [[hu-m]]
+- [[hu-q]]
+- [[huang-s]]
+- [[huang-x]]
+- [[huang-y]]
+- [[huang-y]]
+- [[huang-y]]
+- [[huang-z]]
+- [[hubacek-z]]
+- [[huegging-f]]
+- [[huffman-tb]]
+- [[hufnagel-maranha-de-faria-m]]
+- [[hugli-ca]]
+- [[huhtinen-m]]
+- [[huiberts-sk]]
+- [[hulsken-r]]
+- [[hultquist-ce]]
+- [[humphreys-dl]]
+- [[huseynov-n]]
+- [[huston-j]]
+- [[huth-j]]
+- [[huth-l]]
+- [[hyneman-r]]
+- [[iacobucci-g]]
+- [[iakovidis-g]]
+- [[iconomidoufayard-l]]
+- [[iddon-jp]]
+- [[iengo-p]]
+- [[iguchi-r]]
+- [[iiyama-y]]
+- [[iizawa-t]]
+- [[ikegami-y]]
+- [[iliadis-d]]
+- [[ilic-n]]
+- [[imam-h]]
+- [[inacio-goncalves-g]]
+- [[infante-cabanas-sa]]
+- [[ingebretsen-carlson-t]]
+- [[inglis-jm]]
+- [[introzzi-g]]
+- [[iodice-m]]
+- [[ippolito-v]]
+- [[irwin-rk]]
+- [[ishino-m]]
+- [[islam-w]]
+- [[issever-c]]
+- [[istin-s]]
+- [[itabashi-k]]
+- [[ito-h]]
+- [[iuppa-r]]
+- [[ivina-a]]
+- [[izzo-v]]
+- [[jacka-p]]
+- [[jackson-p]]
+- [[jain-p]]
+- [[jakobs-k]]
+- [[jakoubek-t]]
+- [[jamieson-j]]
+- [[jang-w]]
+- [[jankovych-s]]
+- [[javurkova-m]]
+- [[jawahar-p]]
+- [[jeanty-l]]
+- [[jejelava-j]]
+- [[jenni-p]]
+- [[jessiman-ce]]
+- [[jia-c]]
+- [[jia-h]]
+- [[jia-j]]
+- [[jia-x]]
+- [[jia-z]]
+- [[jiang-c]]
+- [[jiang-q]]
+- [[jiggins-s]]
+- [[jimenez-ortega-m]]
+- [[jimenez-pena-j]]
+- [[jin-s]]
+- [[jinaru-a]]
+- [[jinnouchi-o]]
+- [[johansson-p]]
+- [[johns-ka]]
+- [[johnson-jw]]
+- [[jolly-fa]]
+- [[jones-dm]]
+- [[jones-e]]
+- [[jones-ks]]
+- [[jones-p]]
+- [[jones-rwl]]
+- [[jones-tj]]
+- [[joos-hl]]
+- [[joshi-r]]
+- [[jovicevic-j]]
+- [[ju-x]]
+- [[junggeburth-jj]]
+- [[junkermann-t]]
+- [[juste-rozas-a]]
+- [[juzek-mk]]
+- [[kabana-s]]
+- [[kaczmarska-a]]
+- [[kadir-sa]]
+- [[kado-m]]
+- [[kagan-h]]
+- [[kagan-m]]
+- [[kahn-a]]
+- [[kahra-c]]
+- [[kaji-t]]
+- [[kajomovitz-e]]
+- [[kakati-n]]
+- [[kakoty-n]]
+- [[kalaitzidou-i]]
+- [[kandel-s]]
+- [[kang-nj]]
+- [[kar-d]]
+- [[karentzos-e]]
+- [[karki-k]]
+- [[karkout-o]]
+- [[karpov-sn]]
+- [[karpova-zm]]
+- [[kartvelishvili-v]]
+- [[karyukhin-an]]
+- [[kasimi-e]]
+- [[katzy-j]]
+- [[kaur-s]]
+- [[kawade-k]]
+- [[kawale-mp]]
+- [[kawamoto-c]]
+- [[kawamoto-t]]
+- [[kay-ef]]
+- [[kaya-fi]]
+- [[kazakos-s]]
+- [[kazanin-vf]]
+- [[keaveney-jm]]
+- [[keeler-r]]
+- [[kehris-gv]]
+- [[keller-js]]
+- [[kelly-jm]]
+- [[kempster-jj]]
+- [[kepka-o]]
+- [[kerr-j]]
+- [[kerridge-bp]]
+- [[kerevan-bp]]
+- [[keszeghova-l]]
+- [[khan-ra]]
+- [[khanov-a]]
+- [[kharlamov-ag]]
+- [[kharlamova-t]]
+- [[khoda-ee]]
+- [[kholodenko-m]]
+- [[khoo-tj]]
+- [[khoriauli-g]]
+- [[khoulaki-y]]
+- [[khwaira-yar]]
+- [[kibirige-b]]
+- [[kim-d]]
+- [[kim-dw]]
+- [[kim-yk]]
+- [[kimura-n]]
+- [[kingston-mk]]
+- [[kirchhoff-a]]
+- [[kirfel-c]]
+- [[kirfel-f]]
+- [[kirk-j]]
+- [[kiryunin-ae]]
+- [[kita-s]]
+- [[kivernyk-o]]
+- [[klassen-m]]
+- [[klein-c]]
+- [[klein-l]]
+- [[klein-mh]]
+- [[klein-sb]]
+- [[klein-u]]
+- [[klimentov-a]]
+- [[klioutchnikova-t]]
+- [[kluit-p]]
+- [[kluth-s]]
+- [[kneringer-e]]
+- [[knight-tm]]
+- [[knue-a]]
+- [[kobel-m]]
+- [[kobylianskii-d]]
+- [[koch-sf]]
+- [[kocian-m]]
+- [[kody-p]]
+- [[koeck-dm]]
+- [[koffas-t]]
+- [[kolay-o]]
+- [[koletsou-i]]
+- [[komarek-t]]
+- [[kneke-k]]
+- [[kong-axy]]
+- [[kono-t]]
+- [[konstantinidis-n]]
+- [[kontaxakis-p]]
+- [[konya-b]]
+- [[kopeliansky-r]]
+- [[koperny-s]]
+- [[korcyl-k]]
+- [[kordas-k]]
+- [[korn-a]]
+- [[korn-s]]
+- [[korolkov-i]]
+- [[korotkova-n]]
+- [[kortman-b]]
+- [[kortner-o]]
+- [[kortner-s]]
+- [[kostecka-wh]]
+- [[kostov-m]]
+- [[kostyukhin-vv]]
+- [[kotsokechagia-a]]
+- [[kotwal-a]]
+- [[koulouris-a]]
+- [[kourkoumelicharalampidi-a]]
+- [[kourkoumelis-c]]
+- [[kourlitis-e]]
+- [[kovanda-o]]
+- [[kowalewski-r]]
+- [[kozanecki-w]]
+- [[kozhin-as]]
+- [[kramarenko-va]]
+- [[kramberger-g]]
+- [[kramer-p]]
+- [[krasny-mw]]
+- [[krasznahorkay-a]]
+- [[kraus-ac]]
+- [[kraus-jw]]
+- [[kremer-ja]]
+- [[krengel-nb]]
+- [[kresse-t]]
+- [[kretschmann-l]]
+- [[kretzschmar-j]]
+- [[krieger-p]]
+- [[krizka-k]]
+- [[kroeninger-k]]
+- [[kroha-h]]
+- [[kroll-j]]
+- [[kroll-j]]
+- [[krowpman-ks]]
+- [[kruchonak-u]]
+- [[krger-h]]
+- [[krumnack-n]]
+- [[kruse-mc]]
+- [[kuchinskaia-o]]
+- [[kuday-s]]
+- [[kuehn-s]]
+- [[kuesters-r]]
+- [[kuhl-t]]
+- [[kukhtin-v]]
+- [[kulchitsky-y]]
+- [[kuleshov-s]]
+- [[kull-j]]
+- [[kumar-ev]]
+- [[kumar-m]]
+- [[kumari-n]]
+- [[kumari-p]]
+- [[kupco-a]]
+- [[kupich-a]]
+- [[kuprash-o]]
+- [[kurashige-h]]
+- [[kurchaninov-ll]]
+- [[kurdysh-o]]
+- [[kurochkin-ya]]
+- [[kurova-a]]
+- [[kuze-m]]
+- [[kvam-ak]]
+- [[kvita-j]]
+- [[kyriacou-ng]]
+- [[lacasta-c]]
+- [[lacava-f]]
+- [[lacker-h]]
+- [[lacour-d]]
+- [[lad-nn]]
+- [[ladygin-e]]
+- [[lafarge-a]]
+- [[laforge-b]]
+- [[lagouri-t]]
+- [[lahbabi-fz]]
+- [[lai-s]]
+- [[lai-ws]]
+- [[lambert-je]]
+- [[lammers-s]]
+- [[lampl-w]]
+- [[lampoudis-c]]
+- [[lamprinoudis-g]]
+- [[lancaster-an]]
+- [[lanon-e]]
+- [[landgraf-u]]
+- [[landon-mpj]]
+- [[lang-vs]]
+- [[langrekken-okb]]
+- [[lankford-aj]]
+- [[lanni-f]]
+- [[lantzsch-k]]
+- [[lanza-a]]
+- [[lanzac-berrocal-m]]
+- [[laporte-jf]]
+- [[lari-t]]
+- [[larsen-d]]
+- [[larson-l]]
+- [[lasagni-manghi-f]]
+- [[lassnig-m]]
+- [[lawlor-sd]]
+- [[lazaridou-r]]
+- [[lazzaroni-m]]
+- [[le-ett]]
+- [[le-hdm]]
+- [[le-boulicaut-em]]
+- [[le-pottier-lt]]
+- [[leban-b]]
+- [[ledroitguillon-f]]
+- [[lee-tf]]
+- [[leeuw-ll]]
+- [[lefebvre-m]]
+- [[leggett-c]]
+- [[lehmann-miotto-g]]
+- [[leigh-m]]
+- [[leight-wa]]
+- [[leinonen-w]]
+- [[leisos-a]]
+- [[leite-mal]]
+- [[leitgeb-ce]]
+- [[leitner-r]]
+- [[leney-kjc]]
+- [[lenz-t]]
+- [[leone-s]]
+- [[leonidopoulos-c]]
+- [[leopold-a]]
+- [[lepage-bourbonnais-jh]]
+- [[les-r]]
+- [[lester-cg]]
+- [[levchenko-m]]
+- [[levque-j]]
+- [[levinson-lj]]
+- [[levrini-g]]
+- [[lewicki-mp]]
+- [[lewis-c]]
+- [[lewis-dj]]
+- [[lewitt-l]]
+- [[li-a]]
+- [[li-b]]
+- [[li-c]]
+- [[li-cq]]
+- [[li-h]]
+- [[li-h]]
+- [[li-h]]
+- [[li-h]]
+- [[li-h]]
+- [[li-j]]
+- [[li-k]]
+- [[li-l]]
+- [[li-r]]
+- [[li-s]]
+- [[li-s]]
+- [[li-t]]
+- [[li-x]]
+- [[li-y]]
+- [[li-z]]
+- [[li-z]]
+- [[li-z]]
+- [[liang-s]]
+- [[liang-z]]
+- [[liberatore-m]]
+- [[liberti-b]]
+- [[libotte-gb]]
+- [[lie-k]]
+- [[lieber-marin-j]]
+- [[lien-h]]
+- [[lin-h]]
+- [[lin-sf]]
+- [[linden-l]]
+- [[lindley-re]]
+- [[lindon-jh]]
+- [[ling-j]]
+- [[lipeles-e]]
+- [[lipniacka-a]]
+- [[lister-a]]
+- [[little-jd]]
+- [[liu-b]]
+- [[liu-bx]]
+- [[liu-d]]
+- [[liu-d]]
+- [[liu-ehl]]
+- [[liu-h]]
+- [[liu-jkk]]
+- [[liu-k]]
+- [[liu-k]]
+- [[liu-m]]
+- [[liu-my]]
+- [[liu-p]]
+- [[liu-q]]
+- [[liu-s]]
+- [[liu-x]]
+- [[liu-x]]
+- [[liu-y]]
+- [[liu-y]]
+- [[liu-yl]]
+- [[liu-yw]]
+- [[liu-z]]
+- [[lloyd-sl]]
+- [[lobodzinska-em]]
+- [[loch-p]]
+- [[lodhi-e]]
+- [[lohwasser-k]]
+- [[loiacono-e]]
+- [[lomas-jd]]
+- [[long-jd]]
+- [[longarini-i]]
+- [[longo-r]]
+- [[lopez-solis-a]]
+- [[lopezcanelas-na]]
+- [[lorenzo-martinez-n]]
+- [[lory-am]]
+- [[losada-m]]
+- [[lschcke-centeno-g]]
+- [[lou-x]]
+- [[lou-x]]
+- [[lounis-a]]
+- [[love-pa]]
+- [[lu-m]]
+- [[lu-s]]
+- [[lu-yj]]
+- [[lu-z]]
+- [[lubatti-hj]]
+- [[luci-c]]
+- [[lucio-alves-fl]]
+- [[luehring-f]]
+- [[lunday-bs]]
+- [[lundberg-o]]
+- [[lunde-j]]
+- [[luongo-na]]
+- [[lutz-ms]]
+- [[lux-ab]]
+- [[lynn-d]]
+- [[lysak-r]]
+- [[lysenko-v]]
+- [[lytken-e]]
+- [[lyubushkin-v]]
+- [[lyubushkina-t]]
+- [[lyukova-mm]]
+- [[m-soberi-mf]]
+- [[ma-h]]
+- [[ma-k]]
+- [[ma-ll]]
+- [[ma-w]]
+- [[ma-y]]
+- [[macdonald-jc]]
+- [[machado-de-abreu-farias-pc]]
+- [[macina-d]]
+- [[madar-r]]
+- [[madula-t]]
+- [[maeda-j]]
+- [[maeno-t]]
+- [[mafa-pt]]
+- [[maguire-h]]
+- [[maheshwari-m]]
+- [[maiboroda-v]]
+- [[maio-a]]
+- [[maj-k]]
+- [[majersky-o]]
+- [[majewski-s]]
+- [[makhmanazarov-r]]
+- [[makovec-n]]
+- [[maksimovic-v]]
+- [[malaescu-b]]
+- [[malamant-j]]
+- [[malecki-p]]
+- [[maleev-vp]]
+- [[malek-f]]
+- [[mali-m]]
+- [[malito-d]]
+- [[mallik-u]]
+- [[maloizel-a]]
+- [[maltezos-s]]
+- [[malvezzi-lopes-a]]
+- [[malyukov-s]]
+- [[mamuzic-j]]
+- [[mancini-g]]
+- [[mancini-mn]]
+- [[manco-g]]
+- [[mandalia-jp]]
+- [[mandarry-ss]]
+- [[mandi-i]]
+- [[manhaes-de-andrade-filho-l]]
+- [[maniatis-im]]
+- [[manjarres-ramos-j]]
+- [[mankad-dc]]
+- [[mann-a]]
+- [[manoussos-t]]
+- [[mantinan-mn]]
+- [[manzoni-s]]
+- [[mao-l]]
+- [[mapekula-x]]
+- [[marantis-a]]
+- [[marcelo-gregorio-rr]]
+- [[marchiori-g]]
+- [[marcon-c]]
+- [[maricic-e]]
+- [[marinescu-m]]
+- [[marium-s]]
+- [[marjanovic-m]]
+- [[markhoos-a]]
+- [[markovitch-m]]
+- [[maroun-mk]]
+- [[marr-mc]]
+- [[marsden-gt]]
+- [[marshall-ej]]
+- [[marshall-z]]
+- [[martigarcia-s]]
+- [[martin-j]]
+- [[martin-ta]]
+- [[martin-vj]]
+- [[martin-dit-latour-b]]
+- [[martinelli-l]]
+- [[martinez-m]]
+- [[martinez-agullo-p]]
+- [[martinez-outschoorn-vi]]
+- [[martinez-suarez-p]]
+- [[martinhaugh-s]]
+- [[martinovicova-g]]
+- [[martoiu-vs]]
+- [[martyniuk-ac]]
+- [[marzin-a]]
+- [[mascione-d]]
+- [[masetti-l]]
+- [[masik-j]]
+- [[maslennikov-al]]
+- [[mason-sl]]
+- [[massarotti-p]]
+- [[mastrandrea-p]]
+- [[mastroberardino-a]]
+- [[masubuchi-t]]
+- [[mathew-tt]]
+- [[matousek-j]]
+- [[mattern-dm]]
+- [[maurer-j]]
+- [[maurin-t]]
+- [[maury-aj]]
+- [[maek-b]]
+- [[mavungu-tsava-c]]
+- [[maximov-da]]
+- [[may-ae]]
+- [[mayer-e]]
+- [[mazini-r]]
+- [[maznas-i]]
+- [[mazza-sm]]
+- [[mazzeo-e]]
+- [[mc-gowan-jp]]
+- [[mc-kee-sp]]
+- [[mc-lean-ca]]
+- [[mccracken-cc]]
+- [[mcdonald-ef]]
+- [[mcdougall-ae]]
+- [[mcelhinney-lf]]
+- [[mcfayden-ja]]
+- [[mcgovern-rp]]
+- [[mckenzie-rp]]
+- [[mclachlan-tc]]
+- [[mclaughlin-dj]]
+- [[mcmahon-sj]]
+- [[mcpartland-cm]]
+- [[mcpherson-ra]]
+- [[mehlhase-s]]
+- [[mehta-a]]
+- [[melini-d]]
+- [[mellado-garcia-br]]
+- [[melo-ah]]
+- [[meloni-f]]
+- [[mendes-jacques-da-costa-am]]
+- [[meng-l]]
+- [[menke-s]]
+- [[mentink-m]]
+- [[meoni-e]]
+- [[mercado-g]]
+- [[merianos-s]]
+- [[merlassino-c]]
+- [[meroni-c]]
+- [[metcalfe-j]]
+- [[mete-as]]
+- [[meuser-e]]
+- [[meyer-c]]
+- [[meyer-jp]]
+- [[miao-y]]
+- [[middleton-rp]]
+- [[mihovilovic-m]]
+- [[mijovi-l]]
+- [[mikenberg-g]]
+- [[mikestikova-m]]
+- [[miku-m]]
+- [[mildner-h]]
+- [[milic-a]]
+- [[miller-dw]]
+- [[miller-eh]]
+- [[milov-a]]
+- [[milstead-da]]
+- [[min-t]]
+- [[minaenko-aa]]
+- [[minashvili-ia]]
+- [[mincer-ai]]
+- [[mindur-b]]
+- [[mineev-m]]
+- [[mino-y]]
+- [[mir-lm]]
+- [[miralles-lopez-m]]
+- [[mironova-m]]
+- [[missio-m]]
+- [[mitra-a]]
+- [[mitsou-va]]
+- [[mitsumori-y]]
+- [[miu-o]]
+- [[miyagawa-ps]]
+- [[mkrtchyan-t]]
+- [[mlinarevic-m]]
+- [[mlinarevic-t]]
+- [[mlynarikova-m]]
+- [[mlynarska-l]]
+- [[mo-c]]
+- [[mobius-s]]
+- [[mohamed-farook-mh]]
+- [[mohapatra-s]]
+- [[mohiuddin-s]]
+- [[moir-s]]
+- [[mokgatitswane-g]]
+- [[moleri-l]]
+- [[molinatti-u]]
+- [[mollier-lg]]
+- [[mondal-b]]
+- [[mondal-s]]
+- [[mnig-k]]
+- [[monnier-e]]
+- [[monsonis-romero-l]]
+- [[montejo-berlingen-j]]
+- [[montella-a]]
+- [[montella-m]]
+- [[montereali-f]]
+- [[monticelli-f]]
+- [[monzani-s]]
+- [[morancho-tarda-a]]
+- [[morange-n]]
+- [[moreira-de-carvalho-al]]
+- [[moreno-llcer-m]]
+- [[moreno-martinez-c]]
+- [[moreno-perez-jm]]
+- [[morettini-p]]
+- [[morgenstern-s]]
+- [[morii-m]]
+- [[morinaga-m]]
+- [[moritsu-m]]
+- [[morodei-f]]
+- [[moschovakos-p]]
+- [[moser-b]]
+- [[mosidze-m]]
+- [[moskalets-t]]
+- [[moskvitina-p]]
+- [[moss-j]]
+- [[moszkowicz-p]]
+- [[moussa-a]]
+- [[moyal-y]]
+- [[moyano-gomez-h]]
+- [[moyse-ejw]]
+- [[mroz-tg]]
+- [[mtintsilana-o]]
+- [[muanza-s]]
+- [[mucha-m]]
+- [[mueller-j]]
+- [[mller-r]]
+- [[mullier-ga]]
+- [[mullin-aj]]
+- [[mullin-jj]]
+- [[mullins-ac]]
+- [[mulski-ae]]
+- [[mungo-dp]]
+- [[munoz-perez-d]]
+- [[munoz-sanchez-fj]]
+- [[murray-wj]]
+- [[musajan-e]]
+- [[mukinja-m]]
+- [[mwewa-c]]
+- [[myagkov-ag]]
+- [[myers-aj]]
+- [[myers-g]]
+- [[myska-m]]
+- [[nachman-bp]]
+- [[nagai-k]]
+- [[nagano-k]]
+- [[nagasaka-r]]
+- [[nagle-jl]]
+- [[nagy-e]]
+- [[nairz-am]]
+- [[nakahama-y]]
+- [[nakamura-k]]
+- [[nakkalil-k]]
+- [[nandi-a]]
+- [[nanjo-h]]
+- [[narayanan-ea]]
+- [[narukawa-y]]
+- [[naryshkin-i]]
+- [[nasella-l]]
+- [[nasri-s]]
+- [[nass-c]]
+- [[navarro-g]]
+- [[nayaz-a]]
+- [[nechaeva-py]]
+- [[nechaeva-s]]
+- [[nechansky-f]]
+- [[nedic-l]]
+- [[neep-tj]]
+- [[negri-a]]
+- [[negrini-m]]
+- [[nellist-c]]
+- [[nelson-c]]
+- [[nelson-k]]
+- [[nemecek-s]]
+- [[nessi-m]]
+- [[neubauer-ms]]
+- [[newell-j]]
+- [[newman-pr]]
+- [[ng-ywy]]
+- [[ngair-b]]
+- [[nguyen-hdn]]
+- [[nichols-jd]]
+- [[nickerson-rb]]
+- [[nicolaidou-r]]
+- [[nielsen-j]]
+- [[niemeyer-m]]
+- [[niermann-j]]
+- [[nikiforou-n]]
+- [[nikolaenko-v]]
+- [[nikolicaudit-i]]
+- [[nilsson-p]]
+- [[ninca-i]]
+- [[ninio-g]]
+- [[nisati-a]]
+- [[nisius-r]]
+- [[nitika-n]]
+- [[nitschke-je]]
+- [[nkadimeng-ek]]
+- [[nobe-t]]
+- [[noll-d]]
+- [[nommensen-t]]
+- [[norfolk-mb]]
+- [[norman-bj]]
+- [[nosler-lc]]
+- [[noury-m]]
+- [[novak-j]]
+- [[novak-t]]
+- [[novotny-r]]
+- [[nozka-l]]
+- [[ntekas-k]]
+- [[ntounis-d]]
+- [[nunes-de-moura-junior-nmj]]
+- [[ocariz-j]]
+- [[ochoa-i]]
+- [[oerdek-s]]
+- [[offermann-jt]]
+- [[ogrodnik-a]]
+- [[oh-a]]
+- [[ohm-cc]]
+- [[oide-h]]
+- [[ojeda-ml]]
+- [[okumura-y]]
+- [[oleiro-seabra-lf]]
+- [[oleksiyuk-i]]
+- [[oliveira-correa-g]]
+- [[oliveira-damazio-d]]
+- [[oliver-jl]]
+- [[omar-r]]
+- [[ncel-o]]
+- [[oneill-ap]]
+- [[onofre-a]]
+- [[onyisi-pue]]
+- [[oreglia-mj]]
+- [[orestano-d]]
+- [[orlandini-r]]
+- [[orr-rs]]
+- [[osojnak-lm]]
+- [[osumi-y]]
+- [[otero-garzon-g]]
+- [[otono-h]]
+- [[ouchrif-m]]
+- [[ouldsaada-f]]
+- [[ovsiannikova-t]]
+- [[owen-m]]
+- [[owen-re]]
+- [[ozcan-ve]]
+- [[ozturk-f]]
+- [[ozturk-n]]
+- [[ozturk-s]]
+- [[pacey-ha]]
+- [[pachal-k]]
+- [[pacheco-pages-a]]
+- [[padilla-aranda-c]]
+- [[padovano-g]]
+- [[pagan-griso-s]]
+- [[palacino-g]]
+- [[palazzo-a]]
+- [[pampel-j]]
+- [[pan-j]]
+- [[pan-t]]
+- [[panchal-dk]]
+- [[pandini-ce]]
+- [[panduro-vazquez-jg]]
+- [[pandya-hd]]
+- [[pang-h]]
+- [[pani-p]]
+- [[panizzo-g]]
+- [[panwar-l]]
+- [[paolozzi-l]]
+- [[parajuli-s]]
+- [[paramonov-a]]
+- [[paraskevopoulos-c]]
+- [[paredes-hernandez-d]]
+- [[pareti-a]]
+- [[park-kr]]
+- [[park-th]]
+- [[parodi-f]]
+- [[parsons-ja]]
+- [[parzefall-u]]
+- [[pascual-dias-b]]
+- [[pascual-dominguez-l]]
+- [[pasqualucci-e]]
+- [[passaggio-s]]
+- [[pastore-f]]
+- [[patel-p]]
+- [[patel-um]]
+- [[pater-jr]]
+- [[pauly-t]]
+- [[pauwels-f]]
+- [[pazos-ci]]
+- [[pedersen-m]]
+- [[pedro-r]]
+- [[peleganchuk-sv]]
+- [[penc-o]]
+- [[peng-s]]
+- [[penn-gd]]
+- [[penski-ke]]
+- [[penzin-m]]
+- [[peralva-bs]]
+- [[pereira-peixoto-ap]]
+- [[pereira-sanchez-l]]
+- [[perepelitsa-dv]]
+- [[perera-g]]
+- [[perez-codina-e]]
+- [[perganti-m]]
+- [[pernegger-h]]
+- [[perrella-s]]
+- [[peters-k]]
+- [[peters-rfy]]
+- [[petersen-ba]]
+- [[petersen-tc]]
+- [[petit-e]]
+- [[petousis-v]]
+- [[petri-ar]]
+- [[petridou-c]]
+- [[petru-t]]
+- [[petrukhin-a]]
+- [[pettee-m]]
+- [[petukhov-a]]
+- [[petukhova-k]]
+- [[pezoa-r]]
+- [[pezzotti-l]]
+- [[pezzullo-g]]
+- [[pfaffenbichler-l]]
+- [[pfleger-aj]]
+- [[pham-tm]]
+- [[pham-t]]
+- [[phillips-pw]]
+- [[piacquadio-g]]
+- [[pianori-e]]
+- [[piazza-f]]
+- [[piegaia-r]]
+- [[pietreanu-d]]
+- [[pilkington-ad]]
+- [[pinamonti-m]]
+- [[pinfold-jl]]
+- [[pinheiro-matos-g]]
+- [[pinheiro-pereira-bc]]
+- [[pinol-bel-j]]
+- [[pinto-pinoargote-ae]]
+- [[pintucci-l]]
+- [[piper-km]]
+- [[pirttikoski-a]]
+- [[pizzi-da]]
+- [[pizzimento-l]]
+- [[plebani-a]]
+- [[pleier-ma]]
+- [[pleskot-v]]
+- [[plotnikova-e]]
+- [[poddar-g]]
+- [[poettgen-r]]
+- [[poggioli-l]]
+- [[polacek-s]]
+- [[polesello-g]]
+- [[poley-a]]
+- [[polini-a]]
+- [[pollard-cs]]
+- [[pollock-zb]]
+- [[pompa-pacchi-e]]
+- [[pond-ni]]
+- [[ponomarenko-d]]
+- [[pontecorvo-l]]
+- [[popa-s]]
+- [[popeneciu-ga]]
+- [[poreba-a]]
+- [[portillo-quintero-dm]]
+- [[pospisil-s]]
+- [[postill-ma]]
+- [[postolache-p]]
+- [[potamianos-k]]
+- [[potepa-pa]]
+- [[potrap-in]]
+- [[potter-cj]]
+- [[potti-h]]
+- [[poveda-j]]
+- [[pozo-astigarraga-me]]
+- [[pozzi-r]]
+- [[prades-ibanez-a]]
+- [[pradhan-sr]]
+- [[pretel-j]]
+- [[price-d]]
+- [[primavera-m]]
+- [[primomo-l]]
+- [[principe-martin-ma]]
+- [[privara-r]]
+- [[procter-t]]
+- [[proffitt-ml]]
+- [[proklova-n]]
+- [[prokofiev-k]]
+- [[proto-g]]
+- [[proudfoot-j]]
+- [[przybycien-m]]
+- [[przygoda-ww]]
+- [[psallidas-a]]
+- [[puddefoot-je]]
+- [[pudzha-d]]
+- [[purnell-hi]]
+- [[pyatiizbyantseva-d]]
+- [[qian-j]]
+- [[qian-r]]
+- [[qichen-d]]
+- [[qin-y]]
+- [[qiu-t]]
+- [[quadt-a]]
+- [[queitschmaitland-m]]
+- [[quetant-g]]
+- [[quinn-rp]]
+- [[rabanal-bolanos-g]]
+- [[rafanoharana-d]]
+- [[raffaeli-f]]
+- [[ragusa-f]]
+- [[rainbolt-jl]]
+- [[rajagopalan-s]]
+- [[ramakoti-e]]
+- [[rambelli-l]]
+- [[ramirezberend-ia]]
+- [[ran-k]]
+- [[rankin-ds]]
+- [[rapheeha-np]]
+- [[rasheed-h]]
+- [[rassloff-df]]
+- [[rastogi-a]]
+- [[rave-s]]
+- [[ravera-s]]
+- [[ravina-b]]
+- [[ravinovich-i]]
+- [[raymond-m]]
+- [[read-al]]
+- [[readioff-np]]
+- [[rebuzzi-dm]]
+- [[reed-as]]
+- [[reeves-k]]
+- [[reidelsturz-ja]]
+- [[reikher-d]]
+- [[rej-a]]
+- [[rembser-c]]
+- [[ren-h]]
+- [[renda-m]]
+- [[renner-f]]
+- [[rennie-ag]]
+- [[repik-m]]
+- [[rescia-al]]
+- [[resconi-s]]
+- [[ressegotti-m]]
+- [[rettie-s]]
+- [[rettie-wf]]
+- [[revering-mm]]
+- [[reynolds-e]]
+- [[rezanova-ol]]
+- [[reznicek-p]]
+- [[riani-h]]
+- [[ribaric-n]]
+- [[ricci-b]]
+- [[ricci-e]]
+- [[richter-r]]
+- [[richter-s]]
+- [[richterwas-e]]
+- [[ridel-m]]
+- [[ridouani-s]]
+- [[rieck-p]]
+- [[riedler-p]]
+- [[riefel-em]]
+- [[rieger-jo]]
+- [[rijssenbeek-m]]
+- [[rimoldi-m]]
+- [[rinaldi-l]]
+- [[rincke-p]]
+- [[ripellino-g]]
+- [[riu-i]]
+- [[rivera-vergara-jc]]
+- [[rizatdinova-f]]
+- [[rizvi-e]]
+- [[roberts-br]]
+- [[roberts-ss]]
+- [[robinson-d]]
+- [[robles-manzano-m]]
+- [[robson-a]]
+- [[rocchi-a]]
+- [[roda-c]]
+- [[rodriguez-bosca-s]]
+- [[rodriguez-garcia-y]]
+- [[rodrguez-vera-am]]
+- [[roe-s]]
+- [[roemer-jt]]
+- [[rhne-o]]
+- [[rojas-ra]]
+- [[roland-cpa]]
+- [[romaniouk-a]]
+- [[romano-e]]
+- [[romano-m]]
+- [[romero-hernandez-ac]]
+- [[rompotis-n]]
+- [[roos-l]]
+- [[rosati-s]]
+- [[rosser-bj]]
+- [[rossi-e]]
+- [[rossi-e]]
+- [[rossi-lp]]
+- [[rossini-l]]
+- [[rosten-r]]
+- [[rotaru-m]]
+- [[rottler-b]]
+- [[rousseau-d]]
+- [[rousso-d]]
+- [[roygarand-s]]
+- [[rozanov-a]]
+- [[rozario-zma]]
+- [[rozen-y]]
+- [[rubio-jimenez-a]]
+- [[ruelas-rivera-vh]]
+- [[ruggeri-ta]]
+- [[ruggiero-a]]
+- [[ruizmartinez-a]]
+- [[rummler-a]]
+- [[rurikova-z]]
+- [[rusakovich-na]]
+- [[ruscelli-s]]
+- [[russell-hl]]
+- [[russo-g]]
+- [[rutherfoord-jp]]
+- [[rutherford-colmenares-s]]
+- [[rybar-m]]
+- [[rybczynski-p]]
+- [[ryzhov-a]]
+- [[sabater-iglesias-ja]]
+- [[sadrozinski-hf]]
+- [[safai-tehrani-f]]
+- [[saha-s]]
+- [[sahinsoy-m]]
+- [[sahoo-b]]
+- [[saibel-a]]
+- [[saifuddin-bt]]
+- [[saimpert-m]]
+- [[saito-gt]]
+- [[saito-m]]
+- [[saito-t]]
+- [[sala-a]]
+- [[salnikov-a]]
+- [[salt-j]]
+- [[salvador-salas-a]]
+- [[salvatore-f]]
+- [[salzburger-a]]
+- [[sammel-d]]
+- [[sampson-e]]
+- [[sampsonidis-d]]
+- [[sampsonidou-d]]
+- [[samy-maa]]
+- [[snchez-j]]
+- [[sanchez-sebastian-v]]
+- [[sandaker-h]]
+- [[sander-co]]
+- [[sandesara-ja]]
+- [[sandhoff-m]]
+- [[sandoval-c]]
+- [[sanfilippo-l]]
+- [[sankey-dpc]]
+- [[sano-t]]
+- [[sansoni-a]]
+- [[santana-queiroz-m]]
+- [[santi-l]]
+- [[santoni-c]]
+- [[santos-h]]
+- [[santra-a]]
+- [[sanzani-e]]
+- [[saoucha-ka]]
+- [[saraiva-jg]]
+- [[sardain-j]]
+- [[sasaki-o]]
+- [[sato-k]]
+- [[sauer-c]]
+- [[sauvan-e]]
+- [[savard-p]]
+- [[sawada-r]]
+- [[sawyer-c]]
+- [[sawyer-l]]
+- [[sbarra-c]]
+- [[sbrizzi-a]]
+- [[scanlon-t]]
+- [[schaarschmidt-j]]
+- [[schfer-u]]
+- [[schaffer-ac]]
+- [[schaile-d]]
+- [[schamberger-rd]]
+- [[scharf-c]]
+- [[schefer-mm]]
+- [[schegelsky-va]]
+- [[scheirich-d]]
+- [[schernau-m]]
+- [[scheulen-c]]
+- [[schiavi-c]]
+- [[schioppa-m]]
+- [[schlag-b]]
+- [[schlenker-s]]
+- [[schmeing-j]]
+- [[schmidt-e]]
+- [[schmidt-ma]]
+- [[schmieden-k]]
+- [[schmitt-c]]
+- [[schmitt-n]]
+- [[schmitt-s]]
+- [[schneider-na]]
+- [[schoeffel-l]]
+- [[schoening-a]]
+- [[scholer-pg]]
+- [[schopf-e]]
+- [[schott-m]]
+- [[schramm-s]]
+- [[schroer-t]]
+- [[schultzcoulon-hc]]
+- [[schumacher-m]]
+- [[schumm-ba]]
+- [[schune-p]]
+- [[schwartz-hr]]
+- [[schwartzman-a]]
+- [[schwarz-ta]]
+- [[schwemling-p]]
+- [[schwienhorst-r]]
+- [[sciacca-fg]]
+- [[sciandra-a]]
+- [[sciolla-g]]
+- [[scuri-f]]
+- [[sebastiani-cd]]
+- [[sedlaczek-k]]
+- [[seidel-sc]]
+- [[seiden-a]]
+- [[seidlitz-bd]]
+- [[seitz-c]]
+- [[seixas-jm]]
+- [[sekhniaidze-g]]
+- [[selem-l]]
+- [[semprinicesari-n]]
+- [[semushin-a]]
+- [[sengupta-d]]
+- [[senthilkumar-v]]
+- [[serin-l]]
+- [[sessa-m]]
+- [[severini-h]]
+- [[sforza-f]]
+- [[sfyrla-a]]
+- [[sha-q]]
+- [[shabalina-e]]
+- [[shaddix-h]]
+- [[shah-ah]]
+- [[shaheen-r]]
+- [[shahinian-jd]]
+- [[shamim-m]]
+- [[shan-ly]]
+- [[shapiro-m]]
+- [[sharma-a]]
+- [[sharma-as]]
+- [[sharma-p]]
+- [[shatalov-pb]]
+- [[shaw-k]]
+- [[shaw-sm]]
+- [[shen-q]]
+- [[sheppard-dj]]
+- [[sherwood-p]]
+- [[shi-l]]
+- [[shi-x]]
+- [[shimizu-s]]
+- [[shimmin-co]]
+- [[shipsey-ipj]]
+- [[shirabe-s]]
+- [[shiyakova-m]]
+- [[shochet-mj]]
+- [[shope-dr]]
+- [[shrestha-b]]
+- [[shrestha-s]]
+- [[shreyber-i]]
+- [[shroff-mj]]
+- [[sicho-p]]
+- [[sickles-am]]
+- [[sideras-haddad-e]]
+- [[sidley-ac]]
+- [[sidoti-a]]
+- [[siegert-f]]
+- [[sijacki-d]]
+- [[sili-f]]
+- [[silva-jm]]
+- [[silva-ferreira-i]]
+- [[silva-oliveira-mv]]
+- [[silverstein-sb]]
+- [[simion-s]]
+- [[simoniello-r]]
+- [[simpson-el]]
+- [[simpson-h]]
+- [[simpson-lr]]
+- [[simsek-s]]
+- [[sindhu-s]]
+- [[sinervo-p]]
+- [[singh-sn]]
+- [[singh-s]]
+- [[sinha-s]]
+- [[sinha-s]]
+- [[sioli-m]]
+- [[sioulas-k]]
+- [[siral-i]]
+- [[sitnikova-e]]
+- [[sjlin-j]]
+- [[skaf-a]]
+- [[skorda-e]]
+- [[skubic-p]]
+- [[slawinska-m]]
+- [[slazyk-i]]
+- [[sliusar-i]]
+- [[smakhtin-v]]
+- [[smart-bh]]
+- [[smirnov-sy]]
+- [[smirnov-y]]
+- [[smirnova-ln]]
+- [[smirnova-o]]
+- [[smith-ac]]
+- [[smith-dr]]
+- [[smith-jl]]
+- [[smith-mb]]
+- [[smith-r]]
+- [[smitmanns-h]]
+- [[smizanska-m]]
+- [[smolek-k]]
+- [[smolyanskiy-p]]
+- [[snesarev-aa]]
+- [[snoek-hl]]
+- [[snyder-s]]
+- [[sobie-r]]
+- [[soffer-a]]
+- [[solans-sanchez-ca]]
+- [[soldatov-ey]]
+- [[soldevila-u]]
+- [[solodkov-aa]]
+- [[solomon-s]]
+- [[soloshenko-a]]
+- [[solovieva-k]]
+- [[solovyanov-ov]]
+- [[sommer-p]]
+- [[sonay-a]]
+- [[sopczak-a]]
+- [[sopio-al]]
+- [[sopkova-f]]
+- [[sorenson-jd]]
+- [[sotarriva-alvarez-ir]]
+- [[sothilingam-v]]
+- [[soto-sandoval-oj]]
+- [[sottocornola-s]]
+- [[soualah-r]]
+- [[soumaimi-z]]
+- [[south-d]]
+- [[soybelman-n]]
+- [[spagnolo-s]]
+- [[spalla-m]]
+- [[sperlich-d]]
+- [[spisso-b]]
+- [[spiteri-dp]]
+- [[splendori-l]]
+- [[spousta-m]]
+- [[staats-ej]]
+- [[stamen-r]]
+- [[stanecka-e]]
+- [[stanekmaslouska-w]]
+- [[stange-mv]]
+- [[stanislaus-b]]
+- [[stanitzki-mm]]
+- [[stapf-b]]
+- [[starchenko-ea]]
+- [[stark-gh]]
+- [[stark-j]]
+- [[staroba-p]]
+- [[starovoitov-p]]
+- [[staszewski-r]]
+- [[stauch-c]]
+- [[stavropoulos-g]]
+- [[stefl-a]]
+- [[stein-a]]
+- [[steinberg-p]]
+- [[stelzer-b]]
+- [[stelzer-hj]]
+- [[stelzer-o]]
+- [[stenzel-h]]
+- [[stevenson-tj]]
+- [[stewart-ga]]
+- [[stewart-jr]]
+- [[stoicea-g]]
+- [[stolarski-m]]
+- [[stonjek-s]]
+- [[straessner-a]]
+- [[strandberg-j]]
+- [[strandberg-s]]
+- [[stratmann-m]]
+- [[strauss-m]]
+- [[strebler-t]]
+- [[strizenec-p]]
+- [[strhmer-r]]
+- [[strom-dm]]
+- [[stroynowski-r]]
+- [[strubig-a]]
+- [[stucci-sa]]
+- [[stugu-b]]
+- [[stupak-j]]
+- [[styles-na]]
+- [[su-d]]
+- [[su-s]]
+- [[su-x]]
+- [[suchy-d]]
+- [[sudhakar-ponnu-ad]]
+- [[sugizaki-k]]
+- [[sulin-vv]]
+- [[sultan-dms]]
+- [[sultanaliyeva-l]]
+- [[sultansoy-s]]
+- [[sun-s]]
+- [[sun-w]]
+- [[sur-n]]
+- [[sutton-mr]]
+- [[svatos-m]]
+- [[swallow-pn]]
+- [[swiatlowski-m]]
+- [[swirski-t]]
+- [[swoboda-a]]
+- [[sykora-i]]
+- [[sykora-m]]
+- [[sykora-t]]
+- [[ta-d]]
+- [[tackmann-k]]
+- [[taffard-a]]
+- [[tafirout-r]]
+- [[takubo-y]]
+- [[talby-m]]
+- [[talyshev-aa]]
+- [[tam-kc]]
+- [[tamir-nm]]
+- [[tanaka-a]]
+- [[tanaka-j]]
+- [[tanaka-r]]
+- [[tanasini-m]]
+- [[tao-z]]
+- [[tapia-araya-s]]
+- [[tapprogge-s]]
+- [[tarek-abouelfadl-mohamed-a]]
+- [[tarem-s]]
+- [[tariq-k]]
+- [[tarna-g]]
+- [[tartarelli-gf]]
+- [[tartarin-mj]]
+- [[tas-p]]
+- [[tasevsky-m]]
+- [[tassi-e]]
+- [[tate-ac]]
+- [[tayalati-y]]
+- [[taylor-gn]]
+- [[taylor-w]]
+- [[taylor-vara-rj]]
+- [[tegetmeier-as]]
+- [[teixeiradias-p]]
+- [[teoh-jj]]
+- [[terashi-k]]
+- [[terron-j]]
+- [[terzo-s]]
+- [[testa-m]]
+- [[teuscher-rj]]
+- [[thaler-a]]
+- [[theiner-o]]
+- [[theveneauxpelzer-t]]
+- [[thomas-dw]]
+- [[thomas-jp]]
+- [[thompson-ea]]
+- [[thompson-pd]]
+- [[thomson-e]]
+- [[thornberry-re]]
+- [[tian-c]]
+- [[tian-y]]
+- [[tikhomirov-v]]
+- [[tikhonov-ya]]
+- [[timoshenko-s]]
+- [[timoshyn-d]]
+- [[ting-exl]]
+- [[tipton-p]]
+- [[tishelmancharny-a]]
+- [[todome-k]]
+- [[todorovanova-s]]
+- [[toffolin-l]]
+- [[togawa-m]]
+- [[tojo-j]]
+- [[tokr-s]]
+- [[toldaiev-o]]
+- [[tolkachev-g]]
+- [[tomoto-m]]
+- [[tompkins-l]]
+- [[torrence-e]]
+- [[torres-h]]
+- [[torres-arza-di]]
+- [[torr-pastor-e]]
+- [[toscani-m]]
+- [[tosciri-c]]
+- [[tost-m]]
+- [[tovey-dr]]
+- [[trefzger-t]]
+- [[tricarico-pm]]
+- [[tricoli-a]]
+- [[trigger-im]]
+- [[trincazduvoid-s]]
+- [[trischuk-da]]
+- [[tropina-a]]
+- [[truong-l]]
+- [[trzebinski-m]]
+- [[trzupek-a]]
+- [[tsai-f]]
+- [[tsai-m]]
+- [[tsiamis-a]]
+- [[tsiareshka-pv]]
+- [[tsigaridas-s]]
+- [[tsirigotis-a]]
+- [[tsiskaridze-v]]
+- [[tskhadadze-eg]]
+- [[tsujikawa-y]]
+- [[tsukerman-ii]]
+- [[tsulaia-v]]
+- [[tsuno-s]]
+- [[tsuri-k]]
+- [[tsybychev-d]]
+- [[tu-y]]
+- [[tudorache-a]]
+- [[tudorache-v]]
+- [[tuncay-sb]]
+- [[turchikhin-s]]
+- [[turk-cakir-i]]
+- [[turra-r]]
+- [[turtuvshin-t]]
+- [[tuts-pm]]
+- [[tzamarias-s]]
+- [[uematsu-y]]
+- [[ukegawa-f]]
+- [[ulloa-poblete-pa]]
+- [[umaka-en]]
+- [[unal-g]]
+- [[undrus-a]]
+- [[unel-g]]
+- [[urban-j]]
+- [[urrejola-p]]
+- [[usai-g]]
+- [[ushioda-r]]
+- [[usman-m]]
+- [[ustuner-f]]
+- [[uysal-z]]
+- [[vacek-v]]
+- [[vachon-b]]
+- [[vafeiadis-t]]
+- [[vaitkus-a]]
+- [[valderanis-c]]
+- [[valdes-santurio-e]]
+- [[valente-m]]
+- [[valentinetti-s]]
+- [[valero-a]]
+- [[valiente-moreno-e]]
+- [[vallier-a]]
+- [[valls-ferrer-ja]]
+- [[van-arneman-dr]]
+- [[van-der-graaf-a]]
+- [[van-der-schyf-hz]]
+- [[van-gemmeren-p]]
+- [[van-rijnbach-m]]
+- [[van-stroud-s]]
+- [[van-vulpen-i]]
+- [[vana-p]]
+- [[vanadia-m]]
+- [[vande-voorde-um]]
+- [[vandelli-w]]
+- [[vandewall-er]]
+- [[vannicola-d]]
+- [[vannoli-l]]
+- [[vari-r]]
+- [[varma-m]]
+- [[varnes-ew]]
+- [[varni-c]]
+- [[varouchas-d]]
+- [[varriale-l]]
+- [[varvell-ke]]
+- [[vasile-me]]
+- [[vaslin-l]]
+- [[vassilev-md]]
+- [[vasyukov-a]]
+- [[vaughan-lm]]
+- [[vavricka-r]]
+- [[vazquez-schroeder-t]]
+- [[veatch-j]]
+- [[vecchio-v]]
+- [[veen-mj]]
+- [[veliscek-i]]
+- [[velkovska-i]]
+- [[veloce-lm]]
+- [[veloso-f]]
+- [[veneziano-s]]
+- [[ventura-a]]
+- [[verbytskyi-a]]
+- [[verducci-m]]
+- [[vergis-c]]
+- [[verissimo-de-araujo-m]]
+- [[verkerke-w]]
+- [[vermeulen-jc]]
+- [[vernieri-c]]
+- [[vessella-m]]
+- [[vetterli-mc]]
+- [[vgenopoulos-a]]
+- [[viaux-maira-n]]
+- [[vickey-t]]
+- [[vickey-boeriu-oe]]
+- [[viehhauser-gha]]
+- [[vigani-l]]
+- [[vigl-m]]
+- [[villa-m]]
+- [[villaplana-perez-m]]
+- [[villhauer-em]]
+- [[vilucchi-e]]
+- [[vincent-m]]
+- [[vincter-mg]]
+- [[visibile-a]]
+- [[visive-a]]
+- [[vittori-c]]
+- [[vivarelli-i]]
+- [[vivas-albornoz-mi]]
+- [[voevodina-e]]
+- [[vogel-f]]
+- [[voigt-jc]]
+- [[vokac-p]]
+- [[volkotrub-y]]
+- [[vomberg-l]]
+- [[von-toerne-e]]
+- [[vormwald-b]]
+- [[vorobev-k]]
+- [[vos-m]]
+- [[voss-k]]
+- [[vozak-m]]
+- [[vozdecky-l]]
+- [[vranjes-n]]
+- [[vranjes-milosavljevic-m]]
+- [[vreeswijk-m]]
+- [[vu-nk]]
+- [[vuillermet-r]]
+- [[vujinovic-o]]
+- [[vukotic-i]]
+- [[vyas-ik]]
+- [[wack-jf]]
+- [[wada-a]]
+- [[wada-s]]
+- [[wagner-c]]
+- [[wagner-jm]]
+- [[wagner-w]]
+- [[wahdan-s]]
+- [[wahlberg-h]]
+- [[waits-ch]]
+- [[walder-j]]
+- [[walker-r]]
+- [[walkingshaw-pass-k]]
+- [[walkowiak-w]]
+- [[wall-a]]
+- [[wallin-ej]]
+- [[wamorkar-t]]
+- [[wandallchristensen-k]]
+- [[wang-a]]
+- [[wang-az]]
+- [[wang-c]]
+- [[wang-c]]
+- [[wang-h]]
+- [[wang-j]]
+- [[wang-p]]
+- [[wang-p]]
+- [[wang-r]]
+- [[wang-r]]
+- [[wang-sm]]
+- [[wang-s]]
+- [[wang-t]]
+- [[wang-t]]
+- [[wang-wt]]
+- [[wang-w]]
+- [[wang-x]]
+- [[wang-x]]
+- [[wang-x]]
+- [[wang-y]]
+- [[wang-y]]
+- [[wang-z]]
+- [[wang-z]]
+- [[wang-z]]
+- [[wanotayaroj-c]]
+- [[warburton-a]]
+- [[warnerbring-al]]
+- [[waterhouse-s]]
+- [[watson-at]]
+- [[watson-h]]
+- [[watson-mf]]
+- [[watton-e]]
+- [[watts-g]]
+- [[waugh-bm]]
+- [[webb-jm]]
+- [[weber-c]]
+- [[weber-ha]]
+- [[weber-ms]]
+- [[weber-sm]]
+- [[wei-c]]
+- [[wei-y]]
+- [[weidberg-ar]]
+- [[weik-ej]]
+- [[weingarten-j]]
+- [[weiser-c]]
+- [[wells-cj]]
+- [[wenaus-t]]
+- [[wengler-t]]
+- [[wenke-ns]]
+- [[wermes-n]]
+- [[wessels-m]]
+- [[wharton-am]]
+- [[white-as]]
+- [[white-a]]
+- [[white-mj]]
+- [[whiteson-d]]
+- [[wickremasinghe-l]]
+- [[wiedenmann-w]]
+- [[wielers-m]]
+- [[wierda-r]]
+- [[wiglesworth-c]]
+- [[wilkens-hg]]
+- [[wilkinson-jjh]]
+- [[williams-dm]]
+- [[williams-hh]]
+- [[williams-s]]
+- [[willocq-s]]
+- [[wilson-bj]]
+- [[wilson-dj]]
+- [[windischhofer-pj]]
+- [[winkel-fi]]
+- [[winklmeier-f]]
+- [[winter-bt]]
+- [[wittgen-m]]
+- [[wobisch-m]]
+- [[wojtkowski-t]]
+- [[wolffs-z]]
+- [[wollrath-j]]
+- [[wolter-mw]]
+- [[wolters-h]]
+- [[wong-mc]]
+- [[woodward-el]]
+- [[worm-sd]]
+- [[wosiek-bk]]
+- [[woniak-kw]]
+- [[wozniewski-s]]
+- [[wraight-k]]
+- [[wu-c]]
+- [[wu-c]]
+- [[wu-j]]
+- [[wu-m]]
+- [[wu-m]]
+- [[wu-sl]]
+- [[wu-s]]
+- [[wu-x]]
+- [[wu-yq]]
+- [[wu-y]]
+- [[wu-z]]
+- [[wu-z]]
+- [[wuerzinger-j]]
+- [[wyatt-tr]]
+- [[wynne-bm]]
+- [[xella-s]]
+- [[xia-l]]
+- [[xie-m]]
+- [[xiong-a]]
+- [[xu-d]]
+- [[xu-h]]
+- [[xu-l]]
+- [[xu-r]]
+- [[xu-t]]
+- [[xu-y]]
+- [[xu-z]]
+- [[xue-r]]
+- [[yabsley-b]]
+- [[yacoob-s]]
+- [[yamaguchi-y]]
+- [[yamashita-e]]
+- [[yamauchi-h]]
+- [[yamazaki-t]]
+- [[yamazaki-y]]
+- [[yan-s]]
+- [[yan-z]]
+- [[yang-hj]]
+- [[yang-ht]]
+- [[yang-s]]
+- [[yang-t]]
+- [[yang-x]]
+- [[yang-x]]
+- [[yang-y]]
+- [[yang-y]]
+- [[yao-wm]]
+- [[yardley-cl]]
+- [[ye-j]]
+- [[ye-s]]
+- [[ye-x]]
+- [[yeh-y]]
+- [[yeletskikh-i]]
+- [[yeo-b]]
+- [[yexley-mr]]
+- [[yildirim-tp]]
+- [[yorita-k]]
+- [[young-cjs]]
+- [[young-c]]
+- [[young-nd]]
+- [[yu-y]]
+- [[yuan-j]]
+- [[yuan-m]]
+- [[yuan-r]]
+- [[yue-l]]
+- [[zaazoua-m]]
+- [[zabinski-b]]
+- [[zahir-i]]
+- [[zaio-a]]
+- [[zak-zk]]
+- [[zakareishvili-t]]
+- [[zambito-s]]
+- [[zamora-saa-ja]]
+- [[zang-j]]
+- [[zanzottera-r]]
+- [[zaplatilek-o]]
+- [[zeitnitz-c]]
+- [[zeng-h]]
+- [[zeng-jc]]
+- [[zenger-dt]]
+- [[zenin-o]]
+- [[eni-t]]
+- [[zenz-s]]
+- [[zerwas-d]]
+- [[zhai-m]]
+- [[zhang-df]]
+- [[zhang-g]]
+- [[zhang-j]]
+- [[zhang-j]]
+- [[zhang-k]]
+- [[zhang-l]]
+- [[zhang-l]]
+- [[zhang-p]]
+- [[zhang-r]]
+- [[zhang-s]]
+- [[zhang-t]]
+- [[zhang-y]]
+- [[zhang-y]]
+- [[zhang-y]]
+- [[zhang-y]]
+- [[zhang-z]]
+- [[zhang-z]]
+- [[zhang-z]]
+- [[zhao-h]]
+- [[zhao-t]]
+- [[zhao-y]]
+- [[zhao-z]]
+- [[zhao-z]]
+- [[zhemchugov-a]]
+- [[zheng-j]]
+- [[zheng-k]]
+- [[zheng-l]]
+- [[zheng-x]]
+- [[zheng-z]]
+- [[zhong-d]]
+- [[zhou-b]]
+- [[zhou-h]]
+- [[zhou-n]]
+- [[zhou-y]]
+- [[zhou-y]]
+- [[zhou-y]]
+- [[zhu-cg]]
+- [[zhu-j]]
+- [[zhu-x]]
+- [[zhu-y]]
+- [[zhu-y]]
+- [[zhuang-x]]
+- [[zhukov-k]]
+- [[zimine-ni]]
+- [[zinsser-j]]
+- [[ziolkowski-m]]
+- [[ivkovi-l]]
+- [[zoccoli-a]]
+- [[zoch-k]]
+- [[zografos-a]]
+- [[zorbas-tg]]
+- [[zormpa-o]]
+- [[zwalinski-l]]
+- [[atlas-collaboration]]
+
+**DOI:** 10.1103/gzdh-p159
+**PMID:** [41418209](https://pubmed.ncbi.nlm.nih.gov/41418209/)
+**Journal:** Physical review letters
+**Year:** 2025

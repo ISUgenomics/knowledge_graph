@@ -1,0 +1,430 @@
+---
+title: "Search for a Sub-eV Sterile Neutrino Using Daya Bay's Full Dataset"
+doi: "10.1103/PhysRevLett.133.051801"
+year: 2024
+journal: "Physical review letters"
+pmid: "39159085"
+authors:
+  - "[[an-fp]]"
+  - "[[bai-wd]]"
+  - "[[balantekin-ab]]"
+  - "[[bishai-m]]"
+  - "[[blyth-s]]"
+  - "[[cao-gf]]"
+  - "[[cao-j]]"
+  - "[[chang-jf]]"
+  - "[[chang-y]]"
+  - "[[chen-hs]]"
+  - "[[chen-hy]]"
+  - "[[chen-sm]]"
+  - "[[chen-y]]"
+  - "[[chen-yx]]"
+  - "[[chen-zy]]"
+  - "[[cheng-j]]"
+  - "[[cheng-yc]]"
+  - "[[cheng-zk]]"
+  - "[[cherwinka-jj]]"
+  - "[[chu-mc]]"
+  - "[[cummings-jp]]"
+  - "[[dalager-o]]"
+  - "[[deng-fs]]"
+  - "[[ding-xy]]"
+  - "[[ding-yy]]"
+  - "[[diwan-mv]]"
+  - "[[dohnal-t]]"
+  - "[[dolzhikov-d]]"
+  - "[[dove-j]]"
+  - "[[dugas-kv]]"
+  - "[[duyang-hy]]"
+  - "[[dwyer-da]]"
+  - "[[gallo-jp]]"
+  - "[[gonchar-m]]"
+  - "[[gong-gh]]"
+  - "[[gong-h]]"
+  - "[[gu-wq]]"
+  - "[[guo-jy]]"
+  - "[[guo-l]]"
+  - "[[guo-xh]]"
+  - "[[guo-yh]]"
+  - "[[guo-z]]"
+  - "[[hackenburg-rw]]"
+  - "[[han-y]]"
+  - "[[hans-s]]"
+  - "[[he-m]]"
+  - "[[heeger-km]]"
+  - "[[heng-yk]]"
+  - "[[hor-yk]]"
+  - "[[hsiung-yb]]"
+  - "[[hu-bz]]"
+  - "[[hu-jr]]"
+  - "[[hu-t]]"
+  - "[[hu-zj]]"
+  - "[[huang-hx]]"
+  - "[[huang-jh]]"
+  - "[[huang-xt]]"
+  - "[[huang-yb]]"
+  - "[[huber-p]]"
+  - "[[jaffe-de]]"
+  - "[[jen-kl]]"
+  - "[[ji-xl]]"
+  - "[[ji-xp]]"
+  - "[[johnson-ra]]"
+  - "[[jones-d]]"
+  - "[[kang-l]]"
+  - "[[kettell-sh]]"
+  - "[[kohn-s]]"
+  - "[[kramer-m]]"
+  - "[[langford-tj]]"
+  - "[[lee-j]]"
+  - "[[lee-jhc]]"
+  - "[[lei-rt]]"
+  - "[[leitner-r]]"
+  - "[[leung-jkc]]"
+  - "[[li-f]]"
+  - "[[li-hl]]"
+  - "[[li-jj]]"
+  - "[[li-qj]]"
+  - "[[li-rh]]"
+  - "[[li-s]]"
+  - "[[li-s]]"
+  - "[[li-sc]]"
+  - "[[li-wd]]"
+  - "[[li-xn]]"
+  - "[[li-xq]]"
+  - "[[li-yf]]"
+  - "[[li-zb]]"
+  - "[[liang-h]]"
+  - "[[lin-cj]]"
+  - "[[lin-gl]]"
+  - "[[lin-s]]"
+  - "[[ling-jj]]"
+  - "[[link-jm]]"
+  - "[[littenberg-l]]"
+  - "[[littlejohn-br]]"
+  - "[[liu-jc]]"
+  - "[[liu-jl]]"
+  - "[[liu-jx]]"
+  - "[[lu-c]]"
+  - "[[lu-hq]]"
+  - "[[luk-kb]]"
+  - "[[ma-bz]]"
+  - "[[ma-xb]]"
+  - "[[ma-xy]]"
+  - "[[ma-yq]]"
+  - "[[mandujano-rc]]"
+  - "[[marshall-c]]"
+  - "[[mcdonald-kt]]"
+  - "[[mckeown-rd]]"
+  - "[[meng-y]]"
+  - "[[napolitano-j]]"
+  - "[[naumov-d]]"
+  - "[[naumova-e]]"
+  - "[[nguyen-tmt]]"
+  - "[[ochoaricoux-jp]]"
+  - "[[olshevskiy-a]]"
+  - "[[park-j]]"
+  - "[[patton-s]]"
+  - "[[peng-jc]]"
+  - "[[pun-csj]]"
+  - "[[qi-fz]]"
+  - "[[qi-m]]"
+  - "[[qian-x]]"
+  - "[[raper-n]]"
+  - "[[ren-j]]"
+  - "[[morales-reveco-c]]"
+  - "[[rosero-r]]"
+  - "[[roskovec-b]]"
+  - "[[ruan-xc]]"
+  - "[[russell-b]]"
+  - "[[steiner-h]]"
+  - "[[sun-jl]]"
+  - "[[tmej-t]]"
+  - "[[tse-wh]]"
+  - "[[tull-ce]]"
+  - "[[tung-yc]]"
+  - "[[viren-b]]"
+  - "[[vorobel-v]]"
+  - "[[wang-ch]]"
+  - "[[wang-j]]"
+  - "[[wang-m]]"
+  - "[[wang-ny]]"
+  - "[[wang-rg]]"
+  - "[[wang-w]]"
+  - "[[wang-x]]"
+  - "[[wang-yf]]"
+  - "[[wang-z]]"
+  - "[[wang-z]]"
+  - "[[wang-zm]]"
+  - "[[wei-hy]]"
+  - "[[wei-lh]]"
+  - "[[wei-w]]"
+  - "[[wen-lj]]"
+  - "[[whisnant-k]]"
+  - "[[white-cg]]"
+  - "[[wong-hlh]]"
+  - "[[worcester-e]]"
+  - "[[wu-dr]]"
+  - "[[wu-q]]"
+  - "[[wu-wj]]"
+  - "[[xia-dm]]"
+  - "[[xie-zq]]"
+  - "[[xing-zz]]"
+  - "[[xu-hk]]"
+  - "[[xu-jl]]"
+  - "[[xu-t]]"
+  - "[[xue-t]]"
+  - "[[yang-cg]]"
+  - "[[yang-l]]"
+  - "[[yang-yz]]"
+  - "[[yao-hf]]"
+  - "[[ye-m]]"
+  - "[[yeh-m]]"
+  - "[[young-bl]]"
+  - "[[yu-hz]]"
+  - "[[yu-zy]]"
+  - "[[yuan-cz]]"
+  - "[[yue-bb]]"
+  - "[[zavadskyi-v]]"
+  - "[[zeng-s]]"
+  - "[[zeng-y]]"
+  - "[[zhan-l]]"
+  - "[[zhang-c]]"
+  - "[[zhang-fy]]"
+  - "[[zhang-hh]]"
+  - "[[zhang-jl]]"
+  - "[[zhang-jw]]"
+  - "[[zhang-qm]]"
+  - "[[zhang-sq]]"
+  - "[[zhang-xt]]"
+  - "[[zhang-ym]]"
+  - "[[zhang-yx]]"
+  - "[[zhang-yy]]"
+  - "[[zhang-zj]]"
+  - "[[zhang-zp]]"
+  - "[[zhang-zy]]"
+  - "[[zhao-j]]"
+  - "[[zhao-rz]]"
+  - "[[zhou-l]]"
+  - "[[zhuang-hl]]"
+  - "[[zou-jh]]"
+  - "[[daya-bay-collaboration]]"
+tags: []
+_indexed: 2026-06-01
+---
+
+# Search for a Sub-eV Sterile Neutrino Using Daya Bay's Full Dataset
+
+## Abstract
+
+This Letter presents results of a search for the mixing of a sub-eV sterile neutrino with three active neutrinos based on the full data sample of the Daya Bay Reactor Neutrino Experiment, collected during 3158 days of detector operation, which contains 5.55×10^{6} reactor ν[over ¯]_{e} candidates identified as inverse beta-decay interactions followed by neutron capture on gadolinium. The analysis benefits from a doubling of the statistics of our previous result and from improvements of several important systematic uncertainties. No significant oscillation due to mixing of a sub-eV sterile neutrino with active neutrinos was found. Exclusion limits are set by both Feldman-Cousins and CLs methods. Light sterile neutrino mixing with sin^{2}2θ_{14}≳0.01 can be excluded at 95% confidence level in the region of 0.01  eV^{2}≲|Δm_{41}^{2}|≲0.1  eV^{2}. This result represents the world-leading constraints in the region of 2×10^{-4}  eV^{2}≲|Δm_{41}^{2}|≲0.2  eV^{2}.
+
+## Authors
+
+- [[an-fp]]
+- [[bai-wd]]
+- [[balantekin-ab]]
+- [[bishai-m]]
+- [[blyth-s]]
+- [[cao-gf]]
+- [[cao-j]]
+- [[chang-jf]]
+- [[chang-y]]
+- [[chen-hs]]
+- [[chen-hy]]
+- [[chen-sm]]
+- [[chen-y]]
+- [[chen-yx]]
+- [[chen-zy]]
+- [[cheng-j]]
+- [[cheng-yc]]
+- [[cheng-zk]]
+- [[cherwinka-jj]]
+- [[chu-mc]]
+- [[cummings-jp]]
+- [[dalager-o]]
+- [[deng-fs]]
+- [[ding-xy]]
+- [[ding-yy]]
+- [[diwan-mv]]
+- [[dohnal-t]]
+- [[dolzhikov-d]]
+- [[dove-j]]
+- [[dugas-kv]]
+- [[duyang-hy]]
+- [[dwyer-da]]
+- [[gallo-jp]]
+- [[gonchar-m]]
+- [[gong-gh]]
+- [[gong-h]]
+- [[gu-wq]]
+- [[guo-jy]]
+- [[guo-l]]
+- [[guo-xh]]
+- [[guo-yh]]
+- [[guo-z]]
+- [[hackenburg-rw]]
+- [[han-y]]
+- [[hans-s]]
+- [[he-m]]
+- [[heeger-km]]
+- [[heng-yk]]
+- [[hor-yk]]
+- [[hsiung-yb]]
+- [[hu-bz]]
+- [[hu-jr]]
+- [[hu-t]]
+- [[hu-zj]]
+- [[huang-hx]]
+- [[huang-jh]]
+- [[huang-xt]]
+- [[huang-yb]]
+- [[huber-p]]
+- [[jaffe-de]]
+- [[jen-kl]]
+- [[ji-xl]]
+- [[ji-xp]]
+- [[johnson-ra]]
+- [[jones-d]]
+- [[kang-l]]
+- [[kettell-sh]]
+- [[kohn-s]]
+- [[kramer-m]]
+- [[langford-tj]]
+- [[lee-j]]
+- [[lee-jhc]]
+- [[lei-rt]]
+- [[leitner-r]]
+- [[leung-jkc]]
+- [[li-f]]
+- [[li-hl]]
+- [[li-jj]]
+- [[li-qj]]
+- [[li-rh]]
+- [[li-s]]
+- [[li-s]]
+- [[li-sc]]
+- [[li-wd]]
+- [[li-xn]]
+- [[li-xq]]
+- [[li-yf]]
+- [[li-zb]]
+- [[liang-h]]
+- [[lin-cj]]
+- [[lin-gl]]
+- [[lin-s]]
+- [[ling-jj]]
+- [[link-jm]]
+- [[littenberg-l]]
+- [[littlejohn-br]]
+- [[liu-jc]]
+- [[liu-jl]]
+- [[liu-jx]]
+- [[lu-c]]
+- [[lu-hq]]
+- [[luk-kb]]
+- [[ma-bz]]
+- [[ma-xb]]
+- [[ma-xy]]
+- [[ma-yq]]
+- [[mandujano-rc]]
+- [[marshall-c]]
+- [[mcdonald-kt]]
+- [[mckeown-rd]]
+- [[meng-y]]
+- [[napolitano-j]]
+- [[naumov-d]]
+- [[naumova-e]]
+- [[nguyen-tmt]]
+- [[ochoaricoux-jp]]
+- [[olshevskiy-a]]
+- [[park-j]]
+- [[patton-s]]
+- [[peng-jc]]
+- [[pun-csj]]
+- [[qi-fz]]
+- [[qi-m]]
+- [[qian-x]]
+- [[raper-n]]
+- [[ren-j]]
+- [[morales-reveco-c]]
+- [[rosero-r]]
+- [[roskovec-b]]
+- [[ruan-xc]]
+- [[russell-b]]
+- [[steiner-h]]
+- [[sun-jl]]
+- [[tmej-t]]
+- [[tse-wh]]
+- [[tull-ce]]
+- [[tung-yc]]
+- [[viren-b]]
+- [[vorobel-v]]
+- [[wang-ch]]
+- [[wang-j]]
+- [[wang-m]]
+- [[wang-ny]]
+- [[wang-rg]]
+- [[wang-w]]
+- [[wang-x]]
+- [[wang-yf]]
+- [[wang-z]]
+- [[wang-z]]
+- [[wang-zm]]
+- [[wei-hy]]
+- [[wei-lh]]
+- [[wei-w]]
+- [[wen-lj]]
+- [[whisnant-k]]
+- [[white-cg]]
+- [[wong-hlh]]
+- [[worcester-e]]
+- [[wu-dr]]
+- [[wu-q]]
+- [[wu-wj]]
+- [[xia-dm]]
+- [[xie-zq]]
+- [[xing-zz]]
+- [[xu-hk]]
+- [[xu-jl]]
+- [[xu-t]]
+- [[xue-t]]
+- [[yang-cg]]
+- [[yang-l]]
+- [[yang-yz]]
+- [[yao-hf]]
+- [[ye-m]]
+- [[yeh-m]]
+- [[young-bl]]
+- [[yu-hz]]
+- [[yu-zy]]
+- [[yuan-cz]]
+- [[yue-bb]]
+- [[zavadskyi-v]]
+- [[zeng-s]]
+- [[zeng-y]]
+- [[zhan-l]]
+- [[zhang-c]]
+- [[zhang-fy]]
+- [[zhang-hh]]
+- [[zhang-jl]]
+- [[zhang-jw]]
+- [[zhang-qm]]
+- [[zhang-sq]]
+- [[zhang-xt]]
+- [[zhang-ym]]
+- [[zhang-yx]]
+- [[zhang-yy]]
+- [[zhang-zj]]
+- [[zhang-zp]]
+- [[zhang-zy]]
+- [[zhao-j]]
+- [[zhao-rz]]
+- [[zhou-l]]
+- [[zhuang-hl]]
+- [[zou-jh]]
+- [[daya-bay-collaboration]]
+
+**DOI:** 10.1103/PhysRevLett.133.051801
+**PMID:** [39159085](https://pubmed.ncbi.nlm.nih.gov/39159085/)
+**Journal:** Physical review letters
+**Year:** 2024

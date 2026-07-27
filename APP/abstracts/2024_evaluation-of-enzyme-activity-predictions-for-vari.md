@@ -1,0 +1,162 @@
+---
+title: "Evaluation of enzyme activity predictions for variants of unknown significance in Arylsulfatase A"
+doi: "https://doi.org/10.1101/2024.05.16.594558"
+year: 2024
+journal: "bioRxiv (Cold Spring Harbor Laboratory)"
+pmid: "38798479"
+authors:
+  - "[[shantanu-jain]]"
+  - "[[marena-trinidad]]"
+  - "[[thanh-nguyen]]"
+  - "[[kaiya-jones]]"
+  - "[[santiago-diaz-neto]]"
+  - "[[fang-ge]]"
+  - "[[ailin-glagovsky]]"
+  - "[[cameron-jones]]"
+  - "[[giankaleb-moran]]"
+  - "[[boqi-wang]]"
+  - "[[kobra-rahimi]]"
+  - "[[smeyra-zeynep-alc]]"
+  - "[[luis-cedillo]]"
+  - "[[silvia-berardelli]]"
+  - "[[buse-zden]]"
+  - "[[ken-chen]]"
+  - "[[panagiotis-katsonis]]"
+  - "[[amanda-williams]]"
+  - "[[olivier-lichtarge]]"
+  - "[[sadhna-rana]]"
+  - "[[swatantra-pradhan]]"
+  - "[[rajgopal-srinivasan]]"
+  - "[[rakshanda-sajeed]]"
+  - "[[dinesh-joshi]]"
+  - "[[eshel-faraggi]]"
+  - "[[robert-jernigan]]"
+  - "[[andrzej-kloczkowski]]"
+  - "[[jierui-xu]]"
+  - "[[zigang-song]]"
+  - "[[selen-zkan]]"
+  - "[[natlia-padilla]]"
+  - "[[xavier-de-la-cruz]]"
+  - "[[roco-acuahidalgo]]"
+  - "[[andrea-grafmller]]"
+  - "[[laura-jimnez-barrn]]"
+  - "[[matteo-manfredi]]"
+  - "[[castrense-savojardo]]"
+  - "[[giulia-babbi]]"
+  - "[[pier-luigi-martelli]]"
+  - "[[rita-casadio]]"
+  - "[[yuanfei-sun]]"
+  - "[[shaowen-zhu]]"
+  - "[[yang-shen]]"
+  - "[[fabrizio-pucci]]"
+  - "[[marianne-rooman]]"
+  - "[[gabriel-cia]]"
+  - "[[daniele-raimondi]]"
+  - "[[pauline-hermans]]"
+  - "[[sofia-kwee]]"
+  - "[[ella-chen]]"
+  - "[[courtney-astore]]"
+  - "[[akash-kamandula]]"
+  - "[[vikas-pejaver]]"
+  - "[[rashika-ramola]]"
+  - "[[michelle-velyunskiy]]"
+  - "[[daniel-zeiberg]]"
+  - "[[reet-mishra]]"
+  - "[[teague-sterling]]"
+  - "[[jennifer-goldstein]]"
+  - "[[jose-lugomartinez]]"
+  - "[[sufyan-kazi]]"
+  - "[[sindy-li]]"
+  - "[[kinsey-long]]"
+  - "[[steven-brenner]]"
+  - "[[constantina-bakolitsa]]"
+  - "[[predrag-radivojac]]"
+  - "[[dean-suhr]]"
+  - "[[teryn-suhr]]"
+  - "[[wyatt-clark]]"
+tags: [lysosomal-storage-disorders, molecular-biology, metabolism, humans, cerebroside-sulfatase, machine-learning, genetic-variation, mutation-missense]
+_indexed: 2026-06-01
+---
+
+# Evaluation of enzyme activity predictions for variants of unknown significance in Arylsulfatase A
+
+## Abstract
+
+Abstract Continued advances in variant effect prediction are necessary to demonstrate the ability of machine learning methods to accurately determine the clinical impact of variants of unknown significance (VUS). Towards this goal, the ARSA Critical Assessment of Genome Interpretation (CAGI) challenge was designed to characterize progress by utilizing 219 experimentally assayed missense VUS in the Arylsulfa-tase A ( ARSA ) gene to assess the performance of community-submitted predictions of variant functional effects. The challenge involved 15 teams, and evaluated additional predictions from established and recently released models. Notably, a model developed by participants of a genetics and coding bootcamp, trained with standard machine-learning tools in Python, demonstrated superior performance among sub-missions. Furthermore, the study observed that state-of-the-art deep learning methods provided small but statistically significant improvement in predictive performance compared to less elaborate techniques. These findings underscore the utility of variant effect prediction, and the potential for models trained with modest resources to accurately classify VUS in genetic and clinical research.
+
+## Authors
+
+- [[shantanu-jain]]
+- [[marena-trinidad]]
+- [[thanh-nguyen]]
+- [[kaiya-jones]]
+- [[santiago-diaz-neto]]
+- [[fang-ge]]
+- [[ailin-glagovsky]]
+- [[cameron-jones]]
+- [[giankaleb-moran]]
+- [[boqi-wang]]
+- [[kobra-rahimi]]
+- [[smeyra-zeynep-alc]]
+- [[luis-cedillo]]
+- [[silvia-berardelli]]
+- [[buse-zden]]
+- [[ken-chen]]
+- [[panagiotis-katsonis]]
+- [[amanda-williams]]
+- [[olivier-lichtarge]]
+- [[sadhna-rana]]
+- [[swatantra-pradhan]]
+- [[rajgopal-srinivasan]]
+- [[rakshanda-sajeed]]
+- [[dinesh-joshi]]
+- [[eshel-faraggi]]
+- [[robert-jernigan]]
+- [[andrzej-kloczkowski]]
+- [[jierui-xu]]
+- [[zigang-song]]
+- [[selen-zkan]]
+- [[natlia-padilla]]
+- [[xavier-de-la-cruz]]
+- [[roco-acuahidalgo]]
+- [[andrea-grafmller]]
+- [[laura-jimnez-barrn]]
+- [[matteo-manfredi]]
+- [[castrense-savojardo]]
+- [[giulia-babbi]]
+- [[pier-luigi-martelli]]
+- [[rita-casadio]]
+- [[yuanfei-sun]]
+- [[shaowen-zhu]]
+- [[yang-shen]]
+- [[fabrizio-pucci]]
+- [[marianne-rooman]]
+- [[gabriel-cia]]
+- [[daniele-raimondi]]
+- [[pauline-hermans]]
+- [[sofia-kwee]]
+- [[ella-chen]]
+- [[courtney-astore]]
+- [[akash-kamandula]]
+- [[vikas-pejaver]]
+- [[rashika-ramola]]
+- [[michelle-velyunskiy]]
+- [[daniel-zeiberg]]
+- [[reet-mishra]]
+- [[teague-sterling]]
+- [[jennifer-goldstein]]
+- [[jose-lugomartinez]]
+- [[sufyan-kazi]]
+- [[sindy-li]]
+- [[kinsey-long]]
+- [[steven-brenner]]
+- [[constantina-bakolitsa]]
+- [[predrag-radivojac]]
+- [[dean-suhr]]
+- [[teryn-suhr]]
+- [[wyatt-clark]]
+
+**DOI:** https://doi.org/10.1101/2024.05.16.594558
+**PMID:** [38798479](https://pubmed.ncbi.nlm.nih.gov/38798479/)
+**Journal:** bioRxiv (Cold Spring Harbor Laboratory)
+**Year:** 2024
