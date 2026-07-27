@@ -1,0 +1,50 @@
+# Knowledge Graph Explorer — Protein Features database
+#
+# Usage: python -m kgx --config config-proteins.yaml
+
+db:
+  path: /Users/andrewseverin/Downloads/data/kgx_features.db
+
+llm:
+  provider: ollama
+  base_url: http://localhost:11434
+  model: qwen3-coder:30b
+  fast_model: null
+  temperature: 0
+
+skills:
+  enabled: false
+
+server:
+  host: 127.0.0.1
+  port: 8000
+  cors_origins: []
+
+ui:
+  theme: dark
+  default_layout: force
+  node_size_by_degree: true
+  show_labels: true
+  max_visible_nodes: 5000
+
+# Explore mode: protein feature graph
+# - No stubs to filter
+# - Collapse lcr_type nodes: they're useful as connectors but there are 2,589
+#   of them — in explore mode, surface the SIMILAR_COMPOSITION edges instead
+# - No tag hierarchy to flatten
+explore:
+  stub_type: ""
+  exclude_types: [lcr_type]
+  collaboration_via_type: lcr_type
+  collaboration_via_edge: HAS_LCR
+  collaboration_label: SIMILAR_COMPOSITION
+  hierarchy_edge: ""
+  tagging_edge: ""
+  skip_rel_types: [HAS_LCR]
+
+# Embedding: protein-specific metadata fields
+embedding:
+  type_fields:
+    protein: [structure_class, top_amino_acids, sequence_length, disorder_pct]
+    domain: [kind]
+  default_fields: [name, category]

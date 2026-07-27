@@ -1,0 +1,294 @@
+---
+title: "The Farm Animal Genotype-Tissue Expression (FarmGTEx) Project"
+doi: "10.1038/s41588-025-02121-5"
+year: 2025
+journal: "Nature genetics"
+pmid: "40097783"
+authors:
+  - "[[fang-l]]"
+  - "[[teng-j]]"
+  - "[[lin-q]]"
+  - "[[bai-z]]"
+  - "[[liu-s]]"
+  - "[[guan-d]]"
+  - "[[li-b]]"
+  - "[[gao-y]]"
+  - "[[hou-y]]"
+  - "[[gong-m]]"
+  - "[[pan-z]]"
+  - "[[yu-y]]"
+  - "[[clark-el]]"
+  - "[[smith-j]]"
+  - "[[rawlik-k]]"
+  - "[[xiang-r]]"
+  - "[[chamberlain-aj]]"
+  - "[[goddard-me]]"
+  - "[[littlejohn-m]]"
+  - "[[larson-g]]"
+  - "[[machugh-de]]"
+  - "[[ogrady-jf]]"
+  - "[[srensen-p]]"
+  - "[[sahana-g]]"
+  - "[[lund-ms]]"
+  - "[[jiang-z]]"
+  - "[[pan-x]]"
+  - "[[gong-w]]"
+  - "[[zhang-h]]"
+  - "[[he-x]]"
+  - "[[zhang-y]]"
+  - "[[gao-n]]"
+  - "[[he-j]]"
+  - "[[yi-g]]"
+  - "[[liu-y]]"
+  - "[[tang-z]]"
+  - "[[zhao-p]]"
+  - "[[zhou-y]]"
+  - "[[fu-l]]"
+  - "[[wang-x]]"
+  - "[[hao-d]]"
+  - "[[liu-l]]"
+  - "[[chen-s]]"
+  - "[[young-rs]]"
+  - "[[shen-x]]"
+  - "[[xia-c]]"
+  - "[[cheng-h]]"
+  - "[[ma-l]]"
+  - "[[cole-jb]]"
+  - "[[baldwin-rl-6th]]"
+  - "[[li-cj]]"
+  - "[[van-tassell-cp]]"
+  - "[[rosen-bd]]"
+  - "[[bhowmik-n]]"
+  - "[[lunney-j]]"
+  - "[[liu-w]]"
+  - "[[guan-l]]"
+  - "[[zhao-x]]"
+  - "[[ibeaghaawemu-em]]"
+  - "[[luo-y]]"
+  - "[[lin-l]]"
+  - "[[canelaxandri-o]]"
+  - "[[derks-mfl]]"
+  - "[[crooijmans-rpma]]"
+  - "[[gdia-m]]"
+  - "[[madsen-o]]"
+  - "[[groenen-mam]]"
+  - "[[koltes-je]]"
+  - "[[tuggle-ck]]"
+  - "[[mccarthy-fm]]"
+  - "[[rocha-d]]"
+  - "[[giuffra-e]]"
+  - "[[amills-m]]"
+  - "[[clop-a]]"
+  - "[[ballester-m]]"
+  - "[[tosserklopp-g]]"
+  - "[[li-j]]"
+  - "[[fang-c]]"
+  - "[[fang-m]]"
+  - "[[wang-q]]"
+  - "[[hou-z]]"
+  - "[[wang-q]]"
+  - "[[zhao-f]]"
+  - "[[jiang-l]]"
+  - "[[zhao-g]]"
+  - "[[zhou-z]]"
+  - "[[zhou-r]]"
+  - "[[liu-h]]"
+  - "[[deng-j]]"
+  - "[[jin-l]]"
+  - "[[li-m]]"
+  - "[[mo-d]]"
+  - "[[liu-x]]"
+  - "[[chen-y]]"
+  - "[[yuan-x]]"
+  - "[[li-j]]"
+  - "[[zhao-s]]"
+  - "[[zhang-y]]"
+  - "[[ding-x]]"
+  - "[[sun-d]]"
+  - "[[sun-hz]]"
+  - "[[li-c]]"
+  - "[[wang-y]]"
+  - "[[jiang-y]]"
+  - "[[wu-d]]"
+  - "[[wang-w]]"
+  - "[[fan-x]]"
+  - "[[zhang-q]]"
+  - "[[li-k]]"
+  - "[[zhang-h]]"
+  - "[[yang-n]]"
+  - "[[hu-x]]"
+  - "[[huang-w]]"
+  - "[[song-j]]"
+  - "[[wu-y]]"
+  - "[[yang-j]]"
+  - "[[wu-w]]"
+  - "[[kasper-c]]"
+  - "[[liu-x]]"
+  - "[[yu-x]]"
+  - "[[cui-l]]"
+  - "[[zhou-x]]"
+  - "[[kim-s]]"
+  - "[[li-w]]"
+  - "[[im-hk]]"
+  - "[[buckler-es]]"
+  - "[[ren-b]]"
+  - "[[schatz-mc]]"
+  - "[[li-jj]]"
+  - "[[palmer-aa]]"
+  - "[[frantz-l]]"
+  - "[[zhou-h]]"
+  - "[[zhang-z]]"
+  - "[[liu-ge]]"
+  - "[[farmgtex-consortium]]"
+tags: [animals, animals-domestic, genotype, humans, transcriptome, genomics, phenotype]
+_indexed: 2026-06-01
+---
+
+# The Farm Animal Genotype-Tissue Expression (FarmGTEx) Project
+
+## Abstract
+
+Genetic mutation and drift, coupled with natural and human-mediated selection and migration, have produced a wide variety of genotypes and phenotypes in farmed animals. We here introduce the Farm Animal Genotype-Tissue Expression (FarmGTEx) Project, which aims to elucidate the genetic determinants of gene expression across 16 terrestrial and aquatic domestic species under diverse biological and environmental contexts. For each species, we aim to collect multiomics data, particularly genomics and transcriptomics, from 50 tissues of 1,000 healthy adults and 200 additional animals representing a specific context. This Perspective provides an overview of the priorities of FarmGTEx and advocates for coordinated strategies of data analysis and resource-sharing initiatives. FarmGTEx aims to serve as a platform for investigating context-specific regulatory effects, which will deepen our understanding of molecular mechanisms underlying complex phenotypes. The knowledge and insights provided by FarmGTEx will contribute to improving sustainable agriculture-based food systems, comparative biology and eventual human biomedicine.
+
+## Authors
+
+- [[fang-l]]
+- [[teng-j]]
+- [[lin-q]]
+- [[bai-z]]
+- [[liu-s]]
+- [[guan-d]]
+- [[li-b]]
+- [[gao-y]]
+- [[hou-y]]
+- [[gong-m]]
+- [[pan-z]]
+- [[yu-y]]
+- [[clark-el]]
+- [[smith-j]]
+- [[rawlik-k]]
+- [[xiang-r]]
+- [[chamberlain-aj]]
+- [[goddard-me]]
+- [[littlejohn-m]]
+- [[larson-g]]
+- [[machugh-de]]
+- [[ogrady-jf]]
+- [[srensen-p]]
+- [[sahana-g]]
+- [[lund-ms]]
+- [[jiang-z]]
+- [[pan-x]]
+- [[gong-w]]
+- [[zhang-h]]
+- [[he-x]]
+- [[zhang-y]]
+- [[gao-n]]
+- [[he-j]]
+- [[yi-g]]
+- [[liu-y]]
+- [[tang-z]]
+- [[zhao-p]]
+- [[zhou-y]]
+- [[fu-l]]
+- [[wang-x]]
+- [[hao-d]]
+- [[liu-l]]
+- [[chen-s]]
+- [[young-rs]]
+- [[shen-x]]
+- [[xia-c]]
+- [[cheng-h]]
+- [[ma-l]]
+- [[cole-jb]]
+- [[baldwin-rl-6th]]
+- [[li-cj]]
+- [[van-tassell-cp]]
+- [[rosen-bd]]
+- [[bhowmik-n]]
+- [[lunney-j]]
+- [[liu-w]]
+- [[guan-l]]
+- [[zhao-x]]
+- [[ibeaghaawemu-em]]
+- [[luo-y]]
+- [[lin-l]]
+- [[canelaxandri-o]]
+- [[derks-mfl]]
+- [[crooijmans-rpma]]
+- [[gdia-m]]
+- [[madsen-o]]
+- [[groenen-mam]]
+- [[koltes-je]]
+- [[tuggle-ck]]
+- [[mccarthy-fm]]
+- [[rocha-d]]
+- [[giuffra-e]]
+- [[amills-m]]
+- [[clop-a]]
+- [[ballester-m]]
+- [[tosserklopp-g]]
+- [[li-j]]
+- [[fang-c]]
+- [[fang-m]]
+- [[wang-q]]
+- [[hou-z]]
+- [[wang-q]]
+- [[zhao-f]]
+- [[jiang-l]]
+- [[zhao-g]]
+- [[zhou-z]]
+- [[zhou-r]]
+- [[liu-h]]
+- [[deng-j]]
+- [[jin-l]]
+- [[li-m]]
+- [[mo-d]]
+- [[liu-x]]
+- [[chen-y]]
+- [[yuan-x]]
+- [[li-j]]
+- [[zhao-s]]
+- [[zhang-y]]
+- [[ding-x]]
+- [[sun-d]]
+- [[sun-hz]]
+- [[li-c]]
+- [[wang-y]]
+- [[jiang-y]]
+- [[wu-d]]
+- [[wang-w]]
+- [[fan-x]]
+- [[zhang-q]]
+- [[li-k]]
+- [[zhang-h]]
+- [[yang-n]]
+- [[hu-x]]
+- [[huang-w]]
+- [[song-j]]
+- [[wu-y]]
+- [[yang-j]]
+- [[wu-w]]
+- [[kasper-c]]
+- [[liu-x]]
+- [[yu-x]]
+- [[cui-l]]
+- [[zhou-x]]
+- [[kim-s]]
+- [[li-w]]
+- [[im-hk]]
+- [[buckler-es]]
+- [[ren-b]]
+- [[schatz-mc]]
+- [[li-jj]]
+- [[palmer-aa]]
+- [[frantz-l]]
+- [[zhou-h]]
+- [[zhang-z]]
+- [[liu-ge]]
+- [[farmgtex-consortium]]
+
+**DOI:** 10.1038/s41588-025-02121-5
+**PMID:** [40097783](https://pubmed.ncbi.nlm.nih.gov/40097783/)
+**Journal:** Nature genetics
+**Year:** 2025
