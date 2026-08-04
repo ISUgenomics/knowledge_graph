@@ -3764,11 +3764,26 @@ const COMMUNITY_COLORS = [
             return graphInstance.screen2GraphCoords?.(px, py, dist);
         }
 
+        // Restore camera + cool the sim + un-freeze the graph after a drag/cancel.
+        function releaseDrag(g) {
+            if (!g) return;
+            if (g.controls) g.controls.enabled = true;
+            if (g.pointerId != null) container.releasePointerCapture?.(g.pointerId);
+            if (g.dragging) {
+                graphInstance.d3AlphaTarget?.(0); // stop the tick loop
+                for (const n of allNodes) {
+                    if (n.__dragFrozen) { delete n.fx; delete n.fy; delete n.fz; delete n.__dragFrozen; }
+                }
+            }
+        }
+
         container.addEventListener('pointerdown', event => {
             if (event.button !== 0 || activeAxisLockKey) return; // let axis-lock own its drag
-            grab = { node: hoverNode || null, startX: event.clientX, startY: event.clientY, dragging: false, controls: null };
+            grab = { node: hoverNode || null, startX: event.clientX, startY: event.clientY, dragging: false, controls: null, pointerId: event.pointerId };
             if (grab.node) {
-                // Pressed on a node: freeze the camera so this gesture is a click or node-drag, not an orbit.
+                // Pressed on a node: capture the pointer (never miss the release) and freeze
+                // the camera so this gesture is a click or a node-drag, not an orbit.
+                container.setPointerCapture?.(event.pointerId);
                 const controls = graphInstance.controls?.();
                 if (controls) { grab.controls = controls; controls.enabled = false; }
             }
@@ -3783,31 +3798,30 @@ const COMMUNITY_COLORS = [
             const moved = Math.hypot(event.clientX - grab.startX, event.clientY - grab.startY);
             if (moved > DRAG_START_PX) {
                 grab.dragging = true;
-                grab.node.fx = grab.node.x; grab.node.fy = grab.node.y; grab.node.fz = grab.node.z; // pin at current pos
-                graphInstance.d3AlphaTarget?.(0.3); // keep the sim warm so neighbors relax around it
+                // Freeze every other node (pin at current position) so ONLY the dragged node
+                // moves — no global jiggle. Already-pinned nodes are left as-is.
+                for (const n of allNodes) {
+                    if (n === grab.node || n.fx != null) continue;
+                    n.fx = n.x; n.fy = n.y; n.fz = n.z; n.__dragFrozen = true;
+                }
+                grab.node.fx = grab.node.x; grab.node.fy = grab.node.y; grab.node.fz = grab.node.z;
+                graphInstance.d3AlphaTarget?.(0.1); // low warmth just to keep the dragged node rendering
             }
         });
         const endGrab = event => {
             const g = grab;
             grab = null;
-            if (!g) return;
-            if (g.controls) g.controls.enabled = true; // restore camera orbit
-            if (g.dragging) {
-                graphInstance.d3AlphaTarget?.(0); // settle; node stays pinned where dropped
-                return;
-            }
+            releaseDrag(g);
+            if (!g || g.dragging) return; // it was a drag → node already repositioned
             if (activeAxisLockKey) return;
             const moved = Math.hypot(event.clientX - g.startX, event.clientY - g.startY);
-            if (moved > DRAG_START_PX) return; // moved a lot but not a node drag → ignore
+            if (moved > DRAG_START_PX) return; // moved a lot but wasn't a node drag → ignore
             const node = g.node || screenNearestNode(event.clientX, event.clientY, SELECT_RADIUS_PX);
             if (!node) { clearHighlight(); return; } // empty space → clear selection
             eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
         };
         container.addEventListener('pointerup', endGrab);
-        container.addEventListener('pointercancel', () => {
-            if (grab?.controls) grab.controls.enabled = true;
-            grab = null;
-        });
+        container.addEventListener('pointercancel', () => { const g = grab; grab = null; releaseDrag(g); });
 
         container.appendChild(labelLayer);
         container.appendChild(axisGizmoEl);
