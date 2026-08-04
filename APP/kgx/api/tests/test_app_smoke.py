@@ -37,7 +37,6 @@ def app_config(tmp_path):
 
     cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/people.yaml"))
     db_build = cfg.db_build.model_dump()
-    db_build["person_research"]["extensions"] = ["isu_profile"]
 
     return {
         "db_path": str(db_path),
@@ -90,7 +89,6 @@ async def test_app_smoke(app_config):
         cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/people.yaml"))
         assert cfg.domain.name == "people"
         assert cfg.db_build.source_policy.official_only is False
-        assert cfg.db_build.model_dump()["person_research"]["enabled"] is True
 
         resp = await client.get("/api/layout/timeline/options")
         assert resp.status_code == 200
@@ -101,17 +99,6 @@ async def test_app_smoke(app_config):
         award_candidate = next(item for item in timeline["candidates"] if item["type"] == "award")
         assert award_candidate["order_fields"][0]["field"] == "award_year"
         assert award_candidate["order_fields"][0]["non_null_count"] == 3
-
-        resp = await client.get("/api/skill/help/person_research")
-        assert resp.status_code == 200
-        skill_help = resp.json()
-        assert skill_help["skill"]["id"] == "person_research"
-        assert skill_help["skill"]["name"] == "Person Research"
-        assert skill_help["skill"]["entry_path"] == "run_person.py"
-        assert skill_help["skill"]["entity_types"] == ["person"]
-        assert any(arg["name"] == "config" for arg in skill_help["skill"]["args"])
-        assert skill_help["settings"]["institution"] == "Iowa State University"
-        assert skill_help["source_policy"]["official_only"] is False
 
         resp = await client.get("/api/graph", params={"mode": "display"})
         assert resp.status_code == 200
@@ -136,39 +123,6 @@ async def test_app_smoke(app_config):
         entity = resp.json()
         assert entity["entity"]["id"] == "alice"
         assert entity["degree"] >= 1
-
-        nobel_cfg = load_config(Path("/workspace/KnowledgeGraph/APP/config/people.yaml"))
-        nobel_db_build = nobel_cfg.db_build.model_dump()
-        nobel_db_build["person_research"]["extensions"] = ["nobel_profile"]
-        nobel_app_config = {
-            "db_path": app_config["db_path"],
-            "server": nobel_cfg.server.model_dump(),
-            "ui": nobel_cfg.ui.model_dump(),
-            "llm": nobel_cfg.llm.model_dump(),
-            "skills": nobel_cfg.skills.model_dump(),
-            "explore": nobel_cfg.explore.model_dump(),
-            "embedding": nobel_cfg.embedding.model_dump(),
-            "domain": nobel_cfg.domain.model_dump(),
-            "db_build": nobel_db_build,
-        }
-
-        nobel_app = create_app(nobel_app_config)
-        nobel_transport = httpx.ASGITransport(app=nobel_app)
-        async with httpx.AsyncClient(transport=nobel_transport, base_url="http://testserver") as nobel_client:
-            resp = await nobel_client.get("/api/skill/help/person_research")
-            assert resp.status_code == 200
-            nobel_help = resp.json()
-            assert nobel_help["settings"]["extensions"] == ["nobel_profile"]
-            assert nobel_help["settings"]["role_profile"]["default_role"] == "laureate"
-            assert nobel_help["source_policy"]["official_only"] is True
-            assert "api.nobelprize.org" in nobel_help["source_policy"]["allowed_domains"]
-            assert any("Nobel laureate" in prompt for prompt in nobel_help["help_prompts"])
-
-            resp = await nobel_client.get("/api/skill/help/signal_capture")
-            assert resp.status_code == 200
-            signal_help = resp.json()
-            assert signal_help["source_policy"]["official_only"] is True
-            assert any("official Nobel announcement" in prompt for prompt in signal_help["help_prompts"])
 
 
 @pytest.mark.asyncio

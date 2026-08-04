@@ -354,109 +354,6 @@ Validated use cases:
 
 See [skills/genomics/README.md](skills/genomics/README.md) for the full workflow.
 
-### person-research
-
-Profile people from publication APIs plus the configured institutional directory/profile sources.
-
-```bash
-cd skills/person_research
-python run_person.py "Andrew Severin"
-python run_person.py --input people.tsv          # batch from TSV
-```
-
-Validated use cases:
-- build or refresh person profiles from a name or TSV batch
-- build deterministic checked-in sample datasets from source snapshots via `scripts/build_nobel_sample.py` and `scripts/build_isu_biotech_sample.py`
-- enrich people discovered by other skills through their generated `.tsv` files
-- use the shipped ISU-oriented config or a custom shared config at `APP/config/...`
-- optionally enrich authored publications with structured acknowledgement evidence during sample or profile rebuilds
-
-Output: `runtime_data/vault/people/<slug>/<slug>.md` plus `runtime_data/vault/abstracts/*.md` per paper.
-
-For the current people-domain config, the ISU extension also supports:
-- `publication_harvest` controls for per-person caps, total caps, and minimum publication year
-- acknowledgement extraction and targeted remote acknowledgement discovery
-- later promotion of publication-supported tags onto profiled people
-
-### signal-capture
-
-Capture articles, announcements, or pasted text as signal notes with topic and person context.
-
-```bash
-cd skills/signal_capture
-python run_signal.py --url "https://..." --topic "artificial intelligence"
-python run_signal.py --file article.txt --topic ai
-python run_signal.py --text "Article text..." --topic ai
-```
-
-Validated use cases:
-- ingest a single URL, local file, or pasted text
-- batch-process a list of URLs when you already have them
-- backfill existing signal notes without re-running the full capture flow
-
-`--topic` adds keyword-in-context snippets and quote-attributed person snippets.
-
-Output: `runtime_data/vault/signals/<slug>.md` + `runtime_data/vault/signals/raw/<slug>.txt` + `<slug>-people.tsv`.
-
-#### Batch from a URL list
-
-If you already have a file of URLs:
-
-```bash
-python run_signal.py --input urls.txt --skip-existing --topic ai
-```
-
-#### Example source discovery: ISU News search
-
-```bash
-python scripts/scrape_search.py "artificial intelligence" > urls.txt
-python run_signal.py --input urls.txt --skip-existing --topic ai
-```
-
-#### Backfill existing signals
-
-Update existing notes without re-running the LLM (tag fixes, snippets, raw files):
-
-```bash
-python backfill_signals.py --topic ai ../../runtime_data/vault/signals/            # dry run by default
-python backfill_signals.py --topic ai --refetch ../../runtime_data/vault/signals/  # fetch raw content
-python backfill_signals.py --topic ai ../../runtime_data/vault/signals/ --no-dry-run
-```
-
-### center-research
-
-Document centers, groups, or programs from URLs and local folders.
-
-```bash
-cd skills/center_research
-python run_center.py --name "Virtual Reality Applications Center" --url "https://..."
-python run_center.py --name "VRAC" --folder /path/to/files
-```
-
-Validated use cases:
-- create a center/group profile from a website, downloaded materials, or both
-- update an existing center note and regenerate its members TSV
-- hand off the generated members TSV into `person_research`
-
-Output: `runtime_data/vault/centers/<slug>/<slug>.md` + `<slug>-members.tsv`.
-
-### event-research
-
-Capture event notes from local folders and optional event URLs.
-
-```bash
-cd skills/event_research
-python run_event.py --name "GIF Meeting" --date 2026-05-01 --folder /path/to/files
-python run_event.py --name "AI Roundtable" --date 2025-03-15 --folder /path/to/files --url "https://..."
-```
-
-Validated use cases:
-- build an event note from downloaded agendas, rosters, slides, and notes
-- supplement local materials with an event page URL
-- generate attendee TSVs for follow-up `person_research`
-
-Output: `runtime_data/vault/events/<date>-<slug>/...` including the main event note, `notes/*.md`, and `new-isu-attendees.tsv`.
-
 ---
 
 ## Shared Utilities
@@ -479,24 +376,6 @@ All skills share common scripts in `skills/shared/scripts/`:
 ---
 
 
-## LangGraph Harness
-
-The interactive skill runners use the shared harness at `../../harness/`:
-
-```
-[plan] -> gather -> execute <-> tools -> verify -> deliver -> END
-                                           |
-                                     retry (max 3)
-```
-
-Strategies: `act` (person, center, signal), `react` (event), `planreact` (reserved).
-
-Override at runtime: `--strategy act|react|planreact`
-
-The deterministic sample builders (`build_nobel_sample.py`, `build_isu_biotech_sample.py`) reuse the same lower-level people research and profile-writing internals, but they do not run through the full interactive harness loop.
-
----
-
 ## Key Design Principles
 
 1. **Minimize LLM surface area** — Python handles data fetching, transformation, and formatting. In the interactive skill path, the LLM provides only reasoning fields (~200 tokens: role, summary, tags). Deterministic sample builders can omit the LLM step entirely.
@@ -516,8 +395,7 @@ See [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) for the full set of 35 less
 | Path | Description | Role | Required for app use? |
 |---|---|---|---|
 | `APP/` | KGX application code, UI, API, DB layer, prompts, and configs | Main runtime app | Yes |
-| `skills/` | LangGraph skill plugins and shared data-building utilities | Builds and updates graph data | Optional for read-only app use, required to generate/update data |
-| `harness/` | Shared skill execution framework | Runs plugin workflows consistently | Required if using skills |
+| `skills/` | Genomics database-builder and shared data-building utilities | Builds and updates graph data | Optional for read-only app use, required to generate/update data |
 | `sample_data/` | Checked-in example content and starter DB seed | Demo/reference data | No |
 | `runtime_data/` | Live local DB, rendered output, logs, and temp files | Mutable working state | Yes in practice |
 | `docs/` | Architecture notes, specs, examples, and historical material | Documentation and developer reference | No |
@@ -536,12 +414,10 @@ See [docs/BEST_PRACTICES.md](docs/BEST_PRACTICES.md) for the full set of 35 less
 
 The data-building side is split cleanly:
 
-- `skills/person_research/`, `signal_capture/`, `center_research/`, `event_research/`
-  Individual entity-oriented skills
+- `skills/genomics/`
+  Genomics database-builder skill
 - `skills/shared/`
   Shared scripts for extraction, tag handling, vault migration, and rendering
-- `harness/`
-  Shared LangGraph orchestration used by the skill runners
 
 ### Docs Layout
 
@@ -549,9 +425,6 @@ The data-building side is split cleanly:
 
 - `docs/app/` for KGX architecture and app-specific notes
 - `docs/specs/` for product and architecture specs
-- `docs/skills/` for skill-specific deep dives
-- `docs/learning/` for runnable educational examples
-- `docs/design-notes/` and `docs/archive/` for exploratory and historical material
 
 ### Data Layout
 

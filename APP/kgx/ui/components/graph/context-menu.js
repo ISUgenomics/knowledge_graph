@@ -29,8 +29,6 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
     function show(node, x, y) {
         currentNode = node;
 
-        const isResearchable = node.type?.toLowerCase() === 'person';
-
         menuEl.innerHTML = `
             <div class="ctx-label">${escHtml(node.name)}</div>
             <div class="ctx-type">${escHtml(node.type || '')}</div>
@@ -42,7 +40,6 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
             <div class="ctx-item" data-action="expand" title="Reveal neighbors connected in the current graph view">Expand neighbors</div>
             <div class="ctx-separator"></div>
             <div class="ctx-item" data-action="hide" title="Hide this node from the current view">Hide this node</div>
-            ${isResearchable ? `<div class="ctx-separator"></div><div class="ctx-item ctx-item-skill" data-action="research" title="Run the research workflow for this record">Run research workflow…</div>` : ''}
             <div class="ctx-separator"></div>
             <div class="ctx-item ctx-item-muted" data-action="copy" title="Copy this node's canonical ID">Copy ID</div>
         `;
@@ -85,14 +82,6 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
                 break;
             case 'hide':
                 eventBus.emit('node:hide', { id: node.id });
-                break;
-            case 'research':
-                eventBus.emit('skill:dispatch', {
-                    skill: 'person_research',
-                    entity_id: node.id,
-                    entity_type: node.type,
-                    entity_name: node.name,
-                });
                 break;
             case 'copy':
                 navigator.clipboard.writeText(node.id).catch(() => {

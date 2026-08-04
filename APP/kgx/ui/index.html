@@ -1067,46 +1067,8 @@
     function renderToolDetails(skillHelp) {
         const { skill, help_prompts = [], source_policy = {}, settings = {} } = skillHelp;
         const args = skill.args || [];
-        const practicalUseMap = {
-            person_research: [
-                'Add a missing person to the graph.',
-                'Enrich an existing person record, e.g. with publications, contact details, and affiliations.',
-                'Refresh a person profile after new papers or role changes appear in source systems.',
-            ],
-            signal_capture: [
-                'Add a new article, announcement, or pasted text as a signal.',
-                'Import source material that should create or enrich linked graph records.',
-                'Capture a source before manually curating relationships in the graph.',
-            ],
-            event_research: [
-                'Create a missing event record from source materials.',
-                'Enrich an existing event record, e.g. with attendees, dates, and linked people.',
-                'Import event materials so attendee and topic relationships can be added automatically.',
-            ],
-            center_research: [
-                'Add a missing organization, center, or group to the graph.',
-                'Enrich an existing center record, e.g. with members and aliases.',
-                'Rebuild a center roster when the group website or local materials have changed.',
-            ],
-        };
-        const taskExampleMap = {
-            person_research: {
-                args: `"Record Name" --update`,
-                explanation: `This will augment or refresh the selected record, re-gather source-backed identity and related data, and update the stored graph entries in the runtime database.`,
-            },
-            signal_capture: {
-                args: `--url "https://example.org/source" --topic "keyword"`,
-                explanation: `This will ingest the source as a signal, extract relevant snippets around the requested topic, and add or update linked signal and graph relationships in the runtime database.`,
-            },
-            event_research: {
-                args: `--name "Event Name" --url "https://example.org/event" --date "2026-01-15"`,
-                explanation: `This will create or update the event record, derive event metadata from the source page, and write related event and participant data into the runtime database.`,
-            },
-            center_research: {
-                args: `--name "Organization Name" --alias "Short Name" --url "https://example.org/"`,
-                explanation: `This will create or expand the organization record, add aliases, pull source-backed organization details from the website, and write updated organization and membership data into the runtime database.`,
-            },
-        };
+        const practicalUseMap = {};
+        const taskExampleMap = {};
         const taskExample = taskExampleMap[skill.id] || null;
         const argsPlaceholder = taskExample?.args || `Leave blank if this run does not need extra parameters.`;
         const argItems = args.length
@@ -1312,7 +1274,7 @@
         if (!presetArgs && !window.confirm(lines.join('\n'))) return;
 
         let args = [];
-        if (entityName && skill === 'person_research') {
+        if (entityName) {
             args = [entityName];
         }
         if (presetArgs) {

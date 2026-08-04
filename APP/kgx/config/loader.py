@@ -13,6 +13,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_CONFIG_PATH = Path("config/default.yaml")
 
+# The config that ships with the package (APP/config/default.yaml), used as a
+# fallback when no --config is given and the current directory has no local
+# config/default.yaml. This lets `python -m kgx` run from any directory.
+_BUNDLED_DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config" / "default.yaml"
+
 
 def _default_person_profile_url_templates() -> list[str]:
     domain = "iastate.edu"
@@ -471,26 +476,6 @@ class PersonResearchPublicationHarvestConfig(BaseModel):
     not_older_than: int | None = 10
 
 
-class PersonResearchConfig(DBBuildSkillConfig):
-    extensions: list[str] = Field(default_factory=list)
-    role_profile: PersonRoleProfileConfig = Field(default_factory=PersonRoleProfileConfig)
-    affiliation_verification: PersonAffiliationVerificationConfig = Field(
-        default_factory=PersonAffiliationVerificationConfig
-    )
-
-
-class SignalCaptureConfig(DBBuildSkillConfig):
-    affiliation_profile: "AffiliationProfileConfig" = Field(default_factory=lambda: AffiliationProfileConfig())
-
-
-class EventResearchConfig(DBBuildSkillConfig):
-    affiliation_profile: "AffiliationProfileConfig" = Field(default_factory=lambda: AffiliationProfileConfig())
-
-
-class CenterResearchConfig(DBBuildSkillConfig):
-    affiliation_profile: "AffiliationProfileConfig" = Field(default_factory=lambda: AffiliationProfileConfig())
-
-
 class AffiliationProfileConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -548,10 +533,6 @@ class DBBuildConfig(BaseModel):
     source_policy: SourcePolicyConfig = Field(default_factory=SourcePolicyConfig)
     visualization: VisualizationBuildConfig = Field(default_factory=VisualizationBuildConfig)
     tagging: TaggingBuildConfig = Field(default_factory=TaggingBuildConfig)
-    person_research: PersonResearchConfig = Field(default_factory=PersonResearchConfig)
-    signal_capture: SignalCaptureConfig = Field(default_factory=SignalCaptureConfig)
-    event_research: EventResearchConfig = Field(default_factory=EventResearchConfig)
-    center_research: CenterResearchConfig = Field(default_factory=CenterResearchConfig)
     extensions: dict[str, PersonResearchExtensionConfig] = Field(default_factory=dict)
     skill_contexts: dict[str, SkillContextConfig] = Field(default_factory=dict)
 
@@ -709,23 +690,6 @@ db_build:
       min_support_count: 2
       include_ancestor_tags: false
       max_tags_per_person: 0
-  person_research:
-    enabled: false
-    extensions: []
-    role_profile:
-      allowed_roles: [person]
-      faculty_titles: []
-      staff_title_keywords: []
-      staff_department_keywords: []
-      student_title_keywords: []
-      default_role: staff
-      summary_target: "who they are and what they do"
-      role_instructions: {}
-    affiliation_verification:
-      not_found_action: skip
-      unavailable_action: fallback
-      fallback_require_any: [department, institutional_email, profile_page]
-    help_prompts: []
   extensions:
     isu_profile:
       institution: Iowa State University
@@ -834,15 +798,6 @@ db_build:
         not_found_action: fallback
         unavailable_action: fallback
         fallback_require_any: [profile_page]
-  signal_capture:
-    enabled: false
-    help_prompts: []
-  event_research:
-    enabled: false
-    help_prompts: []
-  center_research:
-    enabled: false
-    help_prompts: []
 """
 
 
@@ -1017,9 +972,19 @@ def load_config(path: Path | str | None = None) -> KGXConfig:
     Load config from yaml file. Creates the default config file if not found.
     Path defaults to config/default.yaml in the current directory.
     """
-    config_path = Path(path) if path else DEFAULT_CONFIG_PATH
+    if path:
+        config_path = Path(path)
+    elif DEFAULT_CONFIG_PATH.exists():
+        # Local config in the current working directory takes precedence.
+        config_path = DEFAULT_CONFIG_PATH
+    elif _BUNDLED_DEFAULT_CONFIG.exists():
+        # Fall back to the config shipped with the package so kgx runs from any cwd.
+        config_path = _BUNDLED_DEFAULT_CONFIG
+    else:
+        config_path = DEFAULT_CONFIG_PATH
 
     if not config_path.exists():
+        config_path.parent.mkdir(parents=True, exist_ok=True)
         config_path.write_text(_DEFAULT_YAML)
         print(f"Created default config: {config_path}")
 

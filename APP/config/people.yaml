@@ -145,67 +145,6 @@ db_build:
       min_support_count: 2
       include_ancestor_tags: false
       max_tags_per_person: 0
-  person_research:
-    enabled: true
-    extensions: []
-    role_profile:
-      allowed_roles: [person]
-      faculty_titles: []
-      staff_title_keywords: []
-      staff_department_keywords: []
-      student_title_keywords: []
-      default_role: staff
-      summary_target: "who they are and what they do"
-      role_instructions: {}
-    affiliation_verification:
-      not_found_action: skip
-      unavailable_action: fallback
-      fallback_require_any: [department, institutional_email, profile_page]
-    help_prompts:
-      - research this person and include publications
-      - update this person from official institutional or profile sources
-  signal_capture:
-    enabled: true
-    affiliation_profile:
-      institution: Iowa State University
-      flag_field: affiliated
-      internal_label: ISU
-      external_label: External
-      internal_domain_keywords: [iastate.edu]
-      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
-      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
-      default_affiliated: false
-    help_prompts:
-      - capture this article and classify mentioned people
-      - ingest this official announcement and produce a signal note
-  event_research:
-    enabled: true
-    affiliation_profile:
-      institution: Iowa State University
-      flag_field: affiliated
-      internal_label: ISU
-      external_label: External
-      internal_domain_keywords: [iastate.edu]
-      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
-      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
-      default_affiliated: true
-    help_prompts:
-      - research this event from the official event page and attached materials
-      - ingest these event notes and classify attendees
-  center_research:
-    enabled: true
-    affiliation_profile:
-      institution: Iowa State University
-      flag_field: affiliated
-      internal_label: ISU
-      external_label: External
-      internal_domain_keywords: [iastate.edu]
-      internal_org_keywords: [isu, iowa state, iowa state university, iastate]
-      external_org_keywords: [usda, ars, national lab, argonne, ames lab, doe, nsf, nih]
-      default_affiliated: true
-    help_prompts:
-      - research this center from its official site and local materials
-      - update this group profile and refresh its members list
   extensions:
     isu_profile:
       institution: Iowa State University
