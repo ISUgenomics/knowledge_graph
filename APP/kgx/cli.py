@@ -38,12 +38,12 @@ def _seed_db_path(db_path: Path) -> Path:
 
     Order:
     1. Adjacent sibling seed file next to the target DB
-    2. Repo sample seed at sample_data/3_db/vault.seed.db
+    2. Repo sample dataset at sample_data/3_db/nobel50.db (Nobel laureates)
     """
     sibling_seed = db_path.with_suffix(".seed.db")
     if sibling_seed.exists():
         return sibling_seed
-    return _repo_root() / "sample_data" / "3_db" / "vault.seed.db"
+    return _repo_root() / "sample_data" / "3_db" / "nobel50.db"
 
 
 def _bootstrap_db_from_seed(db_path: Path) -> bool:
