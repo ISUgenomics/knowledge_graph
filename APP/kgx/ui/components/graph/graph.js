@@ -3674,6 +3674,9 @@ const COMMUNITY_COLORS = [
 
     // ---------- Force graph init ----------
 
+    // Node currently under the cursor (set by .onNodeHover) — used for click-vs-drag detection.
+    let hoverNode = null;
+
     function initForceGraph() {
         graphInstance = ForceGraph3D({
             rendererConfig: {
@@ -3700,9 +3703,7 @@ const COMMUNITY_COLORS = [
             .linkWidth(l => getLinkWidth(l))
             .linkDirectionalParticles(l => getLinkParticles(l))
             .linkDirectionalParticleWidth(l => highlightedIds.size > 0 ? 0 : 1)
-            .onNodeClick(node => {
-                eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
-            })
+            .onNodeHover(node => { hoverNode = node; })
             .onNodeRightClick((node, event) => {
                 event.preventDefault();
                 eventBus.emit('node:right-clicked', {
@@ -3713,6 +3714,30 @@ const COMMUNITY_COLORS = [
             .onBackgroundClick(() => {
                 clearHighlight();
             });
+
+        // Click-to-select with a movement threshold. 3d-force-graph enables node
+        // dragging by default, so any tiny movement while pressing was treated as a
+        // drag and swallowed the click. Instead: a left press+release that moves less
+        // than CLICK_PX selects the node under the cursor (and unpins it so the click
+        // never leaves it nudged); larger movement stays a real drag/reposition.
+        const CLICK_PX = 5;
+        let pointerDownInfo = null;
+        container.addEventListener('pointerdown', event => {
+            if (event.button !== 0) return;
+            pointerDownInfo = { x: event.clientX, y: event.clientY, node: hoverNode };
+        });
+        container.addEventListener('pointerup', event => {
+            const start = pointerDownInfo;
+            pointerDownInfo = null;
+            if (!start || !start.node) return;
+            if (activeAxisLockKey) return; // ignore while axis-lock is rotating the camera
+            const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+            if (moved > CLICK_PX) return;  // real drag → leave the node repositioned
+            const node = start.node;
+            delete node.fx; delete node.fy; delete node.fz; // unpin any micro-drag
+            eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
+        });
+        container.addEventListener('pointercancel', () => { pointerDownInfo = null; });
 
         container.appendChild(labelLayer);
         container.appendChild(axisGizmoEl);
