@@ -3711,17 +3711,46 @@ const COMMUNITY_COLORS = [
                     x: event.clientX, y: event.clientY,
                 });
             })
-            .onBackgroundClick(() => {
-                clearHighlight();
-            });
+            .onBackgroundClick(() => {}); // selection + clear handled by the pointerup logic below
 
-        // Click-to-select with a movement threshold. 3d-force-graph enables node
-        // dragging by default, so any tiny movement while pressing was treated as a
-        // drag and swallowed the click. Instead: a left press+release that moves less
-        // than CLICK_PX selects the node under the cursor (and unpins it so the click
-        // never leaves it nudged); larger movement stays a real drag/reposition.
-        const CLICK_PX = 5;
+        // Click-to-select with a movement threshold + screen-space tolerance.
+        // 3d-force-graph enables node dragging by default and hit-tests only the exact
+        // sphere geometry (which shrinks as you zoom out), so precise aiming was needed
+        // and tiny movements were swallowed as drags. Instead: a left press+release that
+        // moves <= CLICK_PX selects the node under the cursor, or — if the raycast missed
+        // — the nearest node within SELECT_RADIUS_PX on screen (a constant target size at
+        // any zoom). Larger movement stays a real drag/reposition.
+        const CLICK_PX = 10;
+        const SELECT_RADIUS_PX = 20;
         let pointerDownInfo = null;
+
+        function screenNearestNode(clientX, clientY, radiusPx) {
+            if (!graphInstance) return null;
+            const rect = container.getBoundingClientRect();
+            const px = clientX - rect.left;
+            const py = clientY - rect.top;
+            const cam = graphInstance.camera?.();
+            const camPos = cam?.position;
+            const target = getCameraTarget?.();
+            const fwd = (camPos && target)
+                ? { x: target.x - camPos.x, y: target.y - camPos.y, z: target.z - camPos.z }
+                : null;
+            let best = null;
+            let bestDist = radiusPx;
+            for (const n of allNodes) {
+                if (n.__hidden || !Number.isFinite(n.x) || !Number.isFinite(n.y) || !Number.isFinite(n.z)) continue;
+                if (fwd && camPos) {
+                    const dot = (n.x - camPos.x) * fwd.x + (n.y - camPos.y) * fwd.y + (n.z - camPos.z) * fwd.z;
+                    if (dot <= 0) continue; // behind the camera — never select
+                }
+                const c = graphInstance.graph2ScreenCoords(n.x, n.y, n.z);
+                if (!c || !Number.isFinite(c.x) || !Number.isFinite(c.y)) continue;
+                const d = Math.hypot(c.x - px, c.y - py);
+                if (d <= bestDist) { bestDist = d; best = n; }
+            }
+            return best;
+        }
+
         container.addEventListener('pointerdown', event => {
             if (event.button !== 0) return;
             pointerDownInfo = { x: event.clientX, y: event.clientY, node: hoverNode };
@@ -3729,11 +3758,11 @@ const COMMUNITY_COLORS = [
         container.addEventListener('pointerup', event => {
             const start = pointerDownInfo;
             pointerDownInfo = null;
-            if (!start || !start.node) return;
-            if (activeAxisLockKey) return; // ignore while axis-lock is rotating the camera
+            if (!start || activeAxisLockKey) return; // ignore while axis-lock rotates the camera
             const moved = Math.hypot(event.clientX - start.x, event.clientY - start.y);
-            if (moved > CLICK_PX) return;  // real drag → leave the node repositioned
-            const node = start.node;
+            if (moved > CLICK_PX) return; // real drag → leave any node repositioned
+            const node = start.node || screenNearestNode(event.clientX, event.clientY, SELECT_RADIUS_PX);
+            if (!node) { clearHighlight(); return; } // clicked empty space → clear selection
             delete node.fx; delete node.fy; delete node.fz; // unpin any micro-drag
             eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
         });
