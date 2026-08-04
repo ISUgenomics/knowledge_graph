@@ -147,7 +147,7 @@ llm:
 
 skills:
   enabled: true
-  directory: ../../skills      # Path to LangGraph skill directories
+  directory: ../../skills      # Path to skill directories
   python: python3              # Python interpreter for skill subprocess
   model: qwen3-coder:30b       # Default model used by skills
 
@@ -479,7 +479,6 @@ Right-click any node in the graph for these actions:
 | Highlight Neighbors | Highlight all directly connected nodes in the current graph view |
 | Expand Neighbors | Show all directly connected nodes from the current graph edges |
 | Hide Node | Remove this node from the current view |
-| Research Person | (person nodes only) Run the person_research skill |
 | Copy ID | Copy the entity ID to clipboard |
 
 **Highlight Neighbors** dims all other nodes and highlights the selected node's direct connections in the graph. Click empty space to clear the highlight.
@@ -607,38 +606,30 @@ No mutation ever runs without your explicit confirmation.
 
 ## Skill Integration
 
-KGX can discover and run LangGraph skills (Python plugins) that write to the same vault.db.
+KGX can discover and run skills (Python plugins) that write to the same vault.db.
 
 ### Skill directory structure
 
 ```
 skills/
-  person_research/
-    plugin.py          # Required: skill definition
-    run.py             # Actual runner used by KGX
-    manifest.yaml      # Optional: metadata
-  event_research/
-    plugin.py
-    run_event.py
-  center_research/
-    plugin.py
-    run_center.py
-  signal_capture/
-    plugin.py
-    run_signal.py
+  genomics/
+    plugin.py            # Required: skill definition
+    run_genomics.py      # Actual runner used by KGX
+    manifest.yaml        # Optional: metadata
+  shared/                # Shared helpers: text/snippet extraction, tags, vault import/render
 ```
 
 ### manifest.yaml format
 
 ```yaml
-name: Person Research
-description: Research a person and build their profile
+name: Genomics
+description: Build a genomics graph database from a standardized source package
 entity_types:
-  - person
+  - gene
 args:
-  - name: input
-    flag: --input
-    description: Entity ID to research
+  - name: source-dir
+    flag: --source-dir
+    description: Directory containing the standardized source package
     required: true
 ```
 
@@ -646,9 +637,9 @@ If no manifest exists, the skill ID is derived from the directory name.
 
 ### Running skills from the UI
 
-1. Click `Skills` in the header to launch any available skill, or right-click a person node → `Research person...`
+1. Click `Skills` in the header to launch any available skill
 2. KGX shows the skill's configured help prompts and effective source-policy settings before launch
-3. The skill runs through its real runner script (`run.py`, `run_signal.py`, etc.), not `plugin.py`
+3. The skill runs through its real runner script (e.g. `run_genomics.py`), not `plugin.py`
 4. Output streams live to the chat panel via SSE
 5. When the skill writes to `vault.db`, the graph auto-refreshes
 
@@ -659,12 +650,12 @@ If no manifest exists, the skill ID is derived from the directory name.
 curl http://localhost:8000/api/skill/list
 
 # Show skill help + effective config
-curl http://localhost:8000/api/skill/help/person_research
+curl http://localhost:8000/api/skill/help/genomics
 
 # Run a skill
 curl -X POST http://localhost:8000/api/skill/run \
   -H "Content-Type: application/json" \
-  -d '{"skill_id": "person_research", "args": ["Jane Doe"]}'
+  -d '{"skill_id": "genomics", "args": ["--source-dir", "sample_data/1_source/genomics_scn"]}'
 
 # Stream job output (SSE)
 curl http://localhost:8000/api/skill/stream/<job_id>
@@ -828,7 +819,7 @@ curl -X POST http://localhost:8000/api/mutate/preview \
   -d '{"sql": "INSERT INTO entities (id, type, name) VALUES (\"alice\", \"person\", \"Alice Smith\")"}'
 ```
 
-Or populate it from the skill suite — the person_research, event_research, center_research, and signal_capture skills all write to vault.db automatically.
+Or populate it with the `genomics` skill, which writes to vault.db automatically, or by importing an existing markdown vault (`skills/shared/scripts/migrate_vault.py`).
 
 ### Metadata
 

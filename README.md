@@ -101,8 +101,8 @@ The bundled **sample_data/** is provided for quick testing and to show the expec
 
 ### Automated Skill-based Pipeline
 
-When you don't have the SQLite `db` for your project...  
-This suite supports automated skill-based database build for supported [modules](#modules) starting from *scratch*, *local sources* or *markdown vault*.
+When you don't have a SQLite `db` for your project...  
+The bundled skills can build `vault.db` for supported [modules](#modules) from a *local source package* or an existing *markdown vault*.
 
 Follow the steps in the CLI:
 1. Enter the root of this repo.
@@ -118,44 +118,19 @@ Follow the steps in the CLI:
     ollama serve
     ```
 
-3. Formulate a task using one of the examples, so the [module-matching](#modules) skills can collect data and compile `vault.db`. *Alternatively, you can run individual skill scripts directly as shown in [Skills](#skills) section.*
-
-    *FROM SCRATCH*
-    ```
-    Use the built-in skills for the <people> module with the <nobel_profile> extension to collect the first 50 Nobel laureates from official Nobel Prize sources into sample_data/1_source/people_nobel/api/laureates.json, then compile the database at sample_data/3_db/nobel50.db.
-    ```
-    ```
-    Use the built-in skills for the <people> module with the <isu_profile> extension to collect ISU Biotechnology Office people from the official Office of Biotechnology staff listing into sample_data/1_source/people_isu_biotech/biotech_staff.json, then compile the database at sample_data/3_db/isu_biotech.db.
-    ```
+3. Formulate a task using one of the examples so the built-in skills compile `vault.db`. *Alternatively, run the skill scripts directly (e.g. `skills/genomics/run_genomics.py`, or the vault importer in `skills/shared/scripts/`).*
 
     *FROM LOCAL SOURCE*
-    ```
-    Use the built-in skills for the <people> module with the <nobel_profile> extension to compile the Nobel sample database from sample_data/1_source/people_nobel/api/laureates.json, and write the DB to sample_data/3_db/nobel50.db.
-    ```
-    ```
-    Use the built-in skills for the <people> module with the <isu_profile> extension to compile the ISU biotech sample database from sample_data/1_source/people_isu_biotech/biotech_staff.json, and write the DB to sample_data/3_db/isu_biotech.db.
-    ```
     ```
     Use the built-in skills for the <genomics> module with the <functional_genomics> extension to infer standardized source metadata from sample_data/1_source/genomics_scn/DATA.tsv, review the mapping locally if needed, and compile the database at sample_data/3_db/genomics_scn.db.
     ```
 
-    *FROM MARKDOWN VAULT*
+    *FROM MARKDOWN VAULT (Obsidian → SQLite)*
     ```
-    Use the built-in skills for the <people> module to import the markdown vault at sample_data/2_vault/nobel/ into vault.db, preserving linked person and abstract records so I can continue enriching them in KGX.
-    ```
-    ```
-    Use the built-in skills for the <people> module to import the markdown vault at sample_data/2_vault/isu_biotech/ into vault.db, preserving linked person and abstract records so I can continue enriching them in KGX.
-    ```
-
-    *UPDATE / AUGMENTATION*
-    ```
-    Use the built-in skills for the <people> module with the <nobel_profile> extension to validate that Maria Sklodowska-Curie qualifies for the Nobel dataset, gather a complete person record from official and configured sources, and materialize the resulting updates in the sample_data/ Nobel artifacts.
+    Import the Obsidian-style markdown vault at sample_data/2_vault/nobel/ into vault.db, preserving linked person and abstract records so I can continue exploring them in KGX.
     ```
     ```
-    Use the built-in skills for the <people> module with the <isu_profile> extension to validate that a <requested person> belongs in the ISU biotech dataset, gather a complete person record from official and configured sources, preserve curated inline source settings where applicable, and materialize the resulting updates in the sample_data/ ISU biotech artifacts.
-    ```
-    ```
-    Use the built-in skills for the <people> module with the <isu_profile> extension to rebuild only the Genome Informatics Facility subset from sample_data/1_source/people_isu_biotech/biotech_staff.json into a fresh sample DB and vault, keeping the existing curated source records as the authority for matching and enrichment policy.
+    Import the Obsidian-style markdown vault at sample_data/2_vault/isu_biotech/ into vault.db, preserving linked person and abstract records so I can continue exploring them in KGX.
     ```
 
 **IMPORTANT!** - If you are adapting KGX to a new [module](#modules), use [APP/prompts/kgx-data-setup.md](APP/prompts/kgx-data-setup.md) with Claude, ChatGPT, or Codex. It walks through schema design, import scripting, tag cleanup, and config tuning for explore mode.
@@ -173,34 +148,14 @@ Currently supported modules include:
 
 <div style="border-left: solid gray 1px; padding-left: 10px;">
 
-Use the `people` module when you build academic records for organization or broader community and specialize the flow with a profile such as:
-- `isu_profile`, includes: Iowa State University LDAP/directory verification, institution-aware role inference, and profile/staff-page discovery
-- `nobel_profile`, includes: official Nobel Prize source snapshots, laureate-oriented role mapping, and award-aware enrichment from Nobel records
-
-**Related skills:** [person-research](#person-research), [signal-capture](#signal-capture), [center-research](#center-research), [event-research](#event-research)
-
-**Operational logic:**
-- [signal-capture](#signal-capture) → `runtime_data/vault/signals/<slug>-people.tsv` → [person-research](#person-research) `--input`
-- [center-research](#center-research) → `runtime_data/vault/centers/<slug>/<slug>-members.tsv` → [person-research](#person-research) `--input`
-- [event-research](#event-research) → `runtime_data/vault/events/<date>-<slug>/new-<internal-label>-attendees.tsv` → [person-research](#person-research) `--input`
+Use the `people` module to explore person-centric academic records — `person`, `publication`, and `tag` entities with their relationships and person-linked markdown abstracts. Two ready-made sample datasets are included and styled by `APP/config/people.yaml`:
+- **Nobel laureates** — `sample_data/3_db/nobel50.db` (the default dataset the app opens).
+- **ISU Biotechnology staff** — `sample_data/3_db/isu_biotech.db`.
 
 **Examples:**
 
-<details><summary>Nobel People - with <i>nobel_profile</i> extension</summary>
-For the Nobel sample, the automated builder collected source data from scratch, then populated it into database and renderd to markdown vault:
-
-```bash
-# operational flow
-LLM prompt + skill scripts ──> laureates.json   # collected source data
-sample_data/1_source/people_nobel/api/laureates.json
-    └── person_research nobel_profile / build_nobel_sample.py
-            ├──> sample_data/3_db/nobel50.db
-            └──> sample_data/2_vault/nobel/
-```
-**PROMPT:**
-```
-Use the built-in skills for the people module with the nobel_profile extension to collect the first 50 Nobel laureates from official Nobel Prize sources into `sample_data/1_source/people_nobel/api/laureates.json`, then run the people build flow to write `sample_data/3_db/nobel50.db` and render the markdown vault under `sample_data/2_vault/nobel/`.
-```
+<details><summary>Nobel People — <code>nobel50.db</code></summary>
+A ready-made sample of the first 50 Nobel laureates, styled by the `nobel_profile` settings in `config/people.yaml`. This is the dataset the app opens by default.
 
 **APP USAGE:**  
 
@@ -220,35 +175,16 @@ python -m kgx --config config/people.yaml --db /custom_path/nobel50.db
 ```
 </details>
 
-<details><summary>ISU Biotech People - with <i>isu_profile</i> extension</summary>
-For the ISU biotech sample, the automated builder collected the Office of Biotechnology staff listing into a normalized source snapshot, then populated it into database and renderd to markdown vault:
+<details><summary>ISU Biotech People — <code>isu_biotech.db</code></summary>
+A ready-made sample of ISU Office of Biotechnology staff, styled by the `isu_profile` settings in `config/people.yaml`.
 
-```bash
-# operational flow
-official staff listing + skill scripts ──> biotech_staff.json   # collected source data
-sample_data/1_source/people_isu_biotech/biotech_staff.json
-    └── person_research isu_profile / build_isu_biotech_sample.py
-            ├──> sample_data/3_db/isu_biotech.db
-            └──> sample_data/2_vault/isu_biotech/
-```
-
-The current checked-in ISU biotech sample also tracks biotech-local tag ontology inputs under:
+The checked-in ISU biotech sample also tracks biotech-local tag ontology inputs under:
 
 ```bash
 sample_data/1_source/people_isu_biotech/tags/
 ```
 
-These files let the sample build apply a sample-specific tag registry, aliases, and hierarchy instead of reusing the Nobel sample defaults.
-
-**PROMPT:**
-```
-Use the built-in skills for the people module with the isu_profile extension to collect ISU Biotechnology Office people from the official Office of Biotechnology staff listing into `sample_data/1_source/people_isu_biotech/biotech_staff.json`, then run the people build flow to write `sample_data/3_db/isu_biotech.db` and render the markdown vault under `sample_data/2_vault/isu_biotech/`.
-```
-
-The current `isu_profile` build also supports:
-- configurable acknowledgement harvesting for Office of Biotechnology and selected nested facilities
-- publication harvest controls such as maximum paper counts and a minimum publication year cutoff
-- curated per-person source settings embedded in `biotech_staff.json` for matching and exclusion fixes
+These files let the sample apply a sample-specific tag registry, aliases, and hierarchy instead of reusing the Nobel sample defaults.
 
 **APP USAGE:**  
 
@@ -453,17 +389,6 @@ runtime_data/
 │   ├── people/<slug>/
 │   │   └── <slug>.md           Person profile
 │   ├── abstracts/*.md          Per-paper notes with author wiki-links
-│   ├── centers/<slug>/
-│   │   ├── <slug>.md           Center/group note
-│   │   └── <slug>-members.tsv
-│   ├── events/<date>-<slug>/
-│   │   ├── <slug>.md           Event note
-│   │   ├── notes/*.md          Discussion topic notes
-│   │   └── new-isu-attendees.tsv
-│   ├── signals/
-│   │   ├── <slug>.md           Signal note
-│   │   ├── <slug>-people.tsv
-│   │   └── raw/<slug>.txt      Original source text
 │   ├── tags/
 │   │   └── tag-registry.md     Approved tags
 │   ├── acknowledgements/       Rendered acknowledgement evidence notes
@@ -476,6 +401,6 @@ runtime_data/
 └── tmp/
 ```
 
-Graph node colors: abstracts (lavender), people (teal), signals (coral), events (green), centers (amber), tags (purple).
+Graph node colors: abstracts (lavender), people (teal), tags (purple).
 
 `sample_data/` is checked-in example content. `runtime_data/` is local mutable state and should not be committed.
