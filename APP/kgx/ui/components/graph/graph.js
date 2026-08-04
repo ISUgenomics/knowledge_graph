@@ -3771,10 +3771,7 @@ const COMMUNITY_COLORS = [
             if (g.controls) g.controls.enabled = true;
             if (g.pointerId != null) container.releasePointerCapture?.(g.pointerId);
             if (g.dragging) {
-                graphInstance.d3AlphaTarget?.(0); // stop the tick loop
-                for (const n of allNodes) {
-                    if (n.__dragFrozen) { delete n.fx; delete n.fy; delete n.fz; delete n.__dragFrozen; }
-                }
+                graphInstance.d3AlphaTarget?.(0); // let the layout settle; dragged node stays pinned where dropped
             }
         }
 
@@ -3800,15 +3797,11 @@ const COMMUNITY_COLORS = [
             const moved = Math.hypot(event.clientX - grab.startX, event.clientY - grab.startY);
             if (moved > DRAG_START_PX) {
                 grab.dragging = true;
-                // Freeze every other node (pin at current position) so ONLY the dragged node
-                // moves — no global jiggle. Already-pinned nodes are left as-is.
-                for (const n of allNodes) {
-                    if (n === grab.node || n.fx != null) continue;
-                    n.fx = n.x; n.fy = n.y; n.fz = n.z; n.__dragFrozen = true;
-                }
+                // Pin the dragged node so it follows the cursor and stays where dropped; reheat so
+                // the OTHER nodes relax and re-arrange around it (standard force-graph drag).
                 grab.node.fx = grab.node.x; grab.node.fy = grab.node.y; grab.node.fz = grab.node.z;
-                graphInstance.d3AlphaTarget?.(0.3);   // stay warm so the tick loop keeps running
-                graphInstance.d3ReheatSimulation?.();  // restart ticks if the layout had cooled/stopped
+                graphInstance.d3AlphaTarget?.(0.3);   // keep warm during the drag
+                graphInstance.d3ReheatSimulation?.();  // resume ticks if the layout had cooled
             }
         });
         const endGrab = event => {
