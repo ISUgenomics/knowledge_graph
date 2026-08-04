@@ -56,7 +56,7 @@ New to KGX data setup? Give an LLM [prompts/kgx-data-setup.md](prompts/kgx-data-
 
 ```bash
 cd /path/to/KnowledgeGraph
-conda activate agentplugin
+conda activate knowledgegraph
 cd APP
 python -m kgx
 ```
@@ -103,7 +103,7 @@ You also need:
 
 ```bash
 cd /path/to/KnowledgeGraph
-conda activate agentplugin
+conda activate knowledgegraph
 cd APP
 
 # Now you can run:
@@ -116,7 +116,7 @@ Create the environment once from the repo root:
 ```bash
 cd /path/to/KnowledgeGraph
 conda env create -f environment.yml
-conda activate agentplugin
+conda activate knowledgegraph
 ```
 
 Sample alternate config:
@@ -206,7 +206,7 @@ kgx --no-browser              # Don't auto-open browser
    ```bash
    cd /path/to/KnowledgeGraph
    conda env create -f environment.yml
-   conda activate agentplugin
+   conda activate knowledgegraph
    ```
 3. **Install Ollama** from https://ollama.com and start it:
    ```bash

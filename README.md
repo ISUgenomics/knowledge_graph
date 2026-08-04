@@ -10,12 +10,12 @@ KnowledgeGraph centers on a KGX-compatible SQLite database (`vault.db`) that pow
 
 ```bash
 conda env create -f environment.yml
-conda activate agentplugin
+conda activate knowledgegraph
 ```
 
 The environment file installs:
 - the editable `APP` package
-- LangGraph and LangChain packages used by bundled skills
+- FastAPI/uvicorn and supporting packages for the app
 - `numpy` and `umap-learn` for UMAP layout support
 - test dependencies
 
