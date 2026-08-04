@@ -3704,7 +3704,8 @@ const COMMUNITY_COLORS = [
             .linkDirectionalParticles(l => getLinkParticles(l))
             .linkDirectionalParticleWidth(l => highlightedIds.size > 0 ? 0 : 1)
             .onNodeHover(node => { hoverNode = node; })
-            .enableNodeDrag(false) // built-in drag nudges nodes on click; custom dead-zone drag is below
+            .enableNodeDrag(true) // built-in drag: node follows and stays where dropped, neighbors relax around it
+            .onNodeDragEnd(node => { node.fx = node.x; node.fy = node.y; node.fz = node.z; }) // keep the dropped node pinned
             .onNodeRightClick((node, event) => {
                 event.preventDefault();
                 eventBus.emit('node:right-clicked', {
@@ -3714,17 +3715,13 @@ const COMMUNITY_COLORS = [
             })
             .onBackgroundClick(() => {}); // selection + clear handled by the pointerup logic below
 
-        // Custom click/drag with a dead-zone. The library's built-in node drag is
-        // disabled (.enableNodeDrag(false)) so a press never nudges a node. Instead:
-        //  - press+release moving <= DRAG_START_PX → SELECT the node under the cursor, or
-        //    (raycast miss) the nearest node within SELECT_RADIUS_PX on screen — a constant
-        //    target size at any zoom.
-        //  - press ON a node then move > DRAG_START_PX → DRAG that node (camera frozen).
-        //  - press in empty space → camera orbits as usual.
-        const DRAG_START_PX = 20;     // dead-zone before a drag begins; also the click cutoff
-        const SELECT_RADIUS_PX = 50;  // screen-space click tolerance
-        const DRAG_GRAB_PX = 22;      // how close to a node a press must be to grab it for dragging
-        let grab = null;              // { node, startX, startY, dragging, controls }
+        // The library's built-in node drag (enabled above) does the repositioning: a node
+        // follows the cursor and stays where dropped while its neighbors relax around it.
+        // These listeners add reliable click-to-SELECT with a movement dead-zone + screen
+        // tolerance, and undo the tiny nudge a click can impart to the pressed node.
+        const CLICK_PX = 20;          // press+release within this many px = a click, not a drag
+        const SELECT_RADIUS_PX = 50;  // screen-space click tolerance for selecting near a node
+        let downInfo = null;          // { x, y, node, snap }
 
         function screenNearestNode(clientX, clientY, radiusPx) {
             if (!graphInstance) return null;
@@ -3753,71 +3750,34 @@ const COMMUNITY_COLORS = [
             return best;
         }
 
-        // Project a screen point onto the plane at the grabbed node's depth (for drag).
-        function pointerToNodeDepthCoords(clientX, clientY, node) {
-            const rect = container.getBoundingClientRect();
-            const px = clientX - rect.left;
-            const py = clientY - rect.top;
-            const camPos = graphInstance.camera?.()?.position;
-            const dist = (camPos && Number.isFinite(node.x))
-                ? Math.hypot(node.x - camPos.x, node.y - camPos.y, node.z - camPos.z)
-                : 0;
-            return graphInstance.screen2GraphCoords?.(px, py, dist);
-        }
-
-        // Restore camera + cool the sim + un-freeze the graph after a drag/cancel.
-        function releaseDrag(g) {
-            if (!g) return;
-            if (g.controls) g.controls.enabled = true;
-            if (g.pointerId != null) container.releasePointerCapture?.(g.pointerId);
-            if (g.dragging) {
-                graphInstance.d3AlphaTarget?.(0); // let the layout settle; dragged node stays pinned where dropped
-            }
-        }
-
         container.addEventListener('pointerdown', event => {
-            if (event.button !== 0 || activeAxisLockKey) return; // let axis-lock own its drag
-            const grabNode = hoverNode || screenNearestNode(event.clientX, event.clientY, DRAG_GRAB_PX);
-            grab = { node: grabNode || null, startX: event.clientX, startY: event.clientY, dragging: false, controls: null, pointerId: event.pointerId };
-            if (grab.node) {
-                // Pressed on a node: capture the pointer (never miss the release) and freeze
-                // the camera so this gesture is a click or a node-drag, not an orbit.
-                container.setPointerCapture?.(event.pointerId);
-                const controls = graphInstance.controls?.();
-                if (controls) { grab.controls = controls; controls.enabled = false; }
-            }
+            if (event.button !== 0 || activeAxisLockKey) return; // let axis-lock own its gesture
+            const node = hoverNode; // the node the built-in drag would grab (exact hit)
+            downInfo = {
+                x: event.clientX, y: event.clientY, node,
+                snap: node ? { x: node.x, y: node.y, z: node.z, fx: node.fx, fy: node.fy, fz: node.fz } : null,
+            };
         });
-        container.addEventListener('pointermove', event => {
-            if (!grab || !grab.node) return;
-            if (grab.dragging) {
-                const c = pointerToNodeDepthCoords(event.clientX, event.clientY, grab.node);
-                if (c) { grab.node.fx = c.x; grab.node.fy = c.y; grab.node.fz = c.z; }
-                return;
+        container.addEventListener('pointerup', event => {
+            const d = downInfo; downInfo = null;
+            if (!d || activeAxisLockKey) return;
+            const moved = Math.hypot(event.clientX - d.x, event.clientY - d.y);
+            if (moved > CLICK_PX) return; // a real drag → the built-in drag already handled it
+            // A click: undo any micro-nudge/pin the built-in drag applied to the pressed node,
+            // and stop the click-induced reheat, so a click never moves anything.
+            if (d.node && d.snap) {
+                const n = d.node, s = d.snap;
+                n.x = s.x; n.y = s.y; n.z = s.z;
+                if (s.fx == null) delete n.fx; else n.fx = s.fx;
+                if (s.fy == null) delete n.fy; else n.fy = s.fy;
+                if (s.fz == null) delete n.fz; else n.fz = s.fz;
+                graphInstance.d3AlphaTarget?.(0);
             }
-            const moved = Math.hypot(event.clientX - grab.startX, event.clientY - grab.startY);
-            if (moved > DRAG_START_PX) {
-                grab.dragging = true;
-                // Pin the dragged node so it follows the cursor and stays where dropped; reheat so
-                // the OTHER nodes relax and re-arrange around it (standard force-graph drag).
-                grab.node.fx = grab.node.x; grab.node.fy = grab.node.y; grab.node.fz = grab.node.z;
-                graphInstance.d3AlphaTarget?.(0.3);   // keep warm during the drag
-                graphInstance.d3ReheatSimulation?.();  // resume ticks if the layout had cooled
-            }
-        });
-        const endGrab = event => {
-            const g = grab;
-            grab = null;
-            releaseDrag(g);
-            if (!g || g.dragging) return; // it was a drag → node already repositioned
-            if (activeAxisLockKey) return;
-            const moved = Math.hypot(event.clientX - g.startX, event.clientY - g.startY);
-            if (moved > DRAG_START_PX) return; // moved a lot but wasn't a node drag → ignore
-            const node = g.node || screenNearestNode(event.clientX, event.clientY, SELECT_RADIUS_PX);
-            if (!node) { clearHighlight(); return; } // empty space → clear selection
+            const node = d.node || screenNearestNode(event.clientX, event.clientY, SELECT_RADIUS_PX);
+            if (!node) { clearHighlight(); return; } // clicked empty space → clear selection
             eventBus.emit('node:selected', { id: node.id, type: node.type, name: getNodeDisplayName(node) });
-        };
-        container.addEventListener('pointerup', endGrab);
-        container.addEventListener('pointercancel', () => { const g = grab; grab = null; releaseDrag(g); });
+        });
+        container.addEventListener('pointercancel', () => { downInfo = null; });
 
         container.appendChild(labelLayer);
         container.appendChild(axisGizmoEl);
