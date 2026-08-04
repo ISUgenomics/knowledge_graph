@@ -6,3 +6,5 @@ sample_data/1_source/people_nobel/matches/*.json
 **/__pycache__/
 **/.pytest_cache/
 APP/kgx.egg-info/
+temp
+.local_zsh_history
