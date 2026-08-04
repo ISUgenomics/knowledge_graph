@@ -3723,6 +3723,7 @@ const COMMUNITY_COLORS = [
         //  - press in empty space → camera orbits as usual.
         const DRAG_START_PX = 20;     // dead-zone before a drag begins; also the click cutoff
         const SELECT_RADIUS_PX = 50;  // screen-space click tolerance
+        const DRAG_GRAB_PX = 22;      // how close to a node a press must be to grab it for dragging
         let grab = null;              // { node, startX, startY, dragging, controls }
 
         function screenNearestNode(clientX, clientY, radiusPx) {
@@ -3779,7 +3780,8 @@ const COMMUNITY_COLORS = [
 
         container.addEventListener('pointerdown', event => {
             if (event.button !== 0 || activeAxisLockKey) return; // let axis-lock own its drag
-            grab = { node: hoverNode || null, startX: event.clientX, startY: event.clientY, dragging: false, controls: null, pointerId: event.pointerId };
+            const grabNode = hoverNode || screenNearestNode(event.clientX, event.clientY, DRAG_GRAB_PX);
+            grab = { node: grabNode || null, startX: event.clientX, startY: event.clientY, dragging: false, controls: null, pointerId: event.pointerId };
             if (grab.node) {
                 // Pressed on a node: capture the pointer (never miss the release) and freeze
                 // the camera so this gesture is a click or a node-drag, not an orbit.
@@ -3805,7 +3807,8 @@ const COMMUNITY_COLORS = [
                     n.fx = n.x; n.fy = n.y; n.fz = n.z; n.__dragFrozen = true;
                 }
                 grab.node.fx = grab.node.x; grab.node.fy = grab.node.y; grab.node.fz = grab.node.z;
-                graphInstance.d3AlphaTarget?.(0.1); // low warmth just to keep the dragged node rendering
+                graphInstance.d3AlphaTarget?.(0.3);   // stay warm so the tick loop keeps running
+                graphInstance.d3ReheatSimulation?.();  // restart ticks if the layout had cooled/stopped
             }
         });
         const endGrab = event => {
