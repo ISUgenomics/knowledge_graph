@@ -179,6 +179,14 @@ export function initGraph(container, eventBus, apiClient) {
         anchorLabelRotate: 0,
         anchorLabelZRotate: 0,
     };
+    let sphericalSettings = {
+        anchorType: '',   // '' => auto-pick the most common visible node type
+        radius: 0,        // 0 => auto-scale from anchor/node/edge counts
+        groupByConnectivity: true, // cluster anchors that share neighbors together
+    };
+    // Live sphere pin targets keyed by node id; the per-tick force re-pins from
+    // this, so removing an entry (e.g. on relax) frees that anchor.
+    let sphericalTargets = new Map();
     let hierarchySettings = {
         levelSpacing: DEFAULT_HIERARCHY_LEVEL_SPACING,
         typeSeparation: DEFAULT_HIERARCHY_TYPE_SEPARATION,
@@ -407,8 +415,11 @@ const COMMUNITY_COLORS = [
         };
     }
 
-    // Label propagation community detection on visible subgraph
-    function detectCommunities() {
+    // Label propagation over the visible subgraph. Returns { nodeId: communityLabel }.
+    // Nodes linked through shared neighbors converge to the same label, so this
+    // doubles as a generic connectivity-based grouping (reused by the spherical
+    // layout to cluster anchors that attach to the same things).
+    function computeCommunityLabels() {
         const rng = seededRng(42);
         const resolution = communityResolution;
 
@@ -473,6 +484,12 @@ const COMMUNITY_COLORS = [
             }
             if (!changed) break;
         }
+        return label;
+    }
+
+    // Community coloring on visible subgraph
+    function detectCommunities() {
+        const label = computeCommunityLabels();
 
         // Assign colors to communities
         const uniqueLabels = [...new Set(Object.values(label))];
@@ -3242,6 +3259,10 @@ const COMMUNITY_COLORS = [
             await applyTimelineLayout();
             return;
         }
+        if (currentLayout === 'spherical' && graphInstance) {
+            applySphericalLayout();
+            return;
+        }
         if (currentLayout === 'td' && graphInstance) {
             await applyHierarchicalLayout();
             return;
@@ -3657,6 +3678,8 @@ const COMMUNITY_COLORS = [
             emitProjectionSnapshot({ autoHiddenRelTypes });
             if (currentLayout === 'timeline') {
                 applyTimelineLayout();
+            } else if (currentLayout === 'spherical') {
+                applySphericalLayout();
             } else if (currentLayout === 'td') {
                 applyHierarchicalLayout();
             } else if (currentLayout === 'cluster') {
@@ -3930,6 +3953,33 @@ const COMMUNITY_COLORS = [
         }
     });
 
+    eventBus.on('spherical:settings', (settings) => {
+        sphericalSettings = {
+            anchorType: settings.anchorType || '',
+            radius: Number.isFinite(settings.radius) ? settings.radius : 0,
+            groupByConnectivity: settings.groupByConnectivity !== false,
+        };
+        if (currentLayout === 'spherical' && graphInstance) {
+            applySphericalLayout();
+        }
+    });
+
+    // Report visible node types plus the auto-radius default so the settings
+    // panel can populate the anchor-type dropdown and show the current radius.
+    eventBus.on('spherical:get-info', ({ callback }) => {
+        const counts = new Map();
+        for (const n of allNodes) {
+            if (n.__hidden) continue;
+            counts.set(n.type, (counts.get(n.type) || 0) + 1);
+        }
+        const types = [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+            .map(([type, count]) => ({ type, count }));
+        const anchorType = resolveSphericalAnchorType();
+        const anchorCount = counts.get(anchorType) || 0;
+        callback({ types, anchorType, autoRadius: computeSphericalAutoRadius(anchorCount) });
+    });
+
     eventBus.on('hierarchy:settings', (settings) => {
         hierarchySettings = {
             levelSpacing: Number.isFinite(settings.levelSpacing) ? settings.levelSpacing : DEFAULT_HIERARCHY_LEVEL_SPACING,
@@ -4077,6 +4127,8 @@ const COMMUNITY_COLORS = [
         if (!graphInstance) return;
         const node = allNodes.find(n => n.id === id);
         if (!node) return;
+        // Drop any spherical pin target so the per-tick force stops re-pinning it.
+        sphericalTargets.delete(id);
         delete node.fx; delete node.fy; delete node.fz;
         graphInstance.d3ReheatSimulation?.();
     });
@@ -4128,7 +4180,9 @@ const COMMUNITY_COLORS = [
         graphInstance.d3Force('hierarchyPeers', null);
         graphInstance.d3Force('hierarchySparseHold', null);
         graphInstance.d3Force('timeline', null);
+        graphInstance.d3Force('spherical', null);
         graphInstance.d3Force('umap', null);
+        sphericalTargets = new Map();
         timelineAnchorTargets = new Map();
         timelineAnchorLabelTargets = new Map();
         for (const n of allNodes) {
@@ -4279,6 +4333,191 @@ const COMMUNITY_COLORS = [
         graphInstance.d3ReheatSimulation();
     }
 
+    // Pick the anchor type for the spherical layout: an explicit override when
+    // it still matches a visible type, otherwise the most common visible type.
+    function resolveSphericalAnchorType() {
+        const counts = new Map();
+        for (const n of allNodes) {
+            if (n.__hidden) continue;
+            const t = n.type;
+            counts.set(t, (counts.get(t) || 0) + 1);
+        }
+        const override = sphericalSettings.anchorType;
+        if (override && counts.get(override) > 0) return override;
+        let best = '';
+        let bestCount = -1;
+        for (const [type, count] of counts.entries()) {
+            if (count > bestCount) { best = type; bestCount = count; }
+        }
+        return best;
+    }
+
+    // Default sphere radius scales with the number of pinned anchors so they
+    // stay ~evenly spaced, nudged up when the graph is edge-dense so relaxing
+    // neighbors have room. Returns a rounded, clamped value.
+    function computeSphericalAutoRadius(anchorCount) {
+        const visibleNodes = allNodes.filter(n => !n.__hidden).length || 1;
+        const visibleEdges = allEdges.filter(e => !e.__hidden).length;
+        const baseSpacing = 150; // target surface distance between anchors
+        // 4*pi*R^2 ~= anchorCount * baseSpacing^2  ->  R ~= baseSpacing*sqrt(N)/sqrt(4pi)
+        const n = Math.max(anchorCount, 1);
+        let radius = baseSpacing * Math.sqrt(n) / Math.sqrt(4 * Math.PI);
+        // Edge density factor: more edges per node => a little more breathing room.
+        const density = visibleEdges / visibleNodes;
+        radius *= Math.max(1, Math.min(1.6, 1 + density / 8));
+        return Math.max(200, Math.round(radius));
+    }
+
+    // Evenly distribute `total` points on a sphere of the given radius using a
+    // Fibonacci (golden-angle) spiral, which is near-equidistant for any count.
+    function fibonacciSpherePoint(index, total, radius) {
+        const n = Math.max(total, 1);
+        const offset = 2 / n;
+        const increment = Math.PI * (3 - Math.sqrt(5)); // golden angle
+        const y = (index * offset - 1) + offset / 2;
+        const r = Math.sqrt(Math.max(0, 1 - y * y));
+        const phi = index * increment;
+        return {
+            x: Math.cos(phi) * r * radius,
+            y: y * radius,
+            z: Math.sin(phi) * r * radius,
+        };
+    }
+
+    // Distribute `count` near-equidistant unit directions inside a spherical cap
+    // of the given half-angle around `center`, via an equal-area sunflower spiral.
+    // Used to place each anchor community into a compact patch on the sphere.
+    function sphericalCapDirections(center, count, halfAngle) {
+        const len = Math.hypot(center.x, center.y, center.z) || 1;
+        const c = { x: center.x / len, y: center.y / len, z: center.z / len };
+        // Local frame (u, v) orthonormal to c.
+        const helper = Math.abs(c.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+        let u = {
+            x: helper.y * c.z - helper.z * c.y,
+            y: helper.z * c.x - helper.x * c.z,
+            z: helper.x * c.y - helper.y * c.x,
+        };
+        const ulen = Math.hypot(u.x, u.y, u.z) || 1;
+        u = { x: u.x / ulen, y: u.y / ulen, z: u.z / ulen };
+        const v = {
+            x: c.y * u.z - c.z * u.y,
+            y: c.z * u.x - c.x * u.z,
+            z: c.x * u.y - c.y * u.x,
+        };
+        const golden = Math.PI * (3 - Math.sqrt(5));
+        const dirs = [];
+        for (let j = 0; j < count; j++) {
+            const t = count > 1 ? Math.sqrt((j + 0.5) / count) : 0; // equal-area radius
+            const alpha = halfAngle * t;
+            const beta = j * golden;
+            const sinA = Math.sin(alpha);
+            const cosA = Math.cos(alpha);
+            const cosB = Math.cos(beta);
+            const sinB = Math.sin(beta);
+            dirs.push({
+                x: cosA * c.x + sinA * (cosB * u.x + sinB * v.x),
+                y: cosA * c.y + sinA * (cosB * u.y + sinB * v.y),
+                z: cosA * c.z + sinA * (cosB * u.z + sinB * v.z),
+            });
+        }
+        return dirs;
+    }
+
+    // Build sphere pin targets for the given anchor nodes. When grouping is on,
+    // anchors are clustered by community (shared-neighbor connectivity) into
+    // size-proportional caps so related anchors share a region; otherwise they
+    // spread evenly over the whole sphere.
+    function buildSphericalTargets(anchors, radius, group) {
+        const targets = new Map();
+        if (!group || anchors.length <= 1) {
+            anchors.forEach((node, i) => {
+                targets.set(node.id, fibonacciSpherePoint(i, anchors.length, radius));
+            });
+            return targets;
+        }
+
+        const labels = computeCommunityLabels();
+        const groups = new Map();
+        for (const node of anchors) {
+            const key = labels[node.id] != null ? String(labels[node.id]) : `solo:${node.id}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(node);
+        }
+        // Largest groups first, deterministic; members sorted for stable placement.
+        const groupList = [...groups.entries()]
+            .map(([key, members]) => ({
+                key,
+                members: members.sort((a, b) => String(a.id).localeCompare(String(b.id))),
+            }))
+            .sort((a, b) => b.members.length - a.members.length || a.key.localeCompare(b.key));
+
+        const groupCount = groupList.length;
+        const total = anchors.length;
+        groupList.forEach((grp, gi) => {
+            // Equidistant group centers over the sphere.
+            const center = fibonacciSpherePoint(gi, groupCount, 1);
+            const frac = grp.members.length / total;
+            // Cap area fraction == member fraction keeps node density uniform;
+            // slight shrink leaves gaps between neighboring communities.
+            let halfAngle = Math.acos(Math.max(-1, Math.min(1, 1 - 2 * frac)));
+            if (groupCount > 1) halfAngle *= 0.9;
+            const dirs = sphericalCapDirections(center, grp.members.length, halfAngle);
+            grp.members.forEach((node, j) => {
+                const d = dirs[j];
+                targets.set(node.id, { x: d.x * radius, y: d.y * radius, z: d.z * radius });
+            });
+        });
+        return targets;
+    }
+
+    // Pin every node of the chosen anchor type equidistant on a sphere surface
+    // and let all other nodes relax around them under the normal force sim.
+    function applySphericalLayout() {
+        if (!graphInstance) return;
+        const anchorType = resolveSphericalAnchorType();
+        const anchors = allNodes
+            .filter(n => !n.__hidden && n.type === anchorType)
+            // Deterministic order so re-applying yields stable placement.
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+        const radius = (Number.isFinite(sphericalSettings.radius) && sphericalSettings.radius > 0)
+            ? sphericalSettings.radius
+            : computeSphericalAutoRadius(anchors.length);
+
+        sphericalTargets = buildSphericalTargets(
+            anchors,
+            radius,
+            sphericalSettings.groupByConnectivity !== false,
+        );
+
+        // Snap anchors onto the sphere and free everyone else to relax.
+        for (const node of allNodes) {
+            const target = sphericalTargets.get(node.id);
+            if (target) {
+                node.x = target.x; node.y = target.y; node.z = target.z;
+                node.vx = 0; node.vy = 0; node.vz = 0;
+                node.fx = target.x; node.fy = target.y; node.fz = target.z;
+            } else {
+                delete node.fx; delete node.fy; delete node.fz;
+            }
+        }
+
+        // Re-pin anchors every tick so drags/relax elsewhere can't drift them.
+        // Anchors removed from sphericalTargets (via "Unpin node") stay free.
+        graphInstance.d3Force('spherical', () => {
+            for (const node of allNodes) {
+                const target = sphericalTargets.get(node.id);
+                if (!target) continue;
+                node.fx = target.x; node.fy = target.y; node.fz = target.z;
+            }
+        });
+        // Re-register visibility predicates + counts so node/edge type filters
+        // hide nodes here just like they do in force mode.
+        refreshVisibility();
+        emitProjectionSnapshot();
+        graphInstance.d3ReheatSimulation();
+    }
+
     eventBus.on('layout:change', async ({ layout }) => {
         if (!graphInstance) return;
         currentLayout = layout;
@@ -4297,6 +4536,9 @@ const COMMUNITY_COLORS = [
 
         } else if (layout === 'timeline') {
             await applyTimelineLayout();
+
+        } else if (layout === 'spherical') {
+            applySphericalLayout();
 
         } else if (layout === 'td') {
             await applyHierarchicalLayout();

@@ -454,7 +454,9 @@
                     <option value="force">Force</option>
                     <option value="cluster">Cluster by Type</option>
                     <option value="timeline">Timeline</option>
-                    <option value="umap">UMAP</option>
+                    <option value="spherical">Spherical</option>
+                    <!-- UMAP hidden until the layout is working — see docs/BACKLOG.md. Code retained. -->
+                    <!-- <option value="umap">UMAP</option> -->
                     <option value="td">Hierarchical ↓</option>
                 </select>
                 <button class="header-btn" id="btn-force-settings" title="Graph and layout settings">Settings</button>
@@ -655,6 +657,33 @@
                     </div>
                 </div>
             </div>
+            <div id="fs-spherical-info" style="display:none;padding-top:6px;margin-top:0;">
+                <div style="display:flex;flex-direction:column;gap:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+                    <div>Pins every node of the chosen type equidistant on a sphere, then lets connected nodes relax around them.</div>
+                    <div class="fs-group">
+                        <label for="fs-spherical-anchor-type">Anchor Type</label>
+                        <select id="fs-spherical-anchor-type" class="header-btn" style="width:100%;"
+                            title="Choose which node type is pinned equidistant around the sphere">
+                        </select>
+                    </div>
+                    <div class="fs-group">
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                            <input type="checkbox" id="fs-spherical-group" checked title="Cluster anchors that share connected neighbors into the same region of the sphere">
+                            <span>Group by shared connections</span>
+                        </label>
+                    </div>
+                    <div class="fs-group">
+                        <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+                            <input type="checkbox" id="fs-spherical-auto-radius" checked title="Auto-scale the sphere radius from the number of anchors, nodes, and edges">
+                            <span>Auto radius (scales with node &amp; edge count)</span>
+                        </label>
+                    </div>
+                    <div class="fs-group">
+                        <label>Radius <span id="fs-spherical-radius-val" class="fs-val"></span></label>
+                        <input type="range" id="fs-spherical-radius" min="200" max="4000" step="25" class="fs-slider" title="Set the sphere radius on which anchor nodes are pinned">
+                    </div>
+                </div>
+            </div>
             <div id="fs-hierarchy-info" style="display:none;padding-top:0;margin-top:0;">
                 <div style="display:flex;flex-direction:column;gap:8px;font-size:11px;color:var(--text-muted);line-height:1.5;">
                     <div class="fs-group">
@@ -812,6 +841,7 @@
         );
         if (fsPanel.style.display === 'block') {
             if (activeLayout === 'timeline') fsRenderTimelineInfo();
+            if (activeLayout === 'spherical') fsRenderSphericalInfo();
             if (activeLayout === 'td') fsRenderHierarchyInfo();
         }
     });
@@ -821,6 +851,10 @@
     let activeLayout = layoutSelect.value || 'force';
     let currentGraphMode = 'explore';
     let currentProjectedTypeCounts = new Map();
+    let sphericalAnchorType = '';   // '' => auto-pick most common type
+    let sphericalGroup = true;      // cluster anchors by shared connections
+    let sphericalAutoRadius = true;
+    let sphericalRadius = 0;         // manual radius when auto is off
     let timelineProfileLoaded = false;
     let timelineOptions = null;
     let timelineProfile = null;
@@ -960,6 +994,8 @@
             const profile = await ensureTimelineProfile();
             if (!timelineSessionProfile) timelineSessionProfile = applyTimelineOverridesToProfile(profile);
             bus.emit('timeline:settings', getTimelineAppliedSettings(timelineSessionProfile));
+        } else if (layout === 'spherical') {
+            bus.emit('spherical:settings', getSphericalAppliedSettings());
         } else if (layout === 'td') {
             bus.emit('hierarchy:settings', getAppliedHierarchySettings());
         }
@@ -1341,6 +1377,12 @@
     const fsForceOnlyPrimary = document.getElementById('fs-force-only-primary');
     const fsForceOnlySecondary = document.getElementById('fs-force-only-secondary');
     const fsTimelineInfo = document.getElementById('fs-timeline-info');
+    const fsSphericalInfo = document.getElementById('fs-spherical-info');
+    const fsSphericalAnchorType = document.getElementById('fs-spherical-anchor-type');
+    const fsSphericalGroup = document.getElementById('fs-spherical-group');
+    const fsSphericalAutoRadius = document.getElementById('fs-spherical-auto-radius');
+    const fsSphericalRadius = document.getElementById('fs-spherical-radius');
+    const fsSphericalRadiusVal = document.getElementById('fs-spherical-radius-val');
     const fsHierarchyInfo = document.getElementById('fs-hierarchy-info');
     const fsHierarchyLevelSpacing = document.getElementById('fs-hierarchy-level-spacing');
     const fsHierarchyLevelSpacingVal = document.getElementById('fs-hierarchy-level-spacing-val');
@@ -1543,6 +1585,7 @@
     function describeActiveLayout() {
         if (activeLayout === 'cluster') return 'cluster by type';
         if (activeLayout === 'timeline') return 'timeline';
+        if (activeLayout === 'spherical') return 'spherical';
         if (activeLayout === 'umap') return 'umap';
         if (activeLayout === 'td') return 'hierarchical';
         return activeLayout || 'force';
@@ -1591,6 +1634,44 @@
         fsHierarchyCoreOffsetRow.style.display = isSparse ? 'none' : 'flex';
         fsHierarchyShapeRow.style.display = isSparse ? 'none' : 'flex';
         fsHierarchyTypeSeparationRow.style.display = 'none';
+    }
+
+    function getSphericalAppliedSettings() {
+        return {
+            anchorType: sphericalAnchorType || '',
+            radius: sphericalAutoRadius ? 0 : sphericalRadius,
+            groupByConnectivity: sphericalGroup,
+        };
+    }
+
+    function emitSphericalSettings() {
+        bus.emit('spherical:settings', getSphericalAppliedSettings());
+    }
+
+    // Pull live types + auto-radius from the graph and repopulate the panel.
+    function fsRenderSphericalInfo() {
+        bus.emit('spherical:get-info', {
+            callback: (info) => {
+                const types = Array.isArray(info?.types) ? info.types : [];
+                const resolvedAnchor = info?.anchorType || '';
+                const autoRadius = Number.isFinite(info?.autoRadius) ? info.autoRadius : 0;
+
+                fsSphericalAnchorType.innerHTML = types
+                    .map(t => `<option value="${t.type}">${t.type} (${t.count})</option>`)
+                    .join('') || '<option value="">no visible types</option>';
+                // Keep the current override if still valid, else follow the resolved auto pick.
+                const validOverride = sphericalAnchorType
+                    && types.some(t => t.type === sphericalAnchorType);
+                fsSphericalAnchorType.value = validOverride ? sphericalAnchorType : resolvedAnchor;
+
+                fsSphericalGroup.checked = sphericalGroup;
+                fsSphericalAutoRadius.checked = sphericalAutoRadius;
+                const shown = sphericalAutoRadius ? autoRadius : (sphericalRadius || autoRadius);
+                if (sphericalAutoRadius) sphericalRadius = autoRadius;
+                fsSphericalRadius.value = String(shown);
+                fsSphericalRadiusVal.textContent = sphericalAutoRadius ? `${shown} (auto)` : String(shown);
+            },
+        });
     }
 
     function fsRenderTimelineInfo() {
@@ -1669,6 +1750,7 @@
         const label = describeActiveLayout();
         const isForceLayout = activeLayout === 'force';
         const isTimelineLayout = activeLayout === 'timeline';
+        const isSphericalLayout = activeLayout === 'spherical';
         const isHierarchyLayout = activeLayout === 'td';
         fsPanelTitle.textContent = isForceLayout ? 'Graph Settings · force' : `Graph Settings · ${label}`;
         fsArrangementHeading.textContent = `Arrangement · ${label}`;
@@ -1676,14 +1758,18 @@
             ? 'Force-specific controls and shared graph edge visuals are available for the active layout.'
             : (isTimelineLayout
                 ? 'Timeline uses detected-compatible anchors plus shared graph edge visuals.'
-                : (isHierarchyLayout
-                    ? ''
-                    : `Only shared graph edge visuals are available for the ${label} layout right now.`));
+                : (isSphericalLayout
+                    ? 'Spherical pins one node type equidistant on a sphere and relaxes the rest.'
+                    : (isHierarchyLayout
+                        ? ''
+                        : `Only shared graph edge visuals are available for the ${label} layout right now.`)));
         fsForceOnlyPrimary.style.display = isForceLayout ? 'flex' : 'none';
         fsForceOnlySecondary.style.display = isForceLayout ? 'flex' : 'none';
         fsTimelineInfo.style.display = isTimelineLayout ? 'block' : 'none';
+        fsSphericalInfo.style.display = isSphericalLayout ? 'block' : 'none';
         fsHierarchyInfo.style.display = isHierarchyLayout ? 'block' : 'none';
         if (isTimelineLayout) fsRenderTimelineInfo();
+        if (isSphericalLayout) fsRenderSphericalInfo();
         if (isHierarchyLayout) fsRenderHierarchyInfo();
     }
 
@@ -1910,6 +1996,30 @@
     document.getElementById('btn-timeline-reset').addEventListener('click', async () => {
         await applyTimelineCommand({ reset: true });
         fsRenderTimelineInfo();
+    });
+
+    fsSphericalAnchorType.addEventListener('change', () => {
+        sphericalAnchorType = fsSphericalAnchorType.value || '';
+        emitSphericalSettings();
+        fsRenderSphericalInfo();
+    });
+    fsSphericalGroup.addEventListener('change', () => {
+        sphericalGroup = fsSphericalGroup.checked;
+        emitSphericalSettings();
+        fsRenderSphericalInfo();
+    });
+    fsSphericalAutoRadius.addEventListener('change', () => {
+        sphericalAutoRadius = fsSphericalAutoRadius.checked;
+        emitSphericalSettings();
+        fsRenderSphericalInfo();
+    });
+    fsSphericalRadius.addEventListener('input', () => {
+        sphericalRadius = Number(fsSphericalRadius.value) || 0;
+        sphericalAutoRadius = false;
+        fsSphericalAutoRadius.checked = false;
+        fsSphericalRadius.disabled = false;
+        fsSphericalRadiusVal.textContent = String(sphericalRadius);
+        emitSphericalSettings();
     });
 
     async function applyTimelineSettingsOverride(patch) {
