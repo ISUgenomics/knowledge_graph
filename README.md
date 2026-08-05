@@ -1,6 +1,9 @@
 # Interactive Knowledge Base with LLM-driven queries
 
-KnowledgeGraph centers on a KGX-compatible SQLite database (`vault.db`) that powers the app. The built-in skills can create and enrich that database from APIs, URLs, files, folders, and text. They can also emit linked markdown notes as an optional companion export for users who want a vault-style workflow.
+KnowledgeGraph centers on a KGX-compatible SQLite database that powers the app. The built-in skills can create and enrich that database from APIs, URLs, files, folders, and text. They can also emit linked markdown notes as an optional companion export for users who want a vault-style workflow.
+
+## Goal
+ To be able to query a database in plain English and have the answer light up or filter the graph with the option to run fully locally, no cloud.
 
 ---
 
