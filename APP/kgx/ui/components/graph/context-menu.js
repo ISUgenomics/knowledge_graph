@@ -40,7 +40,7 @@ export function initContextMenu(menuEl, eventBus, apiClient) {
             <div class="ctx-item" data-action="expand" title="Reveal neighbors connected in the current graph view">Expand neighbors</div>
             <div class="ctx-separator"></div>
             <div class="ctx-item" data-action="hide" title="Hide this node from the current view">Hide this node</div>
-            <div class="ctx-item" data-action="relax" title="Un-pin this node so it re-joins the force layout">Relax node</div>
+            <div class="ctx-item" data-action="relax" title="Un-pin this node so it re-joins the force layout">Unpin node</div>
             <div class="ctx-separator"></div>
             <div class="ctx-item ctx-item-muted" data-action="copy" title="Copy this node's canonical ID">Copy ID</div>
         `;
