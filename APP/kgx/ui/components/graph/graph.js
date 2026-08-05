@@ -4072,6 +4072,15 @@ const COMMUNITY_COLORS = [
         );
     });
 
+    // Un-pin a node fixed by dragging so it re-joins the force layout.
+    eventBus.on('node:relax', ({ id }) => {
+        if (!graphInstance) return;
+        const node = allNodes.find(n => n.id === id);
+        if (!node) return;
+        delete node.fx; delete node.fy; delete node.fz;
+        graphInstance.d3ReheatSimulation?.();
+    });
+
     eventBus.on('node:selected', ({ id }) => {
         selectedNodeId = id || null;
         updatePinnedLabelPositions();
